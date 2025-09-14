@@ -1,6 +1,5 @@
 'use client'; // Componente de cliente (interativo)
 
-import React from 'react';
 import { useState } from 'react';
 
 export default function CriarQuestaoPage() {
@@ -17,7 +16,29 @@ export default function CriarQuestaoPage() {
   const handleSubmit = (event) => {
     event.preventDefault(); // Impede o recarregamento da página
     
-    // Validação aqui
+    const handleSubmit = (event) => {
+  event.preventDefault();
+
+  // Validação: Checar se o enunciado está vazio
+  if (enunciado.trim() === '') {
+    alert('Por favor, preencha o enunciado da questão.');
+    return; // Para a execução
+  }
+
+  // Validação: Checar se alguma alternativa está vazia
+  if (alternativas.some(alt => alt.texto.trim() === '')) {
+    alert('Todas as alternativas devem ser preenchidas.');
+    return; // Para a execução
+  }
+
+  // Se tudo estiver certo, continua o código
+  console.log({
+    enunciado: enunciado,
+    alternativas: alternativas,
+  });
+  
+  alert('Questão enviada! Verifique o console.');
+};
     
     // Dados no console
     console.log({
