@@ -15,9 +15,6 @@ export default function CriarQuestaoPage() {
   // Função que será chamada ao enviar o formulário
   const handleSubmit = (event) => {
     event.preventDefault(); // Impede o recarregamento da página
-    
-    const handleSubmit = (event) => {
-  event.preventDefault();
 
   // Validação: Checar se o enunciado está vazio
   if (enunciado.trim() === '') {
@@ -38,15 +35,6 @@ export default function CriarQuestaoPage() {
   });
   
   alert('Questão enviada! Verifique o console.');
-};
-    
-    // Dados no console
-    console.log({
-      enunciado: enunciado,
-      alternativas: alternativas,
-    });
-    
-    alert('Questão enviada! Verifique o console.');
   };
 
   return (
