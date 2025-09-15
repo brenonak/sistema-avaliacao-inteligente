@@ -2,20 +2,20 @@
 const DADOS_DAS_QUESTOES = [
   {
     id: 1,
-    enunciado: 'Qual framework de back-end foi escolhido para o projeto?',
+    enunciado: 'Quantos integrantes tem o grupo?',
     alternativas: [
-      { texto: 'Django', correta: false },
-      { texto: 'FastAPI', correta: true },
-      { texto: 'Flask', correta: false },
+      { texto: '7', correta: false },
+      { texto: '8', correta: true },
+      { texto: '6', correta: false },
     ]
   },
   {
     id: 2,
-    enunciado: 'Qual banco de dados foi escolhido inicialmente?',
+    enunciado: 'Qual a capital do Brasil?',
     alternativas: [
-      { texto: 'PostgreSQL', correta: false },
-      { texto: 'MySQL', correta: false },
-      { texto: 'MongoDB', correta: true },
+      { texto: 'São Paulo', correta: false },
+      { texto: 'Moçambique', correta: false },
+      { texto: 'Brasilia', correta: true },
     ]
   }
 ];
