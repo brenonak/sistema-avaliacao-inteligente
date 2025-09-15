@@ -55,26 +55,23 @@ export default function CriarQuestaoPage() {
           />
         </div>
 
-        {/* Campos das Alternativas (aqui a mágica acontece) */}
+        {/* Campos das Alternativas */}
         <div className="mb-4">
           <h2 className="text-lg font-bold mb-2">Alternativas:</h2>
-          {/* Nós vamos mapear o estado 'alternativas' para criar os campos de input */}
           {alternativas.map((alt, index) => (
             <div key={index} className="flex items-center mb-2">
               <input 
                 type="radio" 
                 name="alternativaCorreta" 
                 checked={alt.correta}
-                // Lógica para marcar qual é a correta
                 onChange={() => {
-                    const novasAlternativas = alternativas.map((a, i) => ({...a, correta: i === index}));
-                    setAlternativas(novasAlternativas);
+                  const novasAlternativas = alternativas.map((a, i) => ({...a, correta: i === index}));
+                  setAlternativas(novasAlternativas);
                 }}
               />
               <input
                 type="text"
                 value={alt.texto}
-                // Lógica para atualizar o texto da alternativa específica
                 onChange={(e) => {
                   const novoTexto = e.target.value;
                   const novasAlternativas = alternativas.map((a, i) => 
@@ -85,8 +82,35 @@ export default function CriarQuestaoPage() {
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 ml-2"
                 placeholder={`Alternativa ${index + 1}`}
               />
+              {/* Botão para remover alternativa */}
+              <button
+                type="button"
+                className="ml-2 text-red-500 font-bold"
+                onClick={() => {
+                  if (alternativas.length > 2) {
+                    const novasAlternativas = alternativas.filter((_, i) => i !== index);
+                    // Se a alternativa removida era a correta, marca a primeira como correta
+                    if (alt.correta) {
+                      novasAlternativas[0].correta = true;
+                    }
+                    setAlternativas(novasAlternativas);
+                  }
+                }}
+                disabled={alternativas.length <= 2}
+                title="Remover alternativa"
+              >
+                🗑️
+              </button>
             </div>
           ))}
+          {/* Botão para adicionar alternativa */}
+          <button
+            type="button"
+            className="mt-2 bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded"
+            onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+          >
+            + Adicionar alternativa
+          </button>
         </div>
 
         {/* Botão de Envio */}
