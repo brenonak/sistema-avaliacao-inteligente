@@ -13,4 +13,4 @@ class Questao(Document):
     alternativas: List[Alternativa]
 
     class Settings:
-        name = "questoes"  # nome da coleção no Mongo
+        name = "questoes"  #Irei adicionar aqui o nome da coleção no MongoDB
