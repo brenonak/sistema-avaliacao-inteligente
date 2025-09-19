@@ -84,19 +84,19 @@ export default function CriarQuestaoPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
-      <h1 className="text-2xl font-bold mb-4">Criar Nova Questão</h1>
+    <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900">
+      <h1 className="text-2xl font-bold mb-4 text-gray-100">Criar Nova Questão</h1>
 
       <form onSubmit={handleSubmit} className="w-full max-w-lg">
         {/* Tipo da questão */}
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="block text-gray-300 text-sm font-bold mb-2">
             Tipo de questão:
           </label>
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
-            className="shadow border rounded w-full py-2 px-3"
+            className="shadow border rounded w-full py-2 px-3 bg-gray-800 border-gray-700 text-gray-100"
           >
             <option value="alternativa">Múltipla escolha</option>
             <option value="vf">Verdadeiro ou Falso</option>
@@ -106,14 +106,14 @@ export default function CriarQuestaoPage() {
 
         {/* Enunciado */}
         <div className="mb-4">
-          <label htmlFor="enunciado" className="block text-gray-700 text-sm font-bold mb-2">
+          <label htmlFor="enunciado" className="block text-gray-300 text-sm font-bold mb-2">
             Enunciado da Questão:
           </label>
           <textarea
             id="enunciado"
             value={enunciado}
             onChange={(e) => setEnunciado(e.target.value)}
-            className="shadow border rounded w-full py-2 px-3"
+            className="shadow border rounded w-full py-2 px-3 bg-gray-800 border-gray-700 text-gray-100"
             rows={4}
           />
         </div>
@@ -121,7 +121,7 @@ export default function CriarQuestaoPage() {
         {/* Alternativas (somente para alternativa/VF) */}
         {tipo !== 'dissertativa' && (
           <div className="mb-4">
-            <h2 className="text-lg font-bold mb-2">Alternativas:</h2>
+            <h2 className="text-lg font-bold mb-2 text-gray-100">Alternativas:</h2>
             {alternativas.map((alt, index) => (
               <div key={index} className="flex items-center mb-2">
                 <input
@@ -132,6 +132,7 @@ export default function CriarQuestaoPage() {
                     const novas = alternativas.map((a, i) => ({ ...a, correta: i === index }));
                     setAlternativas(novas);
                   }}
+                  className="text-emerald-500 bg-gray-800 border-gray-700"
                 />
                 <input
                   type="text"
@@ -143,12 +144,12 @@ export default function CriarQuestaoPage() {
                     );
                     setAlternativas(novas);
                   }}
-                  className="shadow border rounded w-full py-2 px-3 ml-2"
+                  className="shadow border rounded w-full py-2 px-3 ml-2 bg-gray-800 border-gray-700 text-gray-100"
                   placeholder={`Alternativa ${indexToLetter(index)}`}
                 />
                 <button
                   type="button"
-                  className="ml-2 text-red-500 font-bold"
+                  className="ml-2 text-red-400 font-bold hover:text-red-300"
                   onClick={() => {
                     if (alternativas.length > 2) {
                       const novas = alternativas.filter((_, i) => i !== index);
@@ -159,13 +160,13 @@ export default function CriarQuestaoPage() {
                   disabled={alternativas.length <= 2}
                   title="Remover alternativa"
                 >
-                  🗑️
+                  Remover
                 </button>
               </div>
             ))}
             <button
               type="button"
-              className="mt-2 bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded"
+              className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-3 rounded"
               onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
             >
               + Adicionar alternativa
@@ -176,7 +177,7 @@ export default function CriarQuestaoPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-500 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-2 px-4 rounded"
+          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:bg-blue-800 text-white font-bold py-2 px-4 rounded"
         >
           {loading ? 'Salvando...' : 'Salvar Questão'}
         </button>
