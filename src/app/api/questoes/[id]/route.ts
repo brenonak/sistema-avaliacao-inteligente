@@ -13,7 +13,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     const db = await getDb();
     const item = await db.collection("questoes").findOne({ _id });
     if (!item) return notFound("questão não encontrada");
-    return json(item);
+    const { _id: mongoId, ...rest } = item;
+    return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }
 
@@ -30,8 +31,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       { $set: { ...parsed.data, updatedAt: new Date() } },
       { returnDocument: "after" }
     );
-    if (!res) return notFound("questão não encontrada");
-    return json(res);
+  if (!res || !res.value) return notFound("questão não encontrada");
+  const { _id: mongoId, ...rest } = res.value;
+  return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }
 
