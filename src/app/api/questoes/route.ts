@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const filter: any = {};
     if (tipo) filter.tipo = tipo;
 
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       db.collection("questoes")
         .find(filter)
         .sort({ _id: -1 })
@@ -26,6 +26,11 @@ export async function GET(request: Request) {
       db.collection("questoes").countDocuments(filter),
     ]);
 
+    // Normaliza _id para id string
+    const items = rawItems.map((doc: any) => {
+      const { _id, ...rest } = doc;
+      return { id: _id?.toString?.() ?? _id, ...rest };
+    });
     return json({ items, page, limit, total });
   } catch (e) {
     return serverError(e);
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
 
     const db = await getDb();
     const res = await db.collection("questoes").insertOne(doc);
-    return json({ _id: res.insertedId, ...doc }, 201);
+  return json({ id: res.insertedId.toString(), ...doc }, 201);
   } catch (e) {
     return serverError(e);
   }
