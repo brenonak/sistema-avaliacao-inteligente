@@ -1,10 +1,11 @@
 import { getDb } from "../../../lib/mongodb";
 import { json, badRequest, serverError } from "../../../lib/http";
 import { QuestaoCreateSchema } from "../../../lib/validation";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic"; // evita cache SSR em dev
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const tipo = url.searchParams.get("tipo") || undefined;
