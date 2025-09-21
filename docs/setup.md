@@ -55,8 +55,8 @@ MONGODB_URI=<URI_do_MongoDB>
 MONGODB_DB=<Nome_do_banco>
 ```
 
-- **ATENÇÃO**: O .env.local contém informações sensíveis e **não deve ser enviado para o Git**. Cada membro da equipe deve ter sua própria versão deste arquivo.
-     - Obs: Arquivos `.env` estão no `.gitignore`
+- **ATENÇÃO**: O `.env.local` contém informações sensíveis e **não deve ser enviado para o Git**. Cada membro da equipe deve ter sua própria versão deste arquivo.
+     - Obs: Arquivos `.env` estão no `.gitignore`.
 
 ## 6. Rodar o projeto
 No terminal, dentro do diretório do repositório local, execute:
