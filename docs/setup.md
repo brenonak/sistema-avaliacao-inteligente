@@ -52,7 +52,7 @@ cp .env.example .env.local
 4. Preencha o .env.local com as informações obtidas. O arquivo deve estar no seguinte formato:
 ```bash
 MONGODB_URI=<URI_do_MongoDB>
-MONGODB_DB=<Nome_do_banco>
+MONGODB_DB="<Nome_do_banco>"
 ```
 
 - **ATENÇÃO**: O `.env.local` contém informações sensíveis e **não deve ser enviado para o Git**. Cada membro da equipe deve ter sua própria versão deste arquivo.
