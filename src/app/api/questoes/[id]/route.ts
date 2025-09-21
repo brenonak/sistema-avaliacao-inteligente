@@ -9,9 +9,10 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: any) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const params = context?.params ? await context.params : {};
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const item = await db.collection("questoes").findOne({ _id });
     if (!item) return notFound("questão não encontrada");
@@ -20,9 +21,10 @@ export async function GET(request: NextRequest, context: { params: { id: string 
   } catch (e) { return serverError(e); }
 }
 
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: any) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const params = context?.params ? await context.params : {};
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const body = await request.json();
     const parsed = QuestaoUpdateSchema.safeParse(body);
     if (!parsed.success) return badRequest("payload inválido");
@@ -39,9 +41,10 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
   } catch (e) { return serverError(e); }
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: any) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const params = context?.params ? await context.params : {};
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const res = await db.collection("questoes").deleteOne({ _id });
     if (!res.deletedCount) return notFound("questão não encontrada");
