@@ -14,6 +14,26 @@ pnpm dev
 bun dev
 ```
 
+## Rodando aplicação no docker
+
+# Pré-requisitos
+Antes de começar, garanta que você tenha os seguintes softwares instalados na sua máquina:
+
+Git
+
+Docker
+
+Docker Compose (geralmente já vem incluído com o Docker Desktop para Windows e Mac).
+
+No arquivo docker-compose.yml encontre o campo "Enviroment" e preencha os campos MONGODB_URI e MONGODB_DB conforme as orientações descritas no Taiga (esse processo substitui o .env tradicional)
+
+# Inicie os Serviços
+
+Na raiz do projeto (onde se encontram os arquivos Dockerfile e docker-compose.yml), execute o seguinte comando:
+docker-compose up --build
+
+Para rodar novamente os serviços, clique no botão de play no aplicativo docker desktop no seu respectivo conteiner
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
