@@ -90,10 +90,11 @@ export default function CriarQuestaoPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-lg">
         {/* Tipo da questão */}
         <div className="mb-4">
-          <label className="block text-gray-300 text-sm font-bold mb-2">
+          <label htmlFor="tipo" className="block text-gray-300 text-sm font-bold mb-2">
             Tipo de questão:
           </label>
           <select
+            id="tipo"
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
             className="shadow border rounded w-full py-2 px-3 bg-gray-800 border-gray-700 text-gray-100"
