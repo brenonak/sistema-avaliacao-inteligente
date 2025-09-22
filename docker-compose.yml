@@ -15,8 +15,8 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
-      #- MONGODB_URI=  configurar a URI do MongoDB aqui, assim como explicado no taiga->wiki
-      #- MONGODB_DB=  nome do banco de dados
+      - MONGODB_URI= mongodb+srv://golf_db_user:6jcVuvM3Z4wEOS3X@cluster0.c9kzeny.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - MONGODB_DB= "golf_db"
     restart: unless-stopped
     depends_on:
       - mongo
