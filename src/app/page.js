@@ -2,12 +2,13 @@ import ClassroomCard from './components/ClassroomCard';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import { DateCalendar } from '@mui/x-date-pickers';
+import Calendar from './components/Calendar';
 // TODO: Implementar funcionalidade de agenda
 
 export default function Home() {
   return (
     <Grid container sx={{ backgroundColor: 'background.default' }}>
+      <Calendar />
       <Grid size={8}>
         <Box sx={{
               padding: 5,
