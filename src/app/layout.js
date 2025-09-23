@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Header from "./components/Header";
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import "@fontsource/roboto";
+import { Roboto } from 'next/font/google';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const geistSans = Geist({
@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 const customTheme = createTheme({
+  cssVariables: true,
   palette: {
     background: {
       default: '#f0f0f0', // Light gray background for the entire app
@@ -26,9 +27,16 @@ const customTheme = createTheme({
   },
 });
 
+const roboto = Roboto({
+  weight: ['300', '400', '500', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto',
+});
+
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-br">
+    <html lang="pt-br" className={roboto.variable}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
