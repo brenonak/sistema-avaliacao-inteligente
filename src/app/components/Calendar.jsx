@@ -36,7 +36,14 @@ function ServerDay(props) {
       overlap="circular"
       badgeContent={
         isSelected ? (
-          <div style={{ width: 20, height: 20, position: 'absolute' }}>
+          <div 
+            style={{ 
+              width: 20, 
+              height: 20, 
+              zIndex: 2,
+              position: 'absolute',
+            }}
+          >
             <IconButton
               size="small"
               onClick={handleMenuOpen}
@@ -45,14 +52,13 @@ function ServerDay(props) {
                 width: '100%',
                 height: '100%',
                 minWidth: 0,
-                bgcolor: 'white',
                 position: 'absolute',
+                zIndex: 2,
                 top: 0,
                 left: 0,
-                '&:hover': { bgcolor: 'grey.200' },
               }}
             >
-              <AssignmentIcon sx={{ fontSize: 14 }} />
+              <AssignmentIcon sx={{ fontSize: 14, color: 'accent.main' }} />
             </IconButton>
             <Menu
               anchorEl={anchorEl}
@@ -87,8 +93,8 @@ export default function Calendar() {
   // Estado de carregamento para simular busca de dados do servidor
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dias destacados (com tarefas) - inicialmente 1, 5 e 10
-  const [highlightedDays, setHighlightedDays] = useState([1, 5, 10]);
+  // Dias destacados (com tarefas) - inicialmente 1, 5, 10 e 26
+  const [highlightedDays, setHighlightedDays] = useState([1, 5, 10, 26]);
 
   // Função chamada ao mudar o mês, simula busca de dados do servidor
   const handleMonthChange = (newMonth) => {
@@ -106,7 +112,8 @@ export default function Calendar() {
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
       <DateCalendar
         value={selectedDate}
-        onChange={(newDate) => setSelectedDate(newDate)}
+        onChange={() => {}}
+        shouldDisableDate={() => true}
         loading={isLoading}
         onMonthChange={handleMonthChange}
         renderLoading={() => <DayCalendarSkeleton />}

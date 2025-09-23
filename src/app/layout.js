@@ -6,8 +6,6 @@ import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,30 +22,30 @@ const customTheme = createTheme({
     colorSchemeSelector: 'class'
   },
   palette: {
-    // Core colors
+    // Cores principais
     primary: {
-      main: '#000000', // black
+      main: '#000000', // preto
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#ffffff', // white
+      main: '#ffffff', // branco
       contrastText: '#000000',
     },
 
-    // Background colors
+    // Cores de fundo
     background: {
-      default: '#ffffff',   // main app background
-      paper: '#f7f7f7',     // surfaces like cards, modals, etc.
+      default: '#ffffff',   // background geral
+      paper: '#f7f7f7',     // background de cards, modais e superfícies secundárias
     },
 
-    // Text colors
+    // Cores de texto
     text: {
       primary: '#000000',
-      secondary: '#4f4f4f', // subtle gray for less emphasis
-      disabled: '#9e9e9e',
+      secondary: '#4f4f4f', // cinza escuro
+      disabled: '#9e9e9e', // cinza claro
     },
 
-    // Divider and action colors
+    // Cores de ação e divisores
     divider: '#e0e0e0',
     action: {
       active: '#000000',

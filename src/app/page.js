@@ -8,7 +8,6 @@ import ColorModeButtons from './components/ColorModeButtons';
 export default function Home() {
   return (
     <Grid container sx={{ backgroundColor: 'background.default' }}>
-      <Calendar />
       <ColorModeButtons />
       <Grid size={8}>
         <Box sx={{
@@ -64,6 +63,13 @@ export default function Home() {
           <Typography gutterBottom variant="h4" component="div">
             Agenda
           </Typography>
+          <Box sx={{ 
+                backgroundColor: 'background.paper',
+                borderRadius: 2,
+                maxWidth: 320,
+              }}>
+            <Calendar />
+          </Box>
         </Box>
       </Grid>
     </Grid>
