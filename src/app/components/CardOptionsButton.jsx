@@ -44,6 +44,7 @@ export default function CardOptionsButton() {
         }}
         open={Boolean(anchorEl)}
         onClose={handleClose}
+        disableScrollLock={true}
       >
         <MenuItem onClick={handleClose}>Mover</MenuItem>
         <MenuItem onClick={handleClose}>Excluir</MenuItem>

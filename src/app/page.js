@@ -2,9 +2,8 @@ import ClassroomCard from './components/ClassroomCard';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
+import Calendar from './components/Calendar';
 import ColorModeButtons from './components/ColorModeButtons';
-import { DateCalendar } from '@mui/x-date-pickers';
-// TODO: Implementar funcionalidade de agenda
 
 export default function Home() {
   return (
@@ -64,6 +63,13 @@ export default function Home() {
           <Typography gutterBottom variant="h4" component="div">
             Agenda
           </Typography>
+          <Box sx={{ 
+                backgroundColor: 'background.paper',
+                borderRadius: 2,
+                maxWidth: 320,
+              }}>
+            <Calendar />
+          </Box>
         </Box>
       </Grid>
     </Grid>
