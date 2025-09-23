@@ -1,0 +1,34 @@
+#.github/workflows/ci.yml 
+name: CI - testes automatizados 
+
+
+# Define quando o workflow deve ser acionado
+on:
+  push:
+    branches: [ "main" , "develop" ]
+  pull_request:
+    branches: [ "main" , "develop" ]
+
+
+# Define os trabalhos (jobs) a serem executados
+jobs:
+  test:
+    name: Executar testes
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Instalar dependências
+      run: npm install
+
+    - name: Executar testes
+      run: npm test
