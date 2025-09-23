@@ -18,12 +18,17 @@ const geistMono = Geist_Mono({
 });
 
 const customTheme = createTheme({
-  cssVariables: true,
+  cssVariables: {
+    colorSchemeSelector: 'class'
+  },
   palette: {
     background: {
       default: '#f0f0f0', // Light gray background for the entire app
       paper: '#ffffff', // White background for paper-like components
     }
+  },
+  colorSchemes: {
+    dark: true,
   },
 });
 
