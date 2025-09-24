@@ -53,21 +53,5 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 ---
 
-## Como Configurar o Ambiente de Desenvolvimento
-
-### **1. Clone o repositório**
-
-```bash
-git clone https://github.com/ES-UNIFESP/es-unifesp-2025-2-grupo-golf.git
-cd es-unifesp-2025-2-grupo-golf
-```
-
-
-### **2. Instalar o Docker**
-Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows / macOS)  
-- Linux: siga as instruções oficiais para sua distribuição
-
-> Docker será usado para rodar backend, frontend e banco de dados em containers isolados.
-### **3. Rodar o projeto via Docker**
->COMENTÁRIO: Adicionar instruções para rodar projeto no Docker
+## Acesso Deploy
+https://f1-mu-nine.vercel.app/
