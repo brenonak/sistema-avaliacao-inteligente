@@ -15,8 +15,8 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
-      - MONGODB_URI= mongodb+srv://golf_db_user:6jcVuvM3Z4wEOS3X@cluster0.c9kzeny.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-      - MONGODB_DB= "golf_db"
+      - MONGODB_URI= mongodb+srv://golf_db_example
+      - MONGODB_DB= "glof_db_example"
     restart: unless-stopped
     depends_on:
       - mongo
