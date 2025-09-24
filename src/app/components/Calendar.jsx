@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { DateCalendar, DayCalendarSkeleton } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -87,14 +87,19 @@ function ServerDay(props) {
 }
 
 export default function Calendar() {
-  // A data selecionada no calendário (valor inicial: hoje)
-  const [selectedDate, setSelectedDate] = useState(dayjs());
+  // A data selecionada no calendário (valor inicial: null para evitar SSR mismatch)
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // Estado de carregamento para simular busca de dados do servidor
   const [isLoading, setIsLoading] = useState(false);
 
   // Dias destacados (com tarefas) - inicialmente 1, 5, 10 e 26
   const [highlightedDays, setHighlightedDays] = useState([1, 5, 10, 26]);
+
+  useEffect(() => {
+    // Define a data no lado do cliente para garantir que a timezone correta seja usada
+    setSelectedDate(dayjs());
+  }, []);
 
   // Função chamada ao mudar o mês, simula busca de dados do servidor
   const handleMonthChange = (newMonth) => {
@@ -107,6 +112,15 @@ export default function Calendar() {
       setIsLoading(false);
     }, 1000);
   };
+
+  // Renderiza um esqueleto de carregamento até que a data seja definida no cliente
+  if (!selectedDate) {
+    return (
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+        <DayCalendarSkeleton />
+      </LocalizationProvider>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
