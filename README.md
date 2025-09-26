@@ -9,10 +9,11 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 ## Status do Projeto
 
-- **Fase Atual:** Sprint 1 
+- **Fase Atual:** Sprint 2 
 - **Tasks:**
-    - Criação de atividades via template
-    - Funcionalidade de diferentes formatos de questões no template
+    - Banco de questões
+    - Geração de Documento
+    - Banco de Recursos Frequentes
 
 ---
 
@@ -34,7 +35,7 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 - **Frontend:** Next.js  
 - **Backend:** FastAPI, LangGraph  
-- **Banco de Dados:** A definir  
+- **Banco de Dados:** MongoDB
 
 ---
 
