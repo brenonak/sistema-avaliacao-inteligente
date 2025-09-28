@@ -27,6 +27,19 @@ export default function ListarQuestoesPage() {
   return (
     <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900 text-gray-100">
       <h1 className="text-2xl font-bold mb-6 text-white">Questões Cadastradas</h1>
+      
+      {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
+        {!loading && !error && questoes.length > 0 && (
+          <button
+            type="button"
+            onClick={() => alert('Funcionalidade de exportação ainda a ser implementada')}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2 transition-colors duration-200 mb-6"
+          >
+            Exportar para PDF
+          </button>
+          
+        )}
+      
       <div className="w-full max-w-2xl">
         {loading && <p className="text-gray-300">Carregando...</p>}
         {error && <p className="text-red-400">{error}</p>}
