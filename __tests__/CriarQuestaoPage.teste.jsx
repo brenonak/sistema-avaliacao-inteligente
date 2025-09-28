@@ -1,6 +1,9 @@
 // __tests__/CriarQuestaoPage.test.jsx
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import userEvent from '@testing-library/user-event';
 import CriarQuestaoPage from '../src/app/questoes/criar/page'; // Ajustar o caminho para o componente caso mude de lugar
 
 // usada para simular chamadas de API
@@ -9,6 +12,43 @@ global.fetch = jest.fn();
 // Mock para a função alert, para que possamos verificar se ela é chamada
 // sem de fato abrir um popup durante os testes.
 jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+// Create a theme for testing that matches our app configuration
+const testTheme = createTheme({
+  cssVariables: {
+    colorSchemeSelector: 'class'
+  },
+  palette: {
+    primary: {
+      main: '#000000',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#ffffff',
+      contrastText: '#000000',
+    },
+    background: {
+      default: '#ffffff',
+      paper: '#f7f7f7',
+    },
+    text: {
+      primary: '#000000',
+      secondary: '#4f4f4f',
+      disabled: '#9e9e9e',
+    },
+  },
+});
+
+// Custom render function that includes theme provider
+const renderWithTheme = (component) => {
+  return render(
+    <AppRouterCacheProvider>
+      <ThemeProvider theme={testTheme}>
+        {component}
+      </ThemeProvider>
+    </AppRouterCacheProvider>
+  );
+};
 
 describe('CriarQuestaoPage', () => {
 
@@ -20,35 +60,45 @@ describe('CriarQuestaoPage', () => {
 
   //TESTE 1
   it('deve renderizar o formulário corretamente no estado inicial', () => {
-    render(<CriarQuestaoPage />);
+    renderWithTheme(<CriarQuestaoPage />);
 
     
     expect(screen.getByRole('heading', { name: /Criar Nova Questão/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Enunciado da Questão/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Tipo de questão/i)).toHaveValue('alternativa');
+    
+    // For MUI Select, we need to check the hidden input element
+    const selectElement = screen.getByRole('combobox', { name: /Tipo de questão/i });
+    expect(selectElement).toBeInTheDocument();
+    expect(selectElement).toHaveAttribute('aria-expanded', 'false');
+    
     expect(screen.getAllByRole('textbox')).toHaveLength(3); // 1 enunciado + 2 alternativas
     expect(screen.getByRole('button', { name: /Salvar Questão/i })).toBeInTheDocument();
   });
 
-  //TESTE 2
-  it('deve esconder o campo de alternativas quando o tipo for "Dissertativa"', () => {
-    render(<CriarQuestaoPage />);
+    //TESTE 2
+  it('deve esconder o campo de alternativas quando o tipo for "Dissertativa"', async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<CriarQuestaoPage />);
 
     // Garante que as alternativas estão visíveis inicialmente
     expect(screen.getByRole('heading', { name: /Alternativas/i })).toBeInTheDocument();
 
-    // Simula a mudança do tipo da questão para "Dissertativa"
-    const selectTipo = screen.getByLabelText(/Tipo de questão/i);
-    fireEvent.change(selectTipo, { target: { value: 'dissertativa' } });
+    // Para MUI Select, precisamos clicar no select para abri-lo e depois clicar na opção
+    const selectElement = screen.getByRole('combobox', { name: /Tipo de questão/i });
+    await user.click(selectElement);
+    
+    // Aguarda o menu abrir e clica na opção "Dissertativa"
+    const dissertativaOption = await screen.findByRole('option', { name: /Dissertativa/i });
+    await user.click(dissertativaOption);
 
-    // Verifica se a seção de alternativas desapareceu
-    // Usamos queryByRole porque ele retorna `null` se não encontrar, ao invés de um erro.
-    expect(screen.queryByRole('heading', { name: /Alternativas/i })).not.toBeInTheDocument();
-  });
-
-    //TESTE 3
+    // Aguarda a UI atualizar
+    await waitFor(() => {
+      // Verifica se a seção de alternativas desapareceu
+      expect(screen.queryByRole('heading', { name: /Alternativas/i })).not.toBeInTheDocument();
+    });
+  });    //TESTE 3
   it('deve permitir adicionar e remover alternativas', () => {
-    render(<CriarQuestaoPage />);
+    renderWithTheme(<CriarQuestaoPage />);
 
     // Verifica se começamos com 2 alternativas
     expect(screen.getAllByPlaceholderText(/Alternativa/i)).toHaveLength(2);
@@ -70,7 +120,7 @@ describe('CriarQuestaoPage', () => {
 
   //TESTE 4
   it('deve exibir um alerta se o enunciado estiver vazio ao submeter', () => {
-    render(<CriarQuestaoPage />);
+    renderWithTheme(<CriarQuestaoPage />);
 
     const salvarButton = screen.getByRole('button', { name: /Salvar Questão/i });
     fireEvent.click(salvarButton);
@@ -88,7 +138,7 @@ describe('CriarQuestaoPage', () => {
       json: async () => ({ id: '123', message: 'Questão criada!' }),
     });
 
-    render(<CriarQuestaoPage />);
+    renderWithTheme(<CriarQuestaoPage />);
 
     // Preenche o formulário
     fireEvent.change(screen.getByLabelText(/Enunciado da Questão/i), {
