@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+import ColorModeButtons from '../components/ColorModeButtons';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -26,51 +28,102 @@ export default function ListarQuestoesPage() {
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900 text-gray-100">
-      <h1 className="text-2xl font-bold mb-6 text-white">Questões Cadastradas</h1>
-      <div className="w-full max-w-2xl">
-        {loading && <p className="text-gray-300">Carregando...</p>}
-        {error && <p className="text-red-400">{error}</p>}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        p: 3,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <ColorModeButtons />
+      
+      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+        Questões Cadastradas
+      </Typography>
+      
+      {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
+      {!loading && !error && questoes.length > 0 && (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={() => alert('Funcionalidade de exportação ainda a ser implementada')}
+          sx={{ mb: 3 }}
+        >
+          Exportar para PDF
+        </Button>
+      )}
+      
+      <Box sx={{ width: '100%', maxWidth: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando...</Typography>
+          </Box>
+        )}
+        {error && (
+          <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+            {error}
+          </Typography>
+        )}
         {!loading && !error && questoes.length === 0 && (
-          <p className="text-gray-300">Nenhuma questão cadastrada.</p>
+          <Typography sx={{ color: 'text.secondary', textAlign: 'center', p: 2 }}>
+            Nenhuma questão cadastrada.
+          </Typography>
         )}
         {questoes.map((questao, idx) => (
-          <div
+          <Card
             key={questao.id || questao._id || idx}
-            className="mb-4 p-4 border border-gray-700 rounded shadow-lg bg-gray-800 hover:bg-gray-750"
+            sx={{ 
+              mb: 2, 
+              backgroundColor: 'background.paper',
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                backgroundColor: 'action.hover'
+              }
+            }}
           >
-            <p className="font-semibold text-gray-100">{questao.enunciado}</p>
-            <ul className="list-disc pl-5 mt-2">
-              {questao.alternativas?.map((alt, index) => (
-                <li
-                  key={index}
-                  className={alt.correta ? 'font-bold text-emerald-400' : 'text-gray-300'}
+            <CardContent>
+              <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
+                {questao.enunciado}
+              </Typography>
+              <List dense>
+                {questao.alternativas?.map((alt, index) => (
+                  <ListItem key={index} sx={{ pl: 2 }}>
+                    <ListItemText
+                      primary={`${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                      sx={{
+                        '& .MuiListItemText-primary': {
+                          fontWeight: alt.correta ? 'bold' : 'normal',
+                          color: alt.correta ? 'success.main' : 'text.secondary'
+                        }
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+            <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+                <Link href={`/questoes/${questao._id}/editar`} passHref>
+                    <Button size="small" variant="outlined" color="secondary">
+                        Editar
+                    </Button>
+                </Link>
+                <Button 
+                    size="small" 
+                    variant="outlined" 
+                    color="error"
+                    onClick={() => alert(`A função de excluir para a questão ID: ${questao._id} será implementada na próxima task.`)}
                 >
-                  {alt.texto} {alt.correta && '(Correta)'}
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-gray-700">
-              <Link href={`/questoes/${questao._id}/editar`} passHref>
-                <button 
-                  onClick={() => alert(`A função de editar para a questão ID: ${questao._id} será implementada na próxima task.`)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors duration-200"
-                >
-                  Editar
-                </button>
-              </Link>
-              <button 
-                onClick={() => alert(`A função de excluir para a questão ID: ${questao._id} será implementada na próxima task.`)}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors duration-200"
-              >
-                Excluir
-              </button>
-            </div>
-            
-          </div>
+                    Excluir
+                </Button>
+            </CardActions>
+          </Card>
         ))}
-      </div>
-    </main>
+      </Box>
+    </Box>
   );
 }
