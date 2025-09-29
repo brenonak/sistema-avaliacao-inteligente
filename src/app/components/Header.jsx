@@ -1,29 +1,67 @@
 import Link from 'next/link'
+import { Box, AppBar, Toolbar, Button } from '@mui/material'
 
 const Header = () => {
   return (
-    <header className="bg-gray-800 p-4 shadow-md border-b border-gray-700">
-      <nav className="flex justify-center gap-4">
-        <Link 
-          href="/" 
-          className="bg-gray-700 text-gray-100 px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+    <AppBar 
+      position="static" 
+      sx={{ 
+        backgroundColor: 'primary.main',
+        borderBottom: '1px solid',
+        borderBottomColor: 'divider'
+      }}
+    >
+      <Toolbar sx={{ justifyContent: 'center', gap: 2 }}>
+        <Button
+          component={Link}
+          href="/"
+          sx={{
+            backgroundColor: 'background.paper',
+            color: 'text.primary',
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover'
+            }
+          }}
         >
           Home
-        </Link>
-        <Link 
-          href="/questoes" 
-          className="bg-gray-700 text-gray-100 px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+        </Button>
+        <Button
+          component={Link}
+          href="/questoes"
+          sx={{
+            backgroundColor: 'background.paper',
+            color: 'text.primary',
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover'
+            }
+          }}
         >
           Questões
-        </Link>
-        <Link 
-          href="/questoes/criar" 
-          className="bg-gray-700 text-gray-100 px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+        </Button>
+        <Button
+          component={Link}
+          href="/questoes/criar"
+          sx={{
+            backgroundColor: 'background.paper',
+            color: 'text.primary',
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover'
+            }
+          }}
         >
           Criar
-        </Link>
-      </nav>
-    </header>
+        </Button>
+      </Toolbar>
+    </AppBar>
   )
 }
 

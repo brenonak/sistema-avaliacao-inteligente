@@ -1,6 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  TextField, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel, 
+  Button, 
+  Radio, 
+  RadioGroup, 
+  FormControlLabel, 
+  IconButton,
+  Paper
+} from '@mui/material';
+import { Delete } from '@mui/icons-material';
+import ColorModeButtons from '../../components/ColorModeButtons';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -93,120 +110,157 @@ export default function CriarQuestaoPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900">
-      <h1 className="text-2xl font-bold mb-4 text-gray-100">Criar Nova Questão</h1>
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        p: 3,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <ColorModeButtons />
+      
+      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+        Criar Nova Questão
+      </Typography>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-lg">
+      <Paper 
+        component="form" 
+        onSubmit={handleSubmit} 
+        sx={{ 
+          width: '100%', 
+          maxWidth: 600, 
+          p: 4,
+          backgroundColor: 'background.paper'
+        }}
+      >
         {/* Tipo da questão */}
-        <div className="mb-4">
-          <label htmlFor="tipo" className="block text-gray-300 text-sm font-bold mb-2">
-            Tipo de questão:
-          </label>
-          <select
+        <FormControl fullWidth sx={{ mb: 3 }}>
+          <InputLabel id="tipo-label">Tipo de questão</InputLabel>
+          <Select
+            labelId="tipo-label"
             id="tipo"
             value={tipo}
+            label="Tipo de questão"
             onChange={(e) => setTipo(e.target.value)}
-            className="shadow border rounded w-full py-2 px-3 bg-gray-800 border-gray-700 text-gray-100"
           >
-            <option value="alternativa">Múltipla escolha</option>
-            <option value="vf">Verdadeiro ou Falso</option>
-            <option value="dissertativa">Dissertativa</option>
-          </select>
-        </div>
+            <MenuItem value="alternativa">Múltipla escolha</MenuItem>
+            <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
+            <MenuItem value="dissertativa">Dissertativa</MenuItem>
+          </Select>
+        </FormControl>
 
         {/* Enunciado */}
-        <div className="mb-4">
-          <label htmlFor="enunciado" className="block text-gray-300 text-sm font-bold mb-2">
-            Enunciado da Questão:
-          </label>
-          <textarea
-            id="enunciado"
-            value={enunciado}
-            onChange={(e) => setEnunciado(e.target.value)}
-            className="shadow border rounded w-full py-2 px-3 bg-gray-800 border-gray-700 text-gray-100"
-            rows={4}
-          />
-        </div>
+        <TextField
+          id="enunciado"
+          label="Enunciado da Questão"
+          multiline
+          rows={4}
+          value={enunciado}
+          onChange={(e) => setEnunciado(e.target.value)}
+          fullWidth
+          sx={{ mb: 3 }}
+        />
 
         {/* Alternativas (somente para alternativa/VF) */}
         {tipo !== 'dissertativa' && (
-          <div className="mb-4">
-            <h2 className="text-lg font-bold mb-2 text-gray-100">Alternativas:</h2>
-            {alternativas.map((alt, index) => (
-              <div key={index} className="flex items-center mb-2">
-                <input
-                  type="radio"
-                  name="alternativaCorreta"
-                  checked={alt.correta}
-                  onChange={() => {
-                    const novas = alternativas.map((a, i) => ({ ...a, correta: i === index }));
-                    setAlternativas(novas);
-                  }}
-                  className="text-emerald-500 bg-gray-800 border-gray-700"
-                />
-                <input
-                  type="text"
-                  value={alt.texto}
-                  onChange={(e) => {
-                    const novoTexto = e.target.value;
-                    const novas = alternativas.map((a, i) =>
-                      i === index ? { ...a, texto: novoTexto } : a
-                    );
-                    setAlternativas(novas);
-                  }}
-                  className="shadow border rounded w-full py-2 px-3 ml-2 bg-gray-800 border-gray-700 text-gray-100"
-                  placeholder={`Alternativa ${indexToLetter(index)}`}
-                />
-                <button
-                  type="button"
-                  className="ml-2 text-red-400 font-bold hover:text-red-300"
-                  onClick={() => {
-                    if (alternativas.length > 2) {
-                      const novas = alternativas.filter((_, i) => i !== index);
-                      if (alt.correta) novas[0].correta = true;
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Alternativas:
+            </Typography>
+            <RadioGroup
+              name="alternativaCorreta"
+              value={alternativas.findIndex(alt => alt.correta)}
+              onChange={(e) => {
+                const selectedIndex = parseInt(e.target.value);
+                const novas = alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex }));
+                setAlternativas(novas);
+              }}
+            >
+              {alternativas.map((alt, index) => (
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <FormControlLabel
+                    value={index}
+                    control={<Radio />}
+                    label=""
+                    sx={{ margin: 0, marginRight: 1 }}
+                  />
+                  <TextField
+                    value={alt.texto}
+                    onChange={(e) => {
+                      const novoTexto = e.target.value;
+                      const novas = alternativas.map((a, i) =>
+                        i === index ? { ...a, texto: novoTexto } : a
+                      );
                       setAlternativas(novas);
-                    }
-                  }}
-                  disabled={alternativas.length <= 2}
-                  title="Remover alternativa"
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-3 rounded"
+                    }}
+                    placeholder={`Alternativa ${indexToLetter(index)}`}
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                  />
+                  <IconButton
+                    onClick={() => {
+                      if (alternativas.length > 2) {
+                        const novas = alternativas.filter((_, i) => i !== index);
+                        if (alt.correta) novas[0].correta = true;
+                        setAlternativas(novas);
+                      }
+                    }}
+                    disabled={alternativas.length <= 2}
+                    color="error"
+                    sx={{ ml: 1 }}
+                    title="Remover alternativa"
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
+              ))}
+            </RadioGroup>
+            <Button
+              variant="outlined"
               onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+              sx={{ mt: 1 }}
             >
               + Adicionar alternativa
-            </button>
-          </div>
+            </Button>
+          </Box>
         )}
 
         {/* Botões */}
-
-        <div className="flex items-center gap-4 mb-6">
-          <button
+        <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+          <Button
             type="submit"
+            variant="contained"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:bg-blue-800 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            fullWidth
+            color="primary"
           >
             {loading ? 'Salvando...' : 'Salvar Questão'}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="outlined"
             onClick={handleClearForm}
             disabled={loading}
-            className="w-auto bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-60"
+            sx={{
+              mt: 1,
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                borderColor: 'primary.main',
+              },
+            }}
           >
             Limpar
-          </button>
-        </div>
-
-        
-      </form>
-    </main>
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
