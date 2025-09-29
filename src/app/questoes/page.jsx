@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
+import Link from 'next/link';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+
 import ColorModeButtons from '../components/ColorModeButtons';
 
 export default function ListarQuestoesPage() {
@@ -78,6 +80,8 @@ export default function ListarQuestoesPage() {
             sx={{ 
               mb: 2, 
               backgroundColor: 'background.paper',
+              display: 'flex',
+              flexDirection: 'column',
               '&:hover': {
                 backgroundColor: 'action.hover'
               }
@@ -103,6 +107,26 @@ export default function ListarQuestoesPage() {
                 ))}
               </List>
             </CardContent>
+            <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+                <Link href={`/questoes/${questao._id}/editar`} passHref>
+                    <Button 
+                      size="small" 
+                      variant="contained" 
+                      color="secondary"
+                      onClick={() => alert(`A função de editar será implementada na próxima task.`)}
+                      >
+                        Editar
+                    </Button>
+                </Link>
+                <Button 
+                    size="small" 
+                    variant="contained" 
+                    color="error"
+                    onClick={() => alert(`A função de excluir será implementada na próxima task.`)}
+                >
+                    Excluir
+                </Button>
+            </CardActions>
           </Card>
         ))}
       </Box>
