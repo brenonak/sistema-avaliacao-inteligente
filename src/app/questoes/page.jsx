@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -49,6 +50,21 @@ export default function ListarQuestoesPage() {
                 </li>
               ))}
             </ul>
+
+            <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-gray-700">
+              <Link href={`/questoes/${questao._id}/editar`} passHref>
+                <button className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors duration-200">
+                  Editar
+                </button>
+              </Link>
+              <button 
+                onClick={() => alert(`A função de excluir para a questão ID: ${questao._id} será implementada na próxima task.`)}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors duration-200"
+              >
+                Excluir
+              </button>
+            </div>
+            
           </div>
         ))}
       </div>
