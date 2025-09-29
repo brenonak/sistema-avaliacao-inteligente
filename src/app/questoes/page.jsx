@@ -108,15 +108,20 @@ export default function ListarQuestoesPage() {
             </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
                 <Link href={`/questoes/${questao._id}/editar`} passHref>
-                    <Button size="small" variant="outlined" color="secondary">
+                    <Button 
+                      size="small" 
+                      variant="contained" 
+                      color="secondary"
+                      onClick={() => alert(`A função de editar será implementada na próxima task.`)}
+                      >
                         Editar
                     </Button>
                 </Link>
                 <Button 
                     size="small" 
-                    variant="outlined" 
+                    variant="contained" 
                     color="error"
-                    onClick={() => alert(`A função de excluir para a questão ID: ${questao._id} será implementada na próxima task.`)}
+                    onClick={() => alert(`A função de excluir será implementada na próxima task.`)}
                 >
                     Excluir
                 </Button>
