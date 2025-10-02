@@ -9,18 +9,24 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-export async function GET(
-  context: { params: { id: string } | Promise<{ id: string }> }
-) {
+
+type Context = { params: { id: string } };
+
+export async function GET(_req: NextRequest, { params }: Context) {
   try {
-    const params = await context.params;
-    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
+    const _id = oid(params.id);
+    if (!_id) return badRequest('id inválido');
+
     const db = await getDb();
-    const item = await db.collection("questoes").findOne({ _id });
-    if (!item) return notFound("questão não encontrada");
+    const item = await db.collection('questoes').findOne({ _id });
+
+    if (!item) return notFound('questão não encontrada');
+
     const { _id: mongoId, ...rest } = item;
     return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
-  } catch (e) { return serverError(e); }
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 export async function PUT(
