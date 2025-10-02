@@ -33,8 +33,8 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 ## Pilha de Tecnologia
 
 - **Frontend:** Next.js  
-- **Backend:** FastAPI, LangGraph  
-- **Banco de Dados:** A definir  
+- **Backend:** Next.js, LangGraph  
+- **Banco de Dados:** MongoDB
 
 ---
 
@@ -67,7 +67,14 @@ cd es-unifesp-2025-2-grupo-golf
 Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows / macOS)  
 - Linux: siga as instruções oficiais para sua distribuição
+- Baixe o sub-sistema WSL
 
-> Docker será usado para rodar backend, frontend e banco de dados em containers isolados.
+> Docker será usado para rodar backend e frontend em containers isolados.
 ### **3. Rodar o projeto via Docker**
->COMENTÁRIO: Adicionar instruções para rodar projeto no Docker
+- Acesse a pasta onde o arquivo ```docker-compose.yml``` se localiza via terminal
+- Rode o comando ```docker-compose up --build```
+- Espere até que todas as dependências e os conteiners sejam criados corretamente
+- Acesse a aplicação através da porta [3000](localhost:3000)
+- Pare de rodar a aplicação através do comando ```docker-compose stop```
+- Rode novamente a aplicação através do comando  ```docker-compose start```
+- Em caso de modificação de dependências, é necessário excluir os conteiners via ```docker-compose down``` e rodar o comando ```docker-compose up --build``` novamente
