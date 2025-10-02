@@ -1,35 +1,76 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Select, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  Button, 
-  Radio, 
-  RadioGroup, 
-  FormControlLabel, 
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  Box,
+  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
   IconButton,
   Paper,
-  Chip
+  CircularProgress,
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
-import ColorModeButtons from '../../components/ColorModeButtons';
+import ColorModeButtons from '../../../components/ColorModeButtons';
 
-export default function CriarQuestaoPage() {
+export default function EditarQuestaoPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = useMemo(() => (params?.id ? String(params.id) : ''), [params]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
   const [enunciado, setEnunciado] = useState('');
-  const [tipo, setTipo] = useState('alternativa'); // "alternativa" | "dissertativa" | "vf"
-  const [alternativas, setAlternativas] = useState([
-    { texto: '', correta: true },
-    { texto: '', correta: false },
-  ]);
+  const [tipo, setTipo] = useState('alternativa');
+  const [alternativas, setAlternativas] = useState([]);
+  const [gabarito, setGabarito] = useState('');
   const [tagsInput, setTagsInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  
+
+  const indexToLetter = (i) => String.fromCharCode(65 + i);
+
+  useEffect(() => {
+    let abort = false;
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/questoes/${id}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || `Falha ao carregar (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        if (abort) return;
+        setEnunciado(data.enunciado || '');
+        setTipo(data.tipo || 'alternativa');
+        setAlternativas(Array.isArray(data.alternativas) ? data.alternativas.map((a, i) => ({
+          texto: a.texto ?? '',
+          correta: !!a.correta,
+          letra: a.letra ?? indexToLetter(i),
+        })) : []);
+        setGabarito(data.gabarito || '');
+        setTagsInput(Array.isArray(data.tags) ? data.tags.join(', ') : '');
+        setError('');
+      } catch (e) {
+        console.error(e);
+        setError(e.message || 'Erro ao carregar');
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) fetchData();
+    return () => { abort = true; };
+  }, [id]);
+
   const cleanTags = useMemo(() => (
     tagsInput
       .split(',')
@@ -38,118 +79,85 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
-  const handleClearForm = () => {
-    setEnunciado('');
-    setTipo('alternativa');
-    setAlternativas([
-      { texto: '', correta: true },
-      { texto: '', correta: false },
-    ]);
-    setTagsInput('');
-  };
-
-  const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
-
-  const handleSubmit = async (event) => {
+  const handleSave = async (event) => {
     event.preventDefault();
 
-    // validações básicas
     if (enunciado.trim() === '') {
       alert('Por favor, preencha o enunciado da questão.');
       return;
     }
-    if (tipo !== 'dissertativa') {
-      if (alternativas.some((a) => a.texto.trim() === '')) {
-        alert('Todas as alternativas devem ser preenchidas.');
-        return;
-      }
-      if (!alternativas.some((a) => a.correta)) {
-        alert('Marque uma alternativa como correta.');
-        return;
-      }
-    }
 
-    // monta o payload no formato esperado pela API
-    const payload =
-      tipo === 'dissertativa'
-        ? {
-            tipo,
-            enunciado,
-            alternativas: [], // dissertativa não usa alternativas
-            gabarito: '', // opcional: pode coletar em outro campo
-            tags: cleanTags,
-          }
-        : {
-            tipo, // "alternativa" ou "vf"
-            enunciado,
-            alternativas: alternativas.map((a, i) => ({
-              letra: indexToLetter(i),
-              texto: a.texto,
-              correta: !!a.correta,
-            })),
-            tags:cleanTags,
-          };
+    // Monta payload parcial (PUT aceita parcial no backend)
+    const payload = tipo === 'dissertativa'
+      ? {
+          tipo,
+          enunciado,
+          alternativas: [],
+          gabarito,
+          tags: cleanTags,
+        }
+      : {
+          tipo,
+          enunciado,
+          alternativas: alternativas.map((a, i) => ({
+            letra: a.letra ?? indexToLetter(i),
+            texto: a.texto,
+            correta: !!a.correta,
+          })),
+          gabarito: undefined,
+          tags: cleanTags,
+        };
 
     try {
-      setLoading(true);
-      const res = await fetch('/api/questoes', {
-        method: 'POST',
+      setSaving(true);
+      const res = await fetch(`/api/questoes/${id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || `Falha ao salvar (HTTP ${res.status})`);
       }
-
-      const created = await res.json();
-      console.log('Criada:', created);
-      alert('Questão salva com sucesso!');
-
-      // limpar formulário
-      setEnunciado('');
-      setTipo('alternativa');
-      setAlternativas([
-        { texto: '', correta: true },
-        { texto: '', correta: false },
-      ]);
+      await res.json();
+      alert('Questão atualizada com sucesso!');
+      router.push('/questoes');
+      router.refresh?.();
     } catch (e) {
       console.error(e);
-      alert(e.message || 'Erro ao salvar questão.');
+      alert(e.message || 'Erro ao salvar');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         p: 3,
         backgroundColor: 'background.default'
       }}
     >
       <ColorModeButtons />
-      
+
       <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
-        Criar Nova Questão
+        Editar Questão
       </Typography>
 
-      <Paper 
-        component="form" 
-        onSubmit={handleSubmit} 
-        sx={{ 
-          width: '100%', 
-          maxWidth: 600, 
+      <Paper
+        component="form"
+        onSubmit={handleSave}
+        sx={{
+          width: '100%',
+          maxWidth: 600,
           p: 4,
           backgroundColor: 'background.paper'
         }}
       >
-        {/* Tipo da questão */}
         <FormControl fullWidth sx={{ mb: 3 }}>
           <InputLabel id="tipo-label">Tipo de questão</InputLabel>
           <Select
@@ -165,32 +173,6 @@ export default function CriarQuestaoPage() {
           </Select>
         </FormControl>
 
-        {/* Campo de Tags */}
-        <TextField
-          id="tags"
-          label="Tags (separadas por vírgula)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          helperText="Adicione até 10 tags separadas por vírgula"
-        />
-        
-        {cleanTags.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-            {cleanTags.map((tag, index) => (
-              <Chip 
-                key={index} 
-                label={tag} 
-                color="primary" 
-                variant="outlined" 
-                size="small"
-              />
-            ))}
-          </Box>
-        )}
-
-        {/* Enunciado */}
         <TextField
           id="enunciado"
           label="Enunciado da Questão"
@@ -202,7 +184,6 @@ export default function CriarQuestaoPage() {
           sx={{ mb: 3 }}
         />
 
-        {/* Alternativas (somente para alternativa/VF) */}
         {tipo !== 'dissertativa' && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
@@ -210,7 +191,7 @@ export default function CriarQuestaoPage() {
             </Typography>
             <RadioGroup
               name="alternativaCorreta"
-              value={alternativas.findIndex(alt => alt.correta)}
+              value={Math.max(0, alternativas.findIndex(alt => alt.correta))}
               onChange={(e) => {
                 const selectedIndex = parseInt(e.target.value);
                 const novas = alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex }));
@@ -243,7 +224,7 @@ export default function CriarQuestaoPage() {
                     onClick={() => {
                       if (alternativas.length > 2) {
                         const novas = alternativas.filter((_, i) => i !== index);
-                        if (alt.correta) novas[0].correta = true;
+                        if (alt.correta && novas.length) novas[0].correta = true;
                         setAlternativas(novas);
                       }
                     }}
@@ -259,7 +240,7 @@ export default function CriarQuestaoPage() {
             </RadioGroup>
             <Button
               variant="outlined"
-              onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+              onClick={() => setAlternativas([...alternativas, { texto: '', correta: false, letra: indexToLetter(alternativas.length) }])}
               sx={{ mt: 1 }}
             >
               + Adicionar alternativa
@@ -267,38 +248,57 @@ export default function CriarQuestaoPage() {
           </Box>
         )}
 
-        {/* Botões */}
-        <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+        {tipo === 'dissertativa' && (
+          <TextField
+            id="gabarito"
+            label="Gabarito"
+            multiline
+            rows={3}
+            value={gabarito}
+            onChange={(e) => setGabarito(e.target.value)}
+            fullWidth
+            sx={{ mb: 3 }}
+          />
+        )}
+
+        <TextField
+          id="tags"
+          label="Tags (separadas por vírgula)"
+          value={tagsInput}
+          onChange={(e) => setTagsInput(e.target.value)}
+          fullWidth
+          sx={{ mb: 3 }}
+        />
+
+        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
           <Button
             type="submit"
             variant="contained"
-            disabled={loading}
+            disabled={saving}
             fullWidth
             color="primary"
           >
-            {loading ? 'Salvando...' : 'Salvar Questão'}
+            {saving ? 'Salvando...' : 'Salvar alterações'}
           </Button>
 
           <Button
             type="button"
             variant="outlined"
-            onClick={handleClearForm}
-            disabled={loading}
-            sx={{
-              mt: 1,
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              '&:hover': {
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-                borderColor: 'primary.main',
-              },
-            }}
+            onClick={() => router.push('/questoes')}
+            disabled={saving}
           >
-            Limpar
+            Cancelar
           </Button>
         </Box>
       </Paper>
+
+      {loading && (
+        <Box sx={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
+      )}
     </Box>
   );
 }
+
+

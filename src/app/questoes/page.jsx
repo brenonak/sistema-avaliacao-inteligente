@@ -48,7 +48,7 @@ export default function ListarQuestoesPage() {
       }
 
       // Remover a questão da lista localmente
-      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q._id !== questionId));
+      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionId));
       alert('Questão excluída com sucesso');
 
     } catch (err) {
@@ -105,7 +105,7 @@ export default function ListarQuestoesPage() {
         )}
         {questoes.map((questao, idx) => (
           <Card
-            key={questao.id || questao._id || idx}
+            key={questao.id || idx}
             sx={{ 
               mb: 2, 
               backgroundColor: 'background.paper',
@@ -137,12 +137,11 @@ export default function ListarQuestoesPage() {
               </List>
             </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
-                <Link href={`/questoes/${questao._id}/editar`} passHref>
+                <Link href={`/questoes/${questao.id}/editar`} passHref>
                     <Button 
                       size="small" 
                       variant="contained" 
                       color="secondary"
-                      onClick={() => alert(`A função de editar será implementada na próxima task.`)}
                       >
                         Editar
                     </Button>
@@ -151,7 +150,7 @@ export default function ListarQuestoesPage() {
                     size="small" 
                     variant="contained" 
                     color="error"
-                    onClick={() => handleDelete(questao._id)}
+                    onClick={() => handleDelete(questao.id)}
                 >
                     Excluir
                 </Button>

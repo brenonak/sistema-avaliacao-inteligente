@@ -10,7 +10,6 @@ function oid(id: string) {
 }
 
 export async function GET(
-  request: NextRequest,
   context: { params: { id: string } | Promise<{ id: string }> }
 ) {
   try {
