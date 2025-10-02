@@ -28,6 +28,35 @@ export default function ListarQuestoesPage() {
     fetchQuestoes();
   }, []);
 
+  const handleDelete = async (questionId) => {
+    if (!confirm('Tem certeza que deseja excluir esta questão? A ação não poderá ser desfeita')) {
+      return;
+    }
+
+    try {
+      // TODO: A chamada para a API abaixo está pronta.
+      // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
+      // Atualmente, essa chamada retornará um erro 404.
+      // Implemente o endpoint no back-end para que a exclusão funcione corretamente.
+      // Após implementar, teste a funcionalidade para garantir que tudo está funcionando como esperado.
+      const res = await fetch(`/api/questoes/${questionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Erro ao excluir questão');
+      }
+
+      // Remover a questão da lista localmente
+      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q._id !== questionId));
+      alert('Questão excluída com sucesso');
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Erro desconhecido ao excluir questão');
+    }
+  };
+
   return (
     <Box 
       sx={{ 
@@ -122,7 +151,7 @@ export default function ListarQuestoesPage() {
                     size="small" 
                     variant="contained" 
                     color="error"
-                    onClick={() => alert(`A função de excluir será implementada na próxima task.`)}
+                    onClick={() => handleDelete(questao._id)}
                 >
                     Excluir
                 </Button>
