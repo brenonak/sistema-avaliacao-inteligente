@@ -71,7 +71,7 @@ describe('CriarQuestaoPage', () => {
     expect(selectElement).toBeInTheDocument();
     expect(selectElement).toHaveAttribute('aria-expanded', 'false');
     
-    expect(screen.getAllByRole('textbox')).toHaveLength(3); // 1 enunciado + 2 alternativas
+    expect(screen.getAllByRole('textbox')).toHaveLength(4); // 1 enunciado + 2 alternativas + 1 tag
     expect(screen.getByRole('button', { name: /Salvar Questão/i })).toBeInTheDocument();
   });
 
@@ -168,6 +168,7 @@ describe('CriarQuestaoPage', () => {
             { letra: 'A', texto: 'Brasília', correta: true },
             { letra: 'B', texto: 'Rio de Janeiro', correta: false },
           ],
+          tags: [],
         }),
       });
     });
