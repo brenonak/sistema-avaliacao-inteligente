@@ -1,6 +1,5 @@
 
 import { ObjectId } from "mongodb";
-import { NextRequest } from "next/server";
 import { getDb } from "../../../../lib/mongodb";
 import { json, notFound, badRequest, serverError } from "../../../../lib/http";
 import { QuestaoUpdateSchema } from "../../../../lib/validation";
@@ -10,11 +9,11 @@ function oid(id: string) {
 }
 
 export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const item = await db.collection("questoes").findOne({ _id });
     if (!item) return notFound("questão não encontrada");
@@ -24,11 +23,11 @@ export async function GET(
 }
 
 export async function PUT(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const body = await request.json();
     const parsed = QuestaoUpdateSchema.safeParse(body);
     if (!parsed.success) return badRequest("payload inválido");
@@ -46,11 +45,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const _id = oid(context.params.id); if (!_id) return badRequest("id inválido");
+    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const res = await db.collection("questoes").deleteOne({ _id });
     if (!res.deletedCount) return notFound("questão não encontrada");
