@@ -10,7 +10,7 @@ function oid(id: string) {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
@@ -24,7 +24,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
@@ -46,7 +46,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
