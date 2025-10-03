@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
-
 import ColorModeButtons from '../components/ColorModeButtons';
+import EditQuestionModal from '../components/EditQuestionModal';
+
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
   useEffect(() => {
     async function fetchQuestoes() {
@@ -55,6 +59,25 @@ export default function ListarQuestoesPage() {
       console.error(err);
       alert(err.message || 'Erro desconhecido ao excluir questão');
     }
+  };
+
+  const handleOpenEditModal = (questao) => {
+    setEditingQuestion(questao); // Guarda a questão que o usuário clicou
+    setIsModalOpen(true);      // Abre o modal
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);     // Fecha o modal
+    setEditingQuestion(null);  // Limpa a questão em edição
+  };
+
+
+  const handleSaveSuccess = (updatedQuestion) => {
+    setQuestoes(prevQuestoes =>
+      prevQuestoes.map(q =>
+        q._id === updatedQuestion._id ? updatedQuestion : q
+      )
+    );
   };
 
   return (
@@ -137,15 +160,14 @@ export default function ListarQuestoesPage() {
               </List>
             </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
-                <Link href={`/questoes/${questao.id}/editar`} passHref>
-                    <Button 
-                      size="small" 
-                      variant="contained" 
-                      color="secondary"
-                      >
-                        Editar
-                    </Button>
-                </Link>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  color="secondary"
+                  onClick={() => handleOpenEditModal(questao)}
+                >
+                  Editar
+                </Button>
                 <Button 
                     size="small" 
                     variant="contained" 
@@ -158,6 +180,17 @@ export default function ListarQuestoesPage() {
           </Card>
         ))}
       </Box>
+
+      {/* O Modal é renderizado aqui, mas só aparece quando está "aberto" */}
+      {editingQuestion && (
+        <EditQuestionModal
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          question={editingQuestion}
+          onSaveSuccess={handleSaveSuccess}
+        />
+      )}
+
     </Box>
   );
 }
