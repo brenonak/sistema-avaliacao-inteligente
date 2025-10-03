@@ -1,6 +1,5 @@
 
 import { ObjectId } from "mongodb";
-import { NextRequest } from "next/server";
 import { getDb } from "../../../../lib/mongodb";
 import { json, notFound, badRequest, serverError } from "../../../../lib/http";
 import { QuestaoUpdateSchema } from "../../../../lib/validation";
@@ -10,10 +9,10 @@ function oid(id: string) {
 }
 
 export async function GET(
-  context: { params: { id: string } | Promise<{ id: string }> }
+  request: Request,
+  { params }: any
 ) {
   try {
-    const params = await context.params;
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const item = await db.collection("questoes").findOne({ _id });
@@ -24,11 +23,10 @@ export async function GET(
 }
 
 export async function PUT(
-  request: NextRequest,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  request: Request,
+  { params }: any
 ) {
   try {
-    const params = await context.params;
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const body = await request.json();
     const parsed = QuestaoUpdateSchema.safeParse(body);
@@ -47,11 +45,10 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  request: Request,
+  { params }: any
 ) {
   try {
-    const params = await context.params;
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const res = await db.collection("questoes").deleteOne({ _id });
