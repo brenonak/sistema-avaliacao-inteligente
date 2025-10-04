@@ -40,8 +40,9 @@ export async function PUT(
       { $set: { ...parsed.data, updatedAt: new Date() } },
       { returnDocument: "after" }
     );
-    if (!res || !res.value) return notFound("questão não encontrada");
-    const { _id: mongoId, ...rest } = res.value;
+    
+    if (!res) return notFound("questão não encontrada");
+    const { _id: mongoId, ...rest } = res;
     return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }

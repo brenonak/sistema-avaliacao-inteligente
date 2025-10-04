@@ -75,7 +75,7 @@ export default function ListarQuestoesPage() {
   const handleSaveSuccess = (updatedQuestion) => {
     setQuestoes(prevQuestoes =>
       prevQuestoes.map(q =>
-        q._id === updatedQuestion._id ? updatedQuestion : q
+        q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
   };

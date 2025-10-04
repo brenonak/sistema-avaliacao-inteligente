@@ -81,7 +81,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/questoes/${question._id}`, {
+      const res = await fetch(`/api/questoes/${question.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -90,7 +90,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       if (!res.ok) throw new Error('Falha ao salvar as alterações');
       
       const updatedQuestion = await res.json();
-      onSaveSuccess(updatedQuestion.item); // Avisa a página principal que o salvamento deu certo
+      onSaveSuccess(updatedQuestion); // Avisa a página principal que o salvamento deu certo
       onClose(); // Fecha o modal
     } catch (error) {
       console.error(error);
