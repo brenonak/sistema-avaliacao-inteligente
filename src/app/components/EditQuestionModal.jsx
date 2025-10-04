@@ -30,6 +30,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [alternativas, setAlternativas] = useState([]);
   const [tagsInput, setTagsInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [gabarito, setGabarito] = useState('');
+  const [palavrasChave, setPalavrasChave] = useState('');
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
@@ -40,6 +42,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       setTipo(question.tipo || 'alternativa');
       setAlternativas(question.alternativas || []);
       setTagsInput(Array.isArray(question.tags) ? question.tags.join(', ') : '');
+      setGabarito(question.gabarito || '');
+      setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
     }
   }, [question]);
 
@@ -67,18 +71,31 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   ), [tagsInput]);
 
   const handleSave = async () => {
-    // Monta o payload para a API
-    const payload = {
-      tipo,
-      enunciado,
-      alternativas: alternativas.map((a, i) => ({
-        letra: indexToLetter(i),
-        texto: a.texto,
-        correta: !!a.correta,
-      })),
-      tags: cleanTags,
-    };
+    // Monta o payload para a API de forma condicional
+    const payload =
+      tipo === 'dissertativa'
+        ? {
+            // Se for dissertativa, envia gabarito e palavras-chave
+            tipo,
+            enunciado,
+            alternativas: [], // dissertativa não usa alternativas
+            gabarito: gabarito,
+            palavrasChave: palavrasChave.split(',').map(s => s.trim()),
+            tags: cleanTags,
+          }
+        : {
+            // Se for de múltipla escolha ou V/F, envia as alternativas
+            tipo,
+            enunciado,
+            alternativas: alternativas.map((a, i) => ({
+              letra: indexToLetter(i),
+              texto: a.texto,
+              correta: !!a.correta,
+            })),
+            tags: cleanTags,
+          };
 
+  
     setSaving(true);
     try {
       const res = await fetch(`/api/questoes/${question.id}`, {
@@ -195,7 +212,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 ))
               )}
             </RadioGroup>
-            
+          
+
             {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
             {tipo === 'alternativa' && (
               <Button
@@ -205,6 +223,31 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 + Adicionar alternativa
               </Button>
             )}
+          </Box>
+        )}
+
+        {tipo === 'dissertativa' && (
+          <Box>
+            <TextField
+              id="gabarito"
+              label="Gabarito / Critérios de Avaliação"
+              multiline
+              rows={4}
+              value={gabarito}
+              onChange={(e) => setGabarito(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Descreva a resposta ideal ou os critérios para a correção."
+            />
+            <TextField
+              id="palavras-chave"
+              label="Palavras-chave Essenciais (separadas por vírgula)"
+              value={palavrasChave}
+              onChange={(e) => setPalavrasChave(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Importante para a futura pré-correção com IA."
+            />
           </Box>
         )}
 
