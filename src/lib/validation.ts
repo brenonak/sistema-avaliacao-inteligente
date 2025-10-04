@@ -14,6 +14,7 @@ export const QuestaoCreateSchema = z
     enunciado: z.string().min(1, "enunciado obrigatório"),
     alternativas: z.array(AlternativaSchema).default([]),
     gabarito: z.string().optional(),
+    palavrasChave: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Validação específica por tipo
