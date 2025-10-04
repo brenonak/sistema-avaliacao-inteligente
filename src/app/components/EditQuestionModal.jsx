@@ -33,7 +33,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
-  // Efeito para preencher o formulário quando uma questão é selecionada
+ // Efeito para preencher o formulário quando uma questão é selecionada
   useEffect(() => {
     if (question) {
       setEnunciado(question.enunciado || '');
@@ -41,7 +41,22 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       setAlternativas(question.alternativas || []);
       setTagsInput(Array.isArray(question.tags) ? question.tags.join(', ') : '');
     }
-  }, [question]); // Roda sempre que a 'question' mudar
+  }, [question]);
+
+  useEffect(() => {
+    // Só roda se o modal estiver aberto e a questão carregada
+    if (open && question) {
+      if (tipo === 'vf') {
+        // Se o tipo for 'vf', verifica se as alternativas já são V/F. Se não, redefine.
+        if (alternativas.length !== 2 || alternativas[0].texto !== 'Verdadeiro') {
+          setAlternativas([
+            { texto: 'Verdadeiro', correta: true },
+            { texto: 'Falso', correta: false },
+          ]);
+        }
+      }
+    }
+  }, [tipo, open, question]); // Roda quando o tipo, a visibilidade do modal ou a questão mudam
 
   const cleanTags = useMemo(() => (
     tagsInput
@@ -139,43 +154,60 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
               }}
             >
-              {alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <FormControlLabel value={index} control={<Radio />} label="" sx={{ mr: 1 }} />
-                  <TextField
-                    value={alt.texto}
-                    onChange={(e) => {
-                      const novoTexto = e.target.value;
-                      setAlternativas(alternativas.map((a, i) => i === index ? { ...a, texto: novoTexto } : a));
-                    }}
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                  />
-                  <IconButton
-                    onClick={() => {
-                      if (alternativas.length > 2) {
-                        const novas = alternativas.filter((_, i) => i !== index);
-                        if (alt.correta && novas.length) novas[0].correta = true;
-                        setAlternativas(novas);
-                      }
-                    }}
-                    disabled={alternativas.length <= 2}
-                    color="error"
-                  >
-                    <Delete />
-                  </IconButton>
-                </Box>
-              ))}
+              {tipo === 'vf' ? (
+                // NOVA INTERFACE PARA 'VERDADEIRO OU FALSO'
+                alternativas.map((alt, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <FormControlLabel 
+                      value={index} 
+                      control={<Radio />} 
+                      label={<Typography>{alt.texto}</Typography>} 
+                    />
+                  </Box>
+                ))
+              ) : (
+                // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
+                alternativas.map((alt, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <FormControlLabel value={index} control={<Radio />} label="" sx={{ mr: 1 }} />
+                    <TextField
+                      value={alt.texto}
+                      onChange={(e) => {
+                        const novoTexto = e.target.value;
+                        setAlternativas(alternativas.map((a, i) => i === index ? { ...a, texto: novoTexto } : a));
+                      }}
+                      fullWidth variant="outlined" size="small"
+                    />
+                    <IconButton
+                      onClick={() => {
+                        if (alternativas.length > 2) {
+                          const novas = alternativas.filter((_, i) => i !== index);
+                          if (alt.correta && novas.length) novas[0].correta = true;
+                          setAlternativas(novas);
+                        }
+                      }}
+                      disabled={alternativas.length <= 2}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                ))
+              )}
             </RadioGroup>
-            <Button
-              onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
-              sx={{ mt: 1 }}
-            >
-              + Adicionar alternativa
-            </Button>
+            
+            {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
+            {tipo === 'alternativa' && (
+              <Button
+                onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+                sx={{ mt: 1 }}
+              >
+                + Adicionar alternativa
+              </Button>
+            )}
           </Box>
         )}
+
       </DialogContent>
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose} disabled={saving}>Cancelar</Button>
