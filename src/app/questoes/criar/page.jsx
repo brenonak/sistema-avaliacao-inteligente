@@ -373,7 +373,7 @@ export default function CriarQuestaoPage() {
           />
         </Button>
 
-        {/* Lista de arquivos selecionados */}
+        {/* Lista de arquivos adicionados */}
         {arquivos.map((file, index) => (
           <FileItem
             key={index}
