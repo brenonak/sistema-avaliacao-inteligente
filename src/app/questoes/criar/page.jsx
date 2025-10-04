@@ -73,7 +73,7 @@ export default function CriarQuestaoPage() {
     setTagsInput('');
     setGabarito('');
     setPalavrasChave('');
-    setArquivos('');
+    setArquivos([]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
