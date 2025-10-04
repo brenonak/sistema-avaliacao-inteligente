@@ -21,6 +21,7 @@ import { Delete } from '@mui/icons-material';
 import ColorModeButtons from '../../components/ColorModeButtons';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
+import FileItem from '../../components/FileItem';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -35,7 +36,7 @@ export default function CriarQuestaoPage() {
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
-  const [arquivos, setArquivos] = useState('');
+  const [arquivos, setArquivos] = useState([]);
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -72,6 +73,7 @@ export default function CriarQuestaoPage() {
     setTagsInput('');
     setGabarito('');
     setPalavrasChave('');
+    setArquivos('');
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -269,7 +271,7 @@ export default function CriarQuestaoPage() {
             {tipo === 'vf' ? (
               // INTERFACE PARA 'VERDADEIRO OU FALSO'
               alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
                   <FormControlLabel
                     value={index}
                     control={<Radio />}
@@ -361,6 +363,7 @@ export default function CriarQuestaoPage() {
           variant="contained"
           tabIndex={-1}
           startIcon={<CloudUploadIcon />}
+          mb={2}
         >
           Adicionar arquivo
           <VisuallyHiddenInput
@@ -369,6 +372,17 @@ export default function CriarQuestaoPage() {
             multiple
           />
         </Button>
+
+        {/* Lista de arquivos selecionados */}
+        {arquivos.map((file, index) => (
+          <FileItem
+            key={index}
+            file={file}
+            onExclude={(f) => {
+              setArquivos((prev) => prev.filter((x) => x !== f));
+            }}
+          />
+        ))}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
