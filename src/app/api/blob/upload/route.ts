@@ -79,13 +79,21 @@ export async function POST(request: NextRequest) {
           
           console.log("✅ Resource registered successfully:", blob.url);
         } catch (error) {
-          console.error("Error registering resource:", error);
+          console.error("❌ Error registering resource:", error);
           // Don't throw here to avoid breaking the upload flow
         }
       },
     });
 
-    return response;
+    // Ensure we always return a Response object
+    if (response instanceof Response) {
+      return response;
+    }
+    
+    // Handle other response types by converting to Response
+    return new Response(JSON.stringify(response), {
+      headers: { "Content-Type": "application/json" }
+    });
   } catch (error) {
     console.error("Upload error:", error);
     return new Response(
