@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ColorModeButtons from '../../components/ColorModeButtons';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { styled } from '@mui/material/styles';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -144,6 +146,19 @@ export default function CriarQuestaoPage() {
       setLoading(false);
     }
   };
+
+  // Usado pelo botão de upload de arquivo
+  const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    whiteSpace: 'nowrap',
+    width: 1,
+  });
 
   return (
     <Box 
@@ -327,6 +342,22 @@ export default function CriarQuestaoPage() {
             />
           </Box>
         )}
+
+        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+        >
+          Adicionar arquivo
+          <VisuallyHiddenInput
+            type="file"
+            onChange={(event) => console.log(event.target.files)}
+            multiple
+          />
+        </Button>
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
