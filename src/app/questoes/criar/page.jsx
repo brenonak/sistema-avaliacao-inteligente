@@ -29,6 +29,9 @@ export default function CriarQuestaoPage() {
   ]);
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [gabarito, setGabarito] = useState('');
+  const [palavrasChave, setPalavrasChave] = useState('');
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -63,6 +66,8 @@ export default function CriarQuestaoPage() {
       { texto: '', correta: false },
     ]);
     setTagsInput('');
+    setGabarito('');
+    setPalavrasChave('');
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -93,7 +98,8 @@ export default function CriarQuestaoPage() {
             tipo,
             enunciado,
             alternativas: [], // dissertativa não usa alternativas
-            gabarito: '', // opcional: pode coletar em outro campo
+            gabarito: gabarito,
+            palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array
             tags: cleanTags,
           }
         : {
@@ -296,6 +302,31 @@ export default function CriarQuestaoPage() {
         </Box>
       )}
         
+      {/* --- NOVO BLOCO PARA CAMPOS DISSERTATIVOS --- */}
+        {tipo === 'dissertativa' && (
+          <Box>
+            <TextField
+              id="gabarito"
+              label="Gabarito / Critérios de Avaliação"
+              multiline
+              rows={4}
+              value={gabarito}
+              onChange={(e) => setGabarito(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Descreva a resposta ideal ou os critérios para a correção."
+            />
+            <TextField
+              id="palavras-chave"
+              label="Palavras-chave Essenciais (separadas por vírgula)"
+              value={palavrasChave}
+              onChange={(e) => setPalavrasChave(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Importante para a futura pré-correção com IA."
+            />
+          </Box>
+        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
