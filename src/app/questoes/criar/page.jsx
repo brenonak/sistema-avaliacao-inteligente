@@ -34,6 +34,8 @@ export default function CriarQuestaoPage() {
 
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
+
+  const [arquivos, setArquivos] = useState('');
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -147,7 +149,7 @@ export default function CriarQuestaoPage() {
     }
   };
 
-  // Usado pelo botão de upload de arquivo
+  // usado pelo botão de upload de arquivo
   const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
     clipPath: 'inset(50%)',
@@ -159,6 +161,15 @@ export default function CriarQuestaoPage() {
     whiteSpace: 'nowrap',
     width: 1,
   });
+
+  // manipula seleção de arquivos
+  const handleFileChange = (event) => {
+    setArquivos((arquivos) => {
+      const updated = [...arquivos, ...Array.from(event.target.files)];
+      console.log(updated);
+      return updated;
+    });
+  };
 
   return (
     <Box 
@@ -354,7 +365,7 @@ export default function CriarQuestaoPage() {
           Adicionar arquivo
           <VisuallyHiddenInput
             type="file"
-            onChange={(event) => console.log(event.target.files)}
+            onChange={handleFileChange}
             multiple
           />
         </Button>
