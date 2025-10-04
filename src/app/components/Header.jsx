@@ -4,11 +4,16 @@ import { Box, AppBar, Toolbar, Button } from '@mui/material'
 const Header = () => {
   return (
     <AppBar 
-      position="static" 
-      sx={{ 
-        backgroundColor: 'primary.main',
-        borderBottom: '1px solid',
-        borderBottomColor: 'divider'
+      position='sticky' 
+      elevation={0}
+      sx={{
+        backgroundColor: 'palette.mode' === 'dark'
+          ? 'rgba(0, 0, 0, 0.8)'   
+          : 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)', // Suporte para Safari
+        color: 'text.primary',
+        borderBottom: '1px solid divider',
       }}
     >
       <Toolbar sx={{ justifyContent: 'center', gap: 2 }}>
@@ -23,7 +28,8 @@ const Header = () => {
             borderRadius: 1,
             '&:hover': {
               backgroundColor: 'action.hover'
-            }
+            },
+            transition: 'background-color 0ms ease, color 0ms ease',
           }}
         >
           Home
@@ -39,7 +45,8 @@ const Header = () => {
             borderRadius: 1,
             '&:hover': {
               backgroundColor: 'action.hover'
-            }
+            },
+            transition: 'background-color 0ms ease, color 0ms ease',
           }}
         >
           Questões
@@ -55,7 +62,8 @@ const Header = () => {
             borderRadius: 1,
             '&:hover': {
               backgroundColor: 'action.hover'
-            }
+            },
+            transition: 'background-color 0ms ease, color 0ms ease',
           }}
         >
           Criar
