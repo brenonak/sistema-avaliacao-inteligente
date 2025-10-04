@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -22,7 +22,7 @@ import ColorModeButtons from '../../components/ColorModeButtons';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
-  const [tipo, setTipo] = useState('alternativa'); // "alternativa" | "dissertativa" | "vf"
+  const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([
     { texto: '', correta: true },
     { texto: '', correta: false },
@@ -37,6 +37,23 @@ export default function CriarQuestaoPage() {
       .filter(Boolean)
       .slice(0, 10)
   ), [tagsInput]);
+
+  useEffect(() => {
+  if (tipo === 'vf') {
+    // Quando o tipo for 'vf', força as alternativas para o padrão Verdadeiro/Falso
+    setAlternativas([
+      { texto: 'Verdadeiro', correta: true },
+      { texto: 'Falso', correta: false },
+    ]);
+  } else {
+    // QUANDO FOR QUALQUER OUTRO TIPO (Múltipla Escolha ou Dissertativa),
+    // reseta para o padrão de duas alternativas vazias.
+    setAlternativas([
+      { texto: '', correta: true },
+      { texto: '', correta: false },
+    ]);
+  }
+}, [tipo]);
 
   const handleClearForm = () => {
     setEnunciado('');
@@ -201,37 +218,44 @@ export default function CriarQuestaoPage() {
           fullWidth
           sx={{ mb: 3 }}
         />
+        
 
-        {/* Alternativas (somente para alternativa/VF) */}
-        {tipo !== 'dissertativa' && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
-              Alternativas:
-            </Typography>
-            <RadioGroup
-              name="alternativaCorreta"
-              value={alternativas.findIndex(alt => alt.correta)}
-              onChange={(e) => {
-                const selectedIndex = parseInt(e.target.value);
-                const novas = alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex }));
-                setAlternativas(novas);
-              }}
-            >
-              {alternativas.map((alt, index) => (
+      {/* Alternativas (renderização condicional) */}
+      {tipo !== 'dissertativa' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Alternativas:
+          </Typography>
+          <RadioGroup
+            name="alternativaCorreta"
+            value={alternativas.findIndex(alt => alt.correta)}
+            onChange={(e) => {
+              const selectedIndex = parseInt(e.target.value);
+              setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
+            }}
+          >
+            {tipo === 'vf' ? (
+              // INTERFACE PARA 'VERDADEIRO OU FALSO'
+              alternativas.map((alt, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <FormControlLabel
                     value={index}
                     control={<Radio />}
-                    label=""
-                    sx={{ margin: 0, marginRight: 1 }}
+                    label={<Typography sx={{ color: 'text.primary' }}>{alt.texto}</Typography>}
                   />
+                </Box>
+              ))
+            ) : (
+
+              // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
+              alternativas.map((alt, index) => (
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <FormControlLabel value={index} control={<Radio />} label="" sx={{ margin: 0, marginRight: 1 }} />
                   <TextField
                     value={alt.texto}
                     onChange={(e) => {
                       const novoTexto = e.target.value;
-                      const novas = alternativas.map((a, i) =>
-                        i === index ? { ...a, texto: novoTexto } : a
-                      );
+                      const novas = alternativas.map((a, i) => i === index ? { ...a, texto: novoTexto } : a);
                       setAlternativas(novas);
                     }}
                     placeholder={`Alternativa ${indexToLetter(index)}`}
@@ -255,8 +279,12 @@ export default function CriarQuestaoPage() {
                     <Delete />
                   </IconButton>
                 </Box>
-              ))}
-            </RadioGroup>
+              ))
+            )}
+          </RadioGroup>
+
+          {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
+          {tipo === 'alternativa' && (
             <Button
               variant="outlined"
               onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
@@ -264,8 +292,10 @@ export default function CriarQuestaoPage() {
             >
               + Adicionar alternativa
             </Button>
-          </Box>
-        )}
+          )}
+        </Box>
+      )}
+        
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
