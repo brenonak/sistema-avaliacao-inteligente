@@ -19,6 +19,9 @@ import {
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ColorModeButtons from '../../components/ColorModeButtons';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { styled } from '@mui/material/styles';
+import FileItem from '../../components/FileItem';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -32,6 +35,8 @@ export default function CriarQuestaoPage() {
 
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
+
+  const [arquivos, setArquivos] = useState([]);
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -68,6 +73,7 @@ export default function CriarQuestaoPage() {
     setTagsInput('');
     setGabarito('');
     setPalavrasChave('');
+    setArquivos([]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -143,6 +149,28 @@ export default function CriarQuestaoPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // usado pelo botão de upload de arquivo
+  const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    whiteSpace: 'nowrap',
+    width: 1,
+  });
+
+  // manipula seleção de arquivos
+  const handleFileChange = (event) => {
+    setArquivos((arquivos) => {
+      const updated = [...arquivos, ...Array.from(event.target.files)];
+      console.log(updated);
+      return updated;
+    });
   };
 
   return (
@@ -243,7 +271,7 @@ export default function CriarQuestaoPage() {
             {tipo === 'vf' ? (
               // INTERFACE PARA 'VERDADEIRO OU FALSO'
               alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
                   <FormControlLabel
                     value={index}
                     control={<Radio />}
@@ -327,6 +355,34 @@ export default function CriarQuestaoPage() {
             />
           </Box>
         )}
+
+        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+          mb={2}
+        >
+          Adicionar arquivo
+          <VisuallyHiddenInput
+            type="file"
+            onChange={handleFileChange}
+            multiple
+          />
+        </Button>
+
+        {/* Lista de arquivos adicionados */}
+        {arquivos.map((file, index) => (
+          <FileItem
+            key={index}
+            file={file}
+            onExclude={(f) => {
+              setArquivos((prev) => prev.filter((x) => x !== f));
+            }}
+          />
+        ))}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
