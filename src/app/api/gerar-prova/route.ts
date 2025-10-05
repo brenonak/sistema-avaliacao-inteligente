@@ -75,13 +75,6 @@ export async function POST(request: NextRequest) {
     });
     const nomeArquivo = `prova_gemini_${Date.now()}.tex`;
 
-    // só funciona no diretório /tmp. Em desenvolvimento local, funciona normalmente.
-    try {
-      fs.writeFileSync(nomeArquivo, latexOutput);
-    } catch (writeError) {
-      console.warn("Não foi possível salvar o arquivo localmente:", writeError);
-    }
-
     console.log(`Prova gerada: ${nomeArquivo}`);
 
     // Usamos NextResponse para enviar a resposta no padrão Next.js
