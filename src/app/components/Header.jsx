@@ -21,7 +21,9 @@ const Header = () => {
           component={Link}
           href="/"
           sx={{
-            backgroundColor: 'background.paper',
+            backgroundColor: 'palette.mode' === 'dark'
+              ? 'secondary.main'   
+              : 'background.paper',
             color: 'text.primary',
             px: 2,
             py: 1,
@@ -38,7 +40,9 @@ const Header = () => {
           component={Link}
           href="/questoes"
           sx={{
-            backgroundColor: 'background.paper',
+            backgroundColor: 'palette.mode' === 'dark'
+              ? 'secondary.main'   
+              : 'background.paper',
             color: 'text.primary',
             px: 2,
             py: 1,
@@ -55,7 +59,9 @@ const Header = () => {
           component={Link}
           href="/questoes/criar"
           sx={{
-            backgroundColor: 'background.paper',
+            backgroundColor: 'palette.mode' === 'dark'
+              ? 'secondary.main'   
+              : 'background.paper',
             color: 'text.primary',
             px: 2,
             py: 1,
