@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { LLMChain } from "langchain/chains";
+import { StringOutputParser } from "@langchain/core/output_parsers";
 import { MongoClient } from "mongodb";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
@@ -68,25 +68,28 @@ export async function POST(request: NextRequest) {
       inputVariables: ["prova_json"],
     });
 
-    const chain = new LLMChain({ llm: model, prompt });
+    const chain = prompt.pipe(model).pipe(new StringOutputParser());
 
-    const result = await chain.call({
+    const latexOutput = await chain.invoke({
       prova_json: JSON.stringify(provaJson, null, 2),
     });
-    
-    const latexOutput = result.text;
     const nomeArquivo = `prova_gemini_${Date.now()}.tex`;
-    
+
     // só funciona no diretório /tmp. Em desenvolvimento local, funciona normalmente.
-    fs.writeFileSync(nomeArquivo, latexOutput); 
-    
+    try {
+      fs.writeFileSync(nomeArquivo, latexOutput);
+    } catch (writeError) {
+      console.warn("Não foi possível salvar o arquivo localmente:", writeError);
+    }
+
     console.log(`Prova gerada: ${nomeArquivo}`);
 
     // Usamos NextResponse para enviar a resposta no padrão Next.js
     return NextResponse.json({ 
       success: true, 
       message: 'Prova gerada com sucesso via Gemini!',
-      fileName: nomeArquivo 
+      fileName: nomeArquivo,
+      latexContent: latexOutput
     });
 
   } catch (error) {

@@ -11,6 +11,7 @@ export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -80,6 +81,40 @@ export default function ListarQuestoesPage() {
     );
   };
 
+  const handleExportarLatex = async () => {
+    try {
+      setExporting(true);
+      const res = await fetch('/api/gerar-prova', { method: 'POST' });
+
+      if (!res.ok) {
+        throw new Error('Erro ao gerar arquivo LaTeX');
+      }
+
+      const data = await res.json();
+
+      if (!data?.latexContent) {
+        throw new Error('Conteúdo LaTeX indisponível');
+      }
+
+      const blob = new Blob([data.latexContent], { type: 'application/x-tex;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.fileName || 'prova_gemini.tex';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert('Arquivo LaTeX gerado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Falha ao gerar arquivo LaTeX');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Box 
       sx={{ 
@@ -102,10 +137,11 @@ export default function ListarQuestoesPage() {
         <Button
           variant="contained"
           color="success"
-          onClick={() => alert('Funcionalidade de exportação ainda a ser implementada')}
+          onClick={handleExportarLatex}
+          disabled={exporting}
           sx={{ mb: 3 }}
         >
-          Exportar para PDF
+          {exporting ? 'Gerando...' : 'Exportar para LaTeX'}
         </Button>
       )}
       
