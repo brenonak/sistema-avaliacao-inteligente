@@ -5,7 +5,7 @@ import Header from "./components/Header";
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, responsiveFontSizes, ThemeProvider } from '@mui/material/styles';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const customTheme = createTheme({
+let customTheme = createTheme({
   cssVariables: {
     colorSchemeSelector: 'class'
   },
@@ -98,6 +98,8 @@ const customTheme = createTheme({
     },
   },
 });
+
+customTheme = responsiveFontSizes(customTheme);
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
