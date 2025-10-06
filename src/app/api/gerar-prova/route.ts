@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -20,8 +19,13 @@ export async function POST(request: NextRequest) {
       await client.connect();
       const database = client.db(process.env.MONGODB_DB); 
       const questoesCollection = database.collection("questoes");
-      const pipeline = [{ $sample: { size: 5 } }];
-      const questoesDaProva = await questoesCollection.aggregate(pipeline).toArray();
+
+      // Por hora, é selecionada as 5 questões do topo. Futuramente, o usuário deve ser capaz de selecionar as questões manualmente.
+      const questoesDaProva = await questoesCollection
+        .find()
+        .sort({ _id: -1 }) // Ordena por _id decrescente (mais recentes primeiro)
+        .limit(5)
+        .toArray();
 
       if (questoesDaProva.length === 0) {
         throw new Error("Nenhuma questão foi encontrada no banco de dados.");
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
     \\renewcommand{\\thechoice}{\\Alph{choice}} % Usa A, B, C...
-    \\renewcommand{\\choicelabel}{\\thechoice)} % Formato A), B), C)
+    \\renewcommand{\\choicelabel}{\\thechoice)} % Formato (A), (B), (C)
 
     \\begin{document}
 
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
           * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{checkboxes}}\` e \`\\end{{checkboxes}}\`**. As alternativas devem ser \`\\choice Verdadeiro\` e \`\\choice Falso\`.
           * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
 
-      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$$\\frac{{1}}{{2}}$$\`).
+      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`.
 
       **[JSON DA PROVA PARA CONVERSÃO]**
       \`\`\`json
