@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -19,16 +19,27 @@ import {
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ColorModeButtons from '../../components/ColorModeButtons';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { styled } from '@mui/material/styles';
+import FileItem from '../../components/FileItem';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
-  const [tipo, setTipo] = useState('alternativa'); // "alternativa" | "dissertativa" | "vf"
+  const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([
     { texto: '', correta: true },
     { texto: '', correta: false },
   ]);
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [respostaNumerica, setRespostaNumerica] = useState('');
+  const [margemErro, setMargemErro] = useState('');
+
+  const [gabarito, setGabarito] = useState('');
+  const [palavrasChave, setPalavrasChave] = useState('');
+
+  const [arquivos, setArquivos] = useState([]);
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -38,6 +49,35 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
+  useEffect(() => {
+  if (tipo === 'vf') {
+    // Quando o tipo for 'vf', força as alternativas para o padrão Verdadeiro/Falso
+    setAlternativas([
+      { texto: 'Verdadeiro', correta: true },
+      { texto: 'Falso', correta: false },
+    ]);
+  } else {
+    // QUANDO FOR QUALQUER OUTRO TIPO (Múltipla Escolha ou Dissertativa),
+    // reseta para o padrão de duas alternativas vazias.
+    setAlternativas([
+      { texto: '', correta: true },
+      { texto: '', correta: false },
+    ]);
+  }
+
+  // Se o tipo NÃO for 'numérica', limpa os campos numéricos.
+  if (tipo !== 'numerica') {
+    setRespostaNumerica('');
+    setMargemErro('');
+  }
+
+  // Se o tipo NÃO for 'dissertativa', limpa os campos dissertativos.
+  if (tipo !== 'dissertativa') {
+    setGabarito('');
+    setPalavrasChave('');
+  }
+}, [tipo]);
+
   const handleClearForm = () => {
     setEnunciado('');
     setTipo('alternativa');
@@ -46,6 +86,11 @@ export default function CriarQuestaoPage() {
       { texto: '', correta: false },
     ]);
     setTagsInput('');
+    setGabarito('');
+    setPalavrasChave('');
+    setArquivos([]);
+    setRespostaNumerica('');
+    setMargemErro('');
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -76,9 +121,18 @@ export default function CriarQuestaoPage() {
             tipo,
             enunciado,
             alternativas: [], // dissertativa não usa alternativas
-            gabarito: '', // opcional: pode coletar em outro campo
+            gabarito: gabarito,
+            //palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array -> ARRUMAR DEPOIS
             tags: cleanTags,
           }
+        : tipo === 'numerica'
+          ? {
+              tipo,
+              enunciado,
+              respostaCorreta: parseFloat(respostaNumerica || 0), 
+              margemErro: margemErro ? parseFloat(margemErro) : 0,
+              tags: cleanTags,
+            }
         : {
             tipo, // "alternativa" ou "vf"
             enunciado,
@@ -122,6 +176,28 @@ export default function CriarQuestaoPage() {
     }
   };
 
+  // usado pelo botão de upload de arquivo
+  const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    whiteSpace: 'nowrap',
+    width: 1,
+  });
+
+  // manipula seleção de arquivos
+  const handleFileChange = (event) => {
+    setArquivos((arquivos) => {
+      const updated = [...arquivos, ...Array.from(event.target.files)];
+      console.log(updated);
+      return updated;
+    });
+  };
+
   return (
     <Box 
       sx={{ 
@@ -162,6 +238,7 @@ export default function CriarQuestaoPage() {
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
+            <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
         </FormControl>
 
@@ -201,37 +278,44 @@ export default function CriarQuestaoPage() {
           fullWidth
           sx={{ mb: 3 }}
         />
+        
 
-        {/* Alternativas (somente para alternativa/VF) */}
-        {tipo !== 'dissertativa' && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
-              Alternativas:
-            </Typography>
-            <RadioGroup
-              name="alternativaCorreta"
-              value={alternativas.findIndex(alt => alt.correta)}
-              onChange={(e) => {
-                const selectedIndex = parseInt(e.target.value);
-                const novas = alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex }));
-                setAlternativas(novas);
-              }}
-            >
-              {alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+      {/* Alternativas (agora escondidas para dissertativa E numérica) */}
+      {!['dissertativa', 'numerica'].includes(tipo) && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Alternativas:
+          </Typography>
+          <RadioGroup
+            name="alternativaCorreta"
+            value={alternativas.findIndex(alt => alt.correta)}
+            onChange={(e) => {
+              const selectedIndex = parseInt(e.target.value);
+              setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
+            }}
+          >
+            {tipo === 'vf' ? (
+              // INTERFACE PARA 'VERDADEIRO OU FALSO'
+              alternativas.map((alt, index) => (
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
                   <FormControlLabel
                     value={index}
                     control={<Radio />}
-                    label=""
-                    sx={{ margin: 0, marginRight: 1 }}
+                    label={<Typography sx={{ color: 'text.primary' }}>{alt.texto}</Typography>}
                   />
+                </Box>
+              ))
+            ) : (
+
+              // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
+              alternativas.map((alt, index) => (
+                <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <FormControlLabel value={index} control={<Radio />} label="" sx={{ margin: 0, marginRight: 1 }} />
                   <TextField
                     value={alt.texto}
                     onChange={(e) => {
                       const novoTexto = e.target.value;
-                      const novas = alternativas.map((a, i) =>
-                        i === index ? { ...a, texto: novoTexto } : a
-                      );
+                      const novas = alternativas.map((a, i) => i === index ? { ...a, texto: novoTexto } : a);
                       setAlternativas(novas);
                     }}
                     placeholder={`Alternativa ${indexToLetter(index)}`}
@@ -255,8 +339,12 @@ export default function CriarQuestaoPage() {
                     <Delete />
                   </IconButton>
                 </Box>
-              ))}
-            </RadioGroup>
+              ))
+            )}
+          </RadioGroup>
+
+          {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
+          {tipo === 'alternativa' && (
             <Button
               variant="outlined"
               onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
@@ -264,8 +352,88 @@ export default function CriarQuestaoPage() {
             >
               + Adicionar alternativa
             </Button>
+          )}
+        </Box>
+      )}
+
+      {/* BLOCO PARA RESPOSTA NUMÉRICA */}
+    {tipo === 'numerica' && (
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <TextField
+          id="resposta-numerica"
+          label="Resposta Correta"
+          type="number" // Garante que o campo seja numérico
+          value={respostaNumerica}
+          onChange={(e) => setRespostaNumerica(e.target.value)}
+          variant="outlined"
+          fullWidth
+          required // Indicar que é obrigatório
+        />
+        <TextField
+          id="margem-erro"
+          label="Margem de Erro (Opcional)"
+          type="number"
+          value={margemErro}
+          onChange={(e) => setMargemErro(e.target.value)}
+          variant="outlined"
+          fullWidth
+        />
+      </Box>
+    )}
+
+      {/* BLOCO PARA CAMPOS DISSERTATIVOS */}
+        {tipo === 'dissertativa' && (
+          <Box>
+            <TextField
+              id="gabarito"
+              label="Gabarito / Critérios de Avaliação"
+              multiline
+              rows={4}
+              value={gabarito}
+              onChange={(e) => setGabarito(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Descreva a resposta ideal ou os critérios para a correção."
+            />
+            <TextField
+              id="palavras-chave"
+              label="Palavras-chave Essenciais (separadas por vírgula)"
+              value={palavrasChave}
+              onChange={(e) => setPalavrasChave(e.target.value)}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Importante para a futura pré-correção com IA."
+            />
           </Box>
         )}
+
+        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+          mb={2}
+        >
+          Adicionar arquivo
+          <VisuallyHiddenInput
+            type="file"
+            onChange={handleFileChange}
+            multiple
+          />
+        </Button>
+
+        {/* Lista de arquivos adicionados */}
+        {arquivos.map((file, index) => (
+          <FileItem
+            key={index}
+            file={file}
+            onExclude={(f) => {
+              setArquivos((prev) => prev.filter((x) => x !== f));
+            }}
+          />
+        ))}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
