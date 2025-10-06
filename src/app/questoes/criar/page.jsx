@@ -77,6 +77,8 @@ export default function CriarQuestaoPage() {
     setGabarito('');
     setPalavrasChave('');
     setArquivos([]);
+    setRespostaNumerica('');
+    setMargemErro('');
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -111,6 +113,14 @@ export default function CriarQuestaoPage() {
             palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array
             tags: cleanTags,
           }
+        : tipo === 'numerica'
+          ? {
+              tipo,
+              enunciado,
+              respostaCorreta: parseFloat(respostaNumerica || 0), 
+              margemErro: margemErro ? parseFloat(margemErro) : 0,
+              tags: cleanTags,
+            }
         : {
             tipo, // "alternativa" ou "vf"
             enunciado,
