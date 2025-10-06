@@ -87,6 +87,14 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             palavrasChave: palavrasChave.split(',').map(s => s.trim()),
             tags: cleanTags,
           }
+        : tipo === 'numerica'
+          ? {
+              tipo,
+              enunciado,
+              respostaCorreta: parseFloat(respostaNumerica || 0),
+              margemErro: margemErro ? parseFloat(margemErro) : 0,
+              tags: cleanTags,
+            }
         : {
             // Se for de múltipla escolha ou V/F, envia as alternativas
             tipo,
