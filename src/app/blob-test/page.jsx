@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useRef } from "react";
 import { upload } from "@vercel/blob/client";
@@ -29,14 +29,11 @@ export default function BlobTestPage() {
       
       const blob = await upload(file.name, file, {
         access: 'public',
-        handleUploadUrl: '/api/blob/upload',
-        clientPayload: JSON.stringify({ 
+        handleUploadUrl: '/api/blob/upload', // Your API route
+        clientPayload: JSON.stringify({
           originalFilename: file.name,
           timestamp: Date.now()
-        }),
-        onProgress: (progress) => {
-          setUploadProgress(progress.percentage);
-        }
+        })
       });
 
       // Add to uploaded images

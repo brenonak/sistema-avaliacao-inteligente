@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // IMPORTANT: Return the configuration object that includes authorization
         return {
           allowedContentTypes: [
             "image/jpeg",
@@ -74,29 +75,19 @@ export async function POST(request: NextRequest) {
                      blob.pathname?.split('/').pop() || 
                      'unknown',
             mime: blob.contentType || inferMimeType(blob.pathname),
-            sizeBytes: 0, // Size not available in PutBlobResult
+            sizeBytes: 0,
           };
 
-          // Upsert the resource in MongoDB
           await upsertRecurso(recursoData);
           
-          console.log("✅ Resource registered successfully:", blob.url);
+          console.log("Resource registered successfully:", blob.url);
         } catch (error) {
-          console.error("❌ Error registering resource:", error);
-          // Don't throw here to avoid breaking the upload flow
+          console.error("Error registering resource:", error);
         }
       },
     });
 
-    // Ensure we always return a Response object
-    if (response instanceof Response) {
-      return response;
-    }
-    
-    // Handle other response types by converting to Response
-    return new Response(JSON.stringify(response), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return response;
   } catch (error) {
     console.error("Upload error:", error);
     return new Response(
