@@ -54,15 +54,40 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   useEffect(() => {
     // Só roda se o modal estiver aberto e a questão carregada
     if (open && question) {
+
       if (tipo === 'vf') {
-        // Se o tipo for 'vf', verifica se as alternativas já são V/F. Se não, redefine.
+        // Se o tipo MUDOU para 'vf', define as alternativas padrão
         if (alternativas.length !== 2 || alternativas[0].texto !== 'Verdadeiro') {
           setAlternativas([
             { texto: 'Verdadeiro', correta: true },
             { texto: 'Falso', correta: false },
           ]);
         }
+      } else if (tipo === 'alternativa') {
+      // Se o tipo MUDOU para 'alternativa', restaura as alternativas ORIGINAIS da questão
+      setAlternativas(question.alternativas || []);
+    }
+
+      // Limpa os campos de RESPOSTA NUMÉRICA se o tipo não for 'numerica'
+      if (tipo !== 'numerica') {
+        setRespostaNumerica('');
+        setMargemErro('');
+      } else {
+        // Se o tipo for 'numerica', restaura os valores originais
+        setRespostaNumerica(question.respostaCorreta || '');
+        setMargemErro(question.margemErro || '');
       }
+
+      // Limpa os campos de DISSERTATIVA se o tipo não for 'dissertativa'
+      if (tipo !== 'dissertativa') {
+        setGabarito('');
+        setPalavrasChave('');
+      } else {
+        // Se o tipo for 'dissertativa', restaura os valores originais
+        setGabarito(question.gabarito || '');
+        setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
+      }
+
     }
   }, [tipo, open, question]); // Roda quando o tipo, a visibilidade do modal ou a questão mudam
 

@@ -64,6 +64,18 @@ export default function CriarQuestaoPage() {
       { texto: '', correta: false },
     ]);
   }
+
+  // Se o tipo NÃO for 'numérica', limpa os campos numéricos.
+  if (tipo !== 'numerica') {
+    setRespostaNumerica('');
+    setMargemErro('');
+  }
+
+  // Se o tipo NÃO for 'dissertativa', limpa os campos dissertativos.
+  if (tipo !== 'dissertativa') {
+    setGabarito('');
+    setPalavrasChave('');
+  }
 }, [tipo]);
 
   const handleClearForm = () => {
@@ -355,7 +367,7 @@ export default function CriarQuestaoPage() {
           onChange={(e) => setRespostaNumerica(e.target.value)}
           variant="outlined"
           fullWidth
-          required // Boa prática para indicar que é obrigatório
+          required // Indicar que é obrigatório
         />
         <TextField
           id="margem-erro"
