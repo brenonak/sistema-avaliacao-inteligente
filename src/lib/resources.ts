@@ -106,6 +106,32 @@ export async function getTopRecursos(limit: number = 10): Promise<Recurso[]> {
     .toArray();
 }
 
+export async function getRecursoByUrl(url: string): Promise<Recurso | null> {
+  const collection = await getRecursosCollection();
+  try {
+    const recurso = await collection.findOne({ url });
+    return recurso ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function incrementResourceUsage(ids: string[]): Promise<void> {
+  if (!ids || ids.length === 0) return;
+  const collection = await getRecursosCollection();
+  const now = new Date();
+  const objectIds = ids
+    .map((id) => {
+      try { return new ObjectId(id); } catch { return null; }
+    })
+    .filter((v): v is ObjectId => !!v);
+  if (objectIds.length === 0) return;
+  await collection.updateMany(
+    { _id: { $in: objectIds } },
+    { $inc: { "usage.refCount": 1 }, $set: { lastUsedAt: now, updatedAt: now } }
+  );
+}
+
 export async function getRecursoById(id: string): Promise<Recurso | null> {
   const collection = await getRecursosCollection();
   

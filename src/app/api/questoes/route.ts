@@ -2,6 +2,7 @@ import { getDb } from "../../../lib/mongodb";
 import { json, badRequest, serverError } from "../../../lib/http";
 import { QuestaoCreateSchema } from "../../../lib/validation";
 import { NextRequest } from "next/server";
+import { getRecursoByUrl, incrementResourceUsage } from "../../../lib/resources";
 
 export const dynamic = "force-dynamic"; // evita cache SSR em dev
 
@@ -110,9 +111,31 @@ export async function POST(request: NextRequest) {
 
     const tags = sanitizeTags((body as any)?.tags);
 
+    // Resolve recursos: accept array of resource URLs or IDs in body.recursos
+    const rawRecursos = Array.isArray((body as any)?.recursos) ? (body as any).recursos : [];
+    const recursoIds: string[] = [];
+    for (const item of rawRecursos) {
+      if (typeof item === "string") {
+        // try as ObjectId string first; if not, treat as URL
+        if (/^[a-f\d]{24}$/i.test(item)) {
+          recursoIds.push(item);
+        } else {
+          const rec = await getRecursoByUrl(item);
+          if (rec?._id) recursoIds.push(rec._id.toString());
+        }
+      } else if (item && typeof item === "object") {
+        if (typeof (item as any).id === "string") recursoIds.push((item as any).id);
+        else if (typeof (item as any).url === "string") {
+          const rec = await getRecursoByUrl((item as any).url);
+          if (rec?._id) recursoIds.push(rec._id.toString());
+        }
+      }
+    }
+
     const doc = {
       ...parsed.data,
       tags,
+      recursos: recursoIds, // references
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -120,7 +143,9 @@ export async function POST(request: NextRequest) {
     const db = await getDb();
     void ensureIndexes();
     const res = await db.collection("questoes").insertOne(doc);
-  return json({ id: res.insertedId.toString(), ...doc }, 201);
+    // increment usage for linked resources
+    void incrementResourceUsage(recursoIds).catch(() => {});
+    return json({ id: res.insertedId.toString(), ...doc }, 201);
   } catch (e) {
     return serverError(e);
   }

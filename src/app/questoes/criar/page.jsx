@@ -22,6 +22,7 @@ import ColorModeButtons from '../../components/ColorModeButtons';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
+import { upload } from "@vercel/blob/client";
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -40,6 +41,7 @@ export default function CriarQuestaoPage() {
   const [palavrasChave, setPalavrasChave] = useState('');
 
   const [arquivos, setArquivos] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -89,6 +91,7 @@ export default function CriarQuestaoPage() {
     setGabarito('');
     setPalavrasChave('');
     setArquivos([]);
+    setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
   };
@@ -114,6 +117,23 @@ export default function CriarQuestaoPage() {
       }
     }
 
+    // realiza upload dos arquivos selecionados (se houver)
+    let recursos = [];
+    if (arquivos.length > 0) {
+      try {
+        for (const file of arquivos) {
+          const uploaded = await uploadSingleFile(file);
+          recursos.push(uploaded);
+        }
+        setUploadedFiles(recursos);
+      } catch (e) {
+        console.error('Erro ao enviar anexos:', e);
+        alert('Falha ao enviar arquivos. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+    }
+
     // monta o payload no formato esperado pela API
     const payload =
       tipo === 'dissertativa'
@@ -124,6 +144,7 @@ export default function CriarQuestaoPage() {
             gabarito: gabarito,
             //palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array -> ARRUMAR DEPOIS
             tags: cleanTags,
+            recursos: recursos.map((r) => r.url),
           }
         : tipo === 'numerica'
           ? {
@@ -132,6 +153,7 @@ export default function CriarQuestaoPage() {
               respostaCorreta: parseFloat(respostaNumerica || 0), 
               margemErro: margemErro ? parseFloat(margemErro) : 0,
               tags: cleanTags,
+              recursos: recursos.map((r) => r.url),
             }
         : {
             tipo, // "alternativa" ou "vf"
@@ -142,6 +164,7 @@ export default function CriarQuestaoPage() {
               correta: !!a.correta,
             })),
             tags:cleanTags,
+            recursos: recursos.map((r) => r.url),
           };
 
     try {
@@ -161,13 +184,8 @@ export default function CriarQuestaoPage() {
       console.log('Criada:', created);
       alert('Questão salva com sucesso!');
 
-      // limpar formulário
-      setEnunciado('');
-      setTipo('alternativa');
-      setAlternativas([
-        { texto: '', correta: true },
-        { texto: '', correta: false },
-      ]);
+      // limpar formulário completo (inclui arquivos e uploads)
+      handleClearForm();
     } catch (e) {
       console.error(e);
       alert(e.message || 'Erro ao salvar questão.');
@@ -189,13 +207,39 @@ export default function CriarQuestaoPage() {
     width: 1,
   });
 
-  // manipula seleção de arquivos
-  const handleFileChange = (event) => {
-    setArquivos((arquivos) => {
-      const updated = [...arquivos, ...Array.from(event.target.files)];
-      console.log(updated);
-      return updated;
+  // upload para Vercel Blob e registro opcional no backend local
+  const uploadSingleFile = async (file) => {
+    const blob = await upload(file.name, file, {
+      access: 'public',
+      handleUploadUrl: '/api/blob/upload',
+      clientPayload: JSON.stringify({ originalFilename: file.name, timestamp: Date.now() })
     });
+
+    // Fallback de registro no desenvolvimento local
+    try {
+      await fetch('/api/resources/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: blob.url,
+          key: blob.pathname,
+          filename: file.name,
+          mime: file.type,
+          sizeBytes: file.size
+        })
+      });
+    } catch (_) {
+      // silencioso em produção
+    }
+
+    return { name: file.name, size: file.size, url: blob.url, type: file.type };
+  };
+
+  // manipula seleção de arquivos (sem upload imediato)
+  const handleFileChange = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    setArquivos((prev) => [...prev, ...files]);
   };
 
   return (
@@ -434,6 +478,21 @@ export default function CriarQuestaoPage() {
             }}
           />
         ))}
+
+        {/* Arquivos enviados (links) */}
+        {uploadedFiles.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, color: 'text.primary' }}>
+              Arquivos enviados:
+            </Typography>
+            {uploadedFiles.map((f, i) => (
+              <Box key={`${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{f.name}</Typography>
+                <a href={f.url} target="_blank" rel="noreferrer">abrir</a>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
