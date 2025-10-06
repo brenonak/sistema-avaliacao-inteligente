@@ -105,7 +105,7 @@ export default function CriarQuestaoPage() {
             enunciado,
             alternativas: [], // dissertativa não usa alternativas
             gabarito: gabarito,
-            palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array
+            //palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array -> ARRUMAR DEPOIS
             tags: cleanTags,
           }
         : {
