@@ -1,5 +1,6 @@
 import { handleUpload } from "@vercel/blob/client";
 import { NextRequest } from "next/server";
+ 
 import { upsertRecurso } from "../../../../lib/resources";
 
 export const runtime = "nodejs";
@@ -18,18 +19,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!request.body) {
-      return new Response(
-        JSON.stringify({ error: "Request body is required" }), 
-        { 
-          status: 400,
-          headers: { "Content-Type": "application/json" }
-        }
-      );
-    }
-
     const response = await handleUpload({
-      body: request.body as any, 
+      body: request.body as any,
       request,
       onBeforeGenerateToken: async (pathname: string, clientPayload: string | null) => {
         // Parse client payload to get original filename
