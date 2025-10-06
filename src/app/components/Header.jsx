@@ -2,8 +2,26 @@ import Link from 'next/link'
 import { Box, AppBar, Toolbar, Button } from '@mui/material'
 import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
+import { useState } from 'react'; 
 
 const Header = () => {
+  const settings = ['Perfil', 'Mudar de conta', 'Configurações', 'Sair'];
+
+  const [anchorElUser, setAnchorElUser] = useState(null);
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
   const theme = useTheme();
 
   return (
@@ -11,61 +29,54 @@ const Header = () => {
       position='sticky' 
       elevation={0}
       sx={{
-        backgroundColor: theme.palette.mode === 'dark'
-          ? 'rgba(0, 0, 0, 0.8)'   
-          : 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: theme.palette.header.main,
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)', // Suporte para Safari
-        color: 'text.primary',
         borderBottom: '1px solid divider',
       }}
     >
       <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
-        <Button
-          component={Link}
-          href="/"
-          disableRipple
-          sx={{
-            color: 'text.primary',
-            borderRadius: 1,
-            display: 'flex',
-            alignItems: 'center',
-            '&:hover': { backgroundColor: 'inherit' },
-            transition: 'background-color 0ms ease, color 0ms ease',
-          }}
-        >
-          <Box
-            component="img"
-            src="/professor.svg"
-            alt="Professor Icon"
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            component={Link}
+            href="/"
+            disableRipple
             sx={{
-              height: 64,
-              width: 64,
-            }}
-          />
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 600,
-              letterSpacing: 0.5,
+              color: 'text.primary',
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              '&:hover': { backgroundColor: 'inherit' },
+              transition: 'background-color 0ms ease, color 0ms ease',
             }}
           >
-            Sistema Acadêmico
-          </Typography>
-        </Button>
-        <Box>
+            <Box
+              component="img"
+              src="/professor.svg"
+              alt="Professor Icon"
+              sx={{
+                height: 64,
+                width: 64,
+              }}
+            />
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                letterSpacing: 0.5,
+              }}
+            >
+              Sistema Acadêmico
+            </Typography>
+          </Button>
           <Button
             component={Link}
             href="/questoes"
             sx={{
-              backgroundColor: 'palette.mode' === 'dark'
-                ? 'secondary.main'   
-                : 'background.paper',
               color: 'text.primary',
               px: 2,
               py: 1,
               borderRadius: 1,
-              mr: 3,
               '&:hover': {
                 backgroundColor: 'action.hover'
               },
@@ -78,13 +89,9 @@ const Header = () => {
             component={Link}
             href="/questoes/criar"
             sx={{
-              backgroundColor: 'palette.mode' === 'dark'
-                ? 'secondary.main'   
-                : 'background.paper',
               color: 'text.primary',
               px: 2,
               py: 1,
-              mr: 32,
               borderRadius: 1,
               '&:hover': {
                 backgroundColor: 'action.hover'
@@ -95,7 +102,36 @@ const Header = () => {
             Criar
           </Button>
         </Box>
-        <Box></Box>
+        <Box sx={{ flexGrow: 0, mr: 2 }}>
+          <Tooltip title="Open settings">
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+              <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            sx={{ mt: '45px' }}
+            id="menu-appbar"
+            anchorEl={anchorElUser}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorElUser)}
+            onClose={handleCloseUserMenu}
+            disableScrollLock={true}
+          >
+            {settings.map((setting) => (
+              <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
       </Toolbar>
     </AppBar>
   )
