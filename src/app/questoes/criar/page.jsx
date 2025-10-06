@@ -33,6 +33,9 @@ export default function CriarQuestaoPage() {
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [respostaNumerica, setRespostaNumerica] = useState('');
+  const [margemErro, setMargemErro] = useState('');
+
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
@@ -213,6 +216,7 @@ export default function CriarQuestaoPage() {
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
+            <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
         </FormControl>
 
@@ -254,8 +258,8 @@ export default function CriarQuestaoPage() {
         />
         
 
-      {/* Alternativas (renderização condicional) */}
-      {tipo !== 'dissertativa' && (
+      {/* Alternativas (agora escondidas para dissertativa E numérica) */}
+      {!['dissertativa', 'numerica'].includes(tipo) && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
             Alternativas:
@@ -329,8 +333,33 @@ export default function CriarQuestaoPage() {
           )}
         </Box>
       )}
-        
-      {/* --- NOVO BLOCO PARA CAMPOS DISSERTATIVOS --- */}
+
+      {/* BLOCO PARA RESPOSTA NUMÉRICA */}
+    {tipo === 'numerica' && (
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <TextField
+          id="resposta-numerica"
+          label="Resposta Correta"
+          type="number" // Garante que o campo seja numérico
+          value={respostaNumerica}
+          onChange={(e) => setRespostaNumerica(e.target.value)}
+          variant="outlined"
+          fullWidth
+          required // Boa prática para indicar que é obrigatório
+        />
+        <TextField
+          id="margem-erro"
+          label="Margem de Erro (Opcional)"
+          type="number"
+          value={margemErro}
+          onChange={(e) => setMargemErro(e.target.value)}
+          variant="outlined"
+          fullWidth
+        />
+      </Box>
+    )}
+
+      {/* BLOCO PARA CAMPOS DISSERTATIVOS */}
         {tipo === 'dissertativa' && (
           <Box>
             <TextField
