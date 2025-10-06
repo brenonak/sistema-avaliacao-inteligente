@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
-import ColorModeButtons from '../components/ColorModeButtons';
 import EditQuestionModal from '../components/EditQuestionModal';
 
 
@@ -126,8 +125,6 @@ export default function ListarQuestoesPage() {
         backgroundColor: 'background.default'
       }}
     >
-      <ColorModeButtons />
-      
       <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
         Questões Cadastradas
       </Typography>

@@ -169,6 +169,7 @@ describe('CriarQuestaoPage', () => {
             { letra: 'B', texto: 'Rio de Janeiro', correta: false },
           ],
           tags: [],
+          recursos: [],
         }),
       });
     });

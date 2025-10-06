@@ -32,6 +32,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [saving, setSaving] = useState(false);
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
+  const [respostaNumerica, setRespostaNumerica] = useState('');
+  const [margemErro, setMargemErro] = useState('');
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
@@ -44,21 +46,48 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       setTagsInput(Array.isArray(question.tags) ? question.tags.join(', ') : '');
       setGabarito(question.gabarito || '');
       setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
+      setRespostaNumerica(question.respostaCorreta || '');
+      setMargemErro(question.margemErro || '');
     }
   }, [question]);
 
   useEffect(() => {
     // Só roda se o modal estiver aberto e a questão carregada
     if (open && question) {
+
       if (tipo === 'vf') {
-        // Se o tipo for 'vf', verifica se as alternativas já são V/F. Se não, redefine.
+        // Se o tipo MUDOU para 'vf', define as alternativas padrão
         if (alternativas.length !== 2 || alternativas[0].texto !== 'Verdadeiro') {
           setAlternativas([
             { texto: 'Verdadeiro', correta: true },
             { texto: 'Falso', correta: false },
           ]);
         }
+      } else if (tipo === 'alternativa') {
+      // Se o tipo MUDOU para 'alternativa', restaura as alternativas ORIGINAIS da questão
+      setAlternativas(question.alternativas || []);
+    }
+
+      // Limpa os campos de RESPOSTA NUMÉRICA se o tipo não for 'numerica'
+      if (tipo !== 'numerica') {
+        setRespostaNumerica('');
+        setMargemErro('');
+      } else {
+        // Se o tipo for 'numerica', restaura os valores originais
+        setRespostaNumerica(question.respostaCorreta || '');
+        setMargemErro(question.margemErro || '');
       }
+
+      // Limpa os campos de DISSERTATIVA se o tipo não for 'dissertativa'
+      if (tipo !== 'dissertativa') {
+        setGabarito('');
+        setPalavrasChave('');
+      } else {
+        // Se o tipo for 'dissertativa', restaura os valores originais
+        setGabarito(question.gabarito || '');
+        setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
+      }
+
     }
   }, [tipo, open, question]); // Roda quando o tipo, a visibilidade do modal ou a questão mudam
 
@@ -83,6 +112,14 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             palavrasChave: palavrasChave.split(',').map(s => s.trim()),
             tags: cleanTags,
           }
+        : tipo === 'numerica'
+          ? {
+              tipo,
+              enunciado,
+              respostaCorreta: parseFloat(respostaNumerica || 0),
+              margemErro: margemErro ? parseFloat(margemErro) : 0,
+              tags: cleanTags,
+            }
         : {
             // Se for de múltipla escolha ou V/F, envia as alternativas
             tipo,
@@ -133,6 +170,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
+            <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
         </FormControl>
 
@@ -161,7 +199,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           sx={{ mb: 3 }}
         />
 
-        {tipo !== 'dissertativa' && (
+        {!['dissertativa', 'numerica'].includes(tipo) && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6">Alternativas:</Typography>
             <RadioGroup
@@ -212,7 +250,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 ))
               )}
             </RadioGroup>
-          
+
 
             {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
             {tipo === 'alternativa' && (
@@ -226,6 +264,32 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           </Box>
         )}
 
+        {/* BLOCO PARA RESPOSTA NUMÉRICA */}
+        {tipo === 'numerica' && (
+          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+            <TextField
+              id="resposta-numerica"
+              label="Resposta Correta"
+              type="number"
+              value={respostaNumerica}
+              onChange={(e) => setRespostaNumerica(e.target.value)}
+              variant="outlined"
+              fullWidth
+              required
+            />
+            <TextField
+              id="margem-erro"
+              label="Margem de Erro (Opcional)"
+              type="number"
+              value={margemErro}
+              onChange={(e) => setMargemErro(e.target.value)}
+              variant="outlined"
+              fullWidth
+            />
+          </Box>
+        )}
+
+        {/* BLOCO PARA DISSERTATIVA */}
         {tipo === 'dissertativa' && (
           <Box>
             <TextField

@@ -11,7 +11,6 @@ let clientPromise: Promise<MongoClient>;
 
 declare global {
   // permite HMR em dev sem recriar cliente
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
