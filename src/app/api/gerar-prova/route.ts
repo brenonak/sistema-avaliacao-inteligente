@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -53,26 +54,26 @@ export async function POST(request: NextRequest) {
 
     % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
     \\renewcommand{\\thechoice}{\\Alph{choice}} % Usa A, B, C...
-    \\renewcommand{\\choicelabel}{\\thechoice)} % Formato (A), (B), (C)
+    \\renewcommand{\\choicelabel}{\\thechoice)} % Formato A), B), C)
 
     \\begin{document}
 
     % TÍTULO DA PROVA
     \\begin{center}
-          \\Large\\bfseries ${provaJson.titulo} \\\\
+          \\Large\\bfseries ${provaJson.titulo} \\\\
     \\end{center}
     \\vspace{0.5cm}
 
     % CABEÇALHO
     \\fbox{\\parbox{\\textwidth}{
-        \\textbf{Aluno(a):} \\makebox[9cm]{\\hrulefill} \\quad \\textbf{Matrícula:} \\makebox[2cm]{\\hrulefill}
+        \\textbf{Aluno(a):} \\makebox[9cm]{\\hrulefill} \\quad \\textbf{Matrícula:} \\makebox[2cm]{\\hrulefill}
     }}
     \\vspace{0.5cm}
 
     % INSTRUÇÕES DA PROVA
     \\fbox{\\parbox{\\textwidth}{
-        \\textbf{\\textcolor{red}{Instruções:}} \\\\
-        \\itshape ${provaJson.instrucoes}
+        \\textbf{\\textcolor{red}{Instruções:}} \\\\
+        \\itshape ${provaJson.instrucoes}
     }}
     \\vspace{0.5cm}
 
@@ -89,27 +90,27 @@ export async function POST(request: NextRequest) {
     const latexTemplate = `
     Você é um assistante especialista em LaTeX. Sua **única tarefa** é ler o objeto JSON fornecido e gerar **SOMENTE** o código LaTeX para as questões, usando o ambiente 'exam', sem **NENHUM** texto adicional ou explicação.
 
-    **NÃO INCLUA** \`\\documentclass\`, \`\\begin{document}\`, \`\\begin{questions}\`, \`\\end{questions}\` ou \`\\end{document}\` no seu resultado e não importe nenhum \`\\package{}\` ou afins.
+    **NÃO INCLUA** \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\`, \`\\end{{questions}}\` ou \`\\end{{document}}\` no seu resultado e não importe nenhum \`\\package{{}}\` ou afins.
 
-      **[INSTRUÇÕES DE CONVERSÃO RIGOROSAS]**
-      1.  **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
+      **[INSTRUÇÕES DE CONVERSÃO RIGOROSAS]**
+      1.  **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
       2.  **SEM MARCAÇÃO:** NÃO use blocos de código Markdown (\`\`\`) no seu resultado.
-      3.  **ESCOPO:** NÃO inclua \`\\documentclass\`, \`\\begin{document}\`, \`\\begin{questions}\` ou \`\\end{document}\`. Não importe \`\\package{}\`. Faça apenas a inserção das questões.
-      4.  **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
-      5.  **Regras de Formatação por Tipo:**
-          * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{choices}\` e \`\\end{choices}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
-          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{checkboxes}\` e \`\\end{checkboxes}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
-          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{5cm}\`** para o espaço de resposta.
+      3.  **ESCOPO:** NÃO inclua \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\` ou \`\\end{{document}}\`. Não importe \`\\package{{}}\`. Faça apenas a inserção das questões.
+      4.  **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
+      5.  **Regras de Formatação por Tipo:**
+          * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
+          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{checkboxes}}\` e \`\\end{{checkboxes}}\`**. As alternativas devem ser \`\\choice Verdadeiro\` e \`\\choice Falso\`.
+          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
 
-      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$$\\frac{1}{2}$$\`).
+      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$$\\frac{{1}}{{2}}$$\`).
 
-      **[JSON DA PROVA PARA CONVERSÃO]**
-      \`\`\`json
-      {prova_json}
-      \`\`\`
+      **[JSON DA PROVA PARA CONVERSÃO]**
+      \`\`\`json
+      {prova_json}
+      \`\`\`
 
-      CÓDIGO LATEX GERADO (APENAS QUESTÕES):
-      `;
+      CÓDIGO LATEX GERADO (APENAS QUESTÕES):
+      `;
 
     const prompt = new PromptTemplate({
       template: latexTemplate,
