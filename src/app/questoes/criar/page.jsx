@@ -18,7 +18,6 @@ import {
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
-import ColorModeButtons from '../../components/ColorModeButtons';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
@@ -209,8 +208,6 @@ export default function CriarQuestaoPage() {
         backgroundColor: 'background.default'
       }}
     >
-      <ColorModeButtons />
-      
       <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
         Criar Nova Questão
       </Typography>

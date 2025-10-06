@@ -3,12 +3,10 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Calendar from './components/Calendar';
-import ColorModeButtons from './components/ColorModeButtons';
 
 export default function Home() {
   return (
     <Grid container sx={{ backgroundColor: 'background.default' }}>
-      <ColorModeButtons />
       <Grid size={8}>
         <Box sx={{
               padding: 5,
