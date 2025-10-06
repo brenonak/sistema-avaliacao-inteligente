@@ -6,6 +6,18 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure the server has the required Blob token configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("BLOB_READ_WRITE_TOKEN is not set in the environment");
+      return new Response(
+        JSON.stringify({ error: "Server is missing BLOB_READ_WRITE_TOKEN" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (!request.body) {
       return new Response(
         JSON.stringify({ error: "Request body is required" }), 
