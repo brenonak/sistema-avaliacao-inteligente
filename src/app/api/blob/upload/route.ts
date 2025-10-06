@@ -1,26 +1,25 @@
-import { handleUpload } from "@vercel/blob/client";
-import { NextRequest } from "next/server";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { NextRequest, NextResponse } from "next/server";
  
 import { upsertRecurso } from "../../../../lib/resources";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Ensure the server has the required Blob token configured
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error("BLOB_READ_WRITE_TOKEN is not set in the environment");
-      return new Response(
-        JSON.stringify({ error: "Server is missing BLOB_READ_WRITE_TOKEN" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
+      return NextResponse.json(
+        { error: "Server is missing BLOB_READ_WRITE_TOKEN" },
+        { status: 500 }
       );
     }
 
-    const response = await handleUpload({
-      body: request.body as any,
+    const body = await request.json();
+
+    const jsonResponse = await handleUpload({
+      body: body as HandleUploadBody,
       request,
       onBeforeGenerateToken: async (pathname: string, clientPayload: string | null) => {
         // Parse client payload to get original filename
@@ -37,7 +36,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // IMPORTANT: Return the configuration object that includes authorization
         return {
           allowedContentTypes: [
             "image/jpeg",
@@ -87,15 +85,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return response;
+    return NextResponse.json(jsonResponse);
   } catch (error) {
     console.error("Upload error:", error);
-    return new Response(
-      JSON.stringify({ error: "Upload failed" }), 
-      { 
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      }
+    return NextResponse.json(
+      { error: "Upload failed" },
+      { status: 500 }
     );
   }
 }
