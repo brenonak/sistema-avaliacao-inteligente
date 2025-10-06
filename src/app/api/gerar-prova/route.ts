@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
         throw new Error("Nenhuma questão foi encontrada no banco de dados.");
       }
       provaJson = {
-        titulo: "Prova de Conhecimentos Gerais (Gerada com Gemini)",
-        instrucoes: "Leia atentamente cada questão antes de responder.",
+        titulo: "Prova de Conhecimentos Gerais (Gerada com Gemini)", // Deve ser incluido externamente quando houver a página dedicada de gerar provas
+        instrucoes: "Leia atentamente cada questão antes de responder.", // Deve ser incluido externamente quando houver a página dedicada de gerar provas
         questoes: questoesDaProva,
       };
     } finally {
@@ -41,27 +41,75 @@ export async function POST(request: NextRequest) {
       maxOutputTokens: 8192,
     });
 
-    const latexTemplate = `
-      Você é um assistente especialista em LaTeX. Sua tarefa é converter um objeto JSON contendo os detalhes de uma prova em um documento LaTeX completo e bem formatado.
-      Use a classe de documento 'exam' do LaTeX, que é ideal para criar provas.
-      INSTRUÇÕES DE FORMATAÇÃO:
-      1.  Comece com \\documentclass[12pt,a4paper]{{exam}}.
-      2.  Inclua os pacotes: usepackage[utf8]{{inputenc}}, usepackage[T1]{{fontenc}}, usepackage{{amsmath}}.
-      3.  Crie um título para a prova usando o título fornecido no JSON. Use \\begin{{center}}...\\end{{center}} para o título.
-      4.  Adicione as instruções da prova após o título.
-      5.  Inicie o ambiente de questões com \\begin{{questions}}.
-      6.  Para cada questão no JSON:
-          - Use o comando \\question.
-          - Se o 'tipo' for 'multipla_escolha', use o ambiente \\begin{{oneparchoices}} ... \\end{{oneparchoices}} para as opções. Cada opção deve ser um item \\choice com quebra de linha a cada opção.
-          - Se o 'tipo' for 'discursiva', adicione um espaço para a resposta, como \\fillwithdottedlines{{2cm}}.
-      7.  Finalize com \\end{{questions}} e \\end{{document}}.
-      8.  NÃO adicione comentários ou explicações no seu retorno. A saída deve ser APENAS o código LaTeX bruto.
-      Abaixo está o JSON da prova:
-      \`\`\`json
-      {prova_json}
-      \`\`\`
-      CÓDIGO LATEX GERADO:
+    // Esqueleto do LaTeX fixo (início)
+    const latexSkeletonStart = `
+    \\documentclass[12pt, a4paper, addpoints]{exam}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[T1]{fontenc}
+    \\usepackage{amsmath, amssymb}
+    \\usepackage{geometry}
+    \\geometry{a4paper, left=30mm, right=20mm, top=30mm, bottom=20mm}
+    \\usepackage{xcolor}
+
+    % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
+    \\renewcommand{\\thechoice}{\\Alph{choice}} % Usa A, B, C...
+    \\renewcommand{\\choicelabel}{\\thechoice)} % Formato (A), (B), (C)
+
+    \\begin{document}
+
+    % TÍTULO DA PROVA
+    \\begin{center}
+          \\Large\\bfseries ${provaJson.titulo} \\\\
+    \\end{center}
+    \\vspace{0.5cm}
+
+    % CABEÇALHO
+    \\fbox{\\parbox{\\textwidth}{
+        \\textbf{Aluno(a):} \\makebox[9cm]{\\hrulefill} \\quad \\textbf{Matrícula:} \\makebox[2cm]{\\hrulefill}
+    }}
+    \\vspace{0.5cm}
+
+    % INSTRUÇÕES DA PROVA
+    \\fbox{\\parbox{\\textwidth}{
+        \\textbf{\\textcolor{red}{Instruções:}} \\\\
+        \\itshape ${provaJson.instrucoes}
+    }}
+    \\vspace{0.5cm}
+
+    % ÁREA DE QUESTÕES
+    \\begin{questions}
     `;
+
+    // Esqueleto do LaTeX fixo (fim)
+    const latexSkeletonEnd = `
+    \\end{questions}
+    \\end{document}
+    `;
+    // Prompt para gerar o LaTeX somente das questões
+    const latexTemplate = `
+    Você é um assistante especialista em LaTeX. Sua **única tarefa** é ler o objeto JSON fornecido e gerar **SOMENTE** o código LaTeX para as questões, usando o ambiente 'exam', sem **NENHUM** texto adicional ou explicação.
+
+    **NÃO INCLUA** \`\\documentclass\`, \`\\begin{document}\`, \`\\begin{questions}\`, \`\\end{questions}\` ou \`\\end{document}\` no seu resultado e não importe nenhum \`\\package{}\` ou afins.
+
+      **[INSTRUÇÕES DE CONVERSÃO RIGOROSAS]**
+      1.  **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
+      2.  **SEM MARCAÇÃO:** NÃO use blocos de código Markdown (\`\`\`) no seu resultado.
+      3.  **ESCOPO:** NÃO inclua \`\\documentclass\`, \`\\begin{document}\`, \`\\begin{questions}\` ou \`\\end{document}\`. Não importe \`\\package{}\`. Faça apenas a inserção das questões.
+      4.  **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
+      5.  **Regras de Formatação por Tipo:**
+          * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{choices}\` e \`\\end{choices}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
+          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{checkboxes}\` e \`\\end{checkboxes}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
+          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{5cm}\`** para o espaço de resposta.
+
+      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$$\\frac{1}{2}$$\`).
+
+      **[JSON DA PROVA PARA CONVERSÃO]**
+      \`\`\`json
+      {prova_json}
+      \`\`\`
+
+      CÓDIGO LATEX GERADO (APENAS QUESTÕES):
+      `;
 
     const prompt = new PromptTemplate({
       template: latexTemplate,
@@ -70,9 +118,13 @@ export async function POST(request: NextRequest) {
 
     const chain = prompt.pipe(model).pipe(new StringOutputParser());
 
-    const latexOutput = await chain.invoke({
+    const latexQuestions = await chain.invoke({
       prova_json: JSON.stringify(provaJson, null, 2),
     });
+
+    // Concatena o esqueleto fixo com as questões geradas
+    const fullLatexOutput = `${latexSkeletonStart}${latexQuestions}${latexSkeletonEnd}`;
+
     const nomeArquivo = `prova_gemini_${Date.now()}.tex`;
 
     console.log(`Prova gerada: ${nomeArquivo}`);
@@ -82,7 +134,7 @@ export async function POST(request: NextRequest) {
       success: true, 
       message: 'Prova gerada com sucesso via Gemini!',
       fileName: nomeArquivo,
-      latexContent: latexOutput
+      latexContent: fullLatexOutput
     });
 
   } catch (error) {
