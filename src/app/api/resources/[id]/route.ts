@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
   try {
     const { id } = await params;
@@ -33,7 +33,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("❌ Error fetching resource:", error);
+    console.error("Error fetching resource:", error);
     
     return NextResponse.json(
       { 
@@ -47,7 +47,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: any
 ) {
   try {
     const { id } = await params;
@@ -104,7 +104,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error("❌ Error deleting resource:", error);
+    console.error("Error deleting resource:", error);
     
     if (error instanceof Error && error.message.includes("in use")) {
       return NextResponse.json(

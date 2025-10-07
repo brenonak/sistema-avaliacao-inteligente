@@ -67,7 +67,7 @@ export default function ListarQuestoesPage() {
       if (!res.ok) {
         throw new Error('Erro ao excluir questão');
       }
-
+      alert('Questão excluída com sucesso');
       // Remover a questão da lista localmente
       setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionToDelete.id));
     //console.log('Questão excluída com sucesso');

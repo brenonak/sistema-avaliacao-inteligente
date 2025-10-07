@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("❌ Error fetching top resources:", error);
+    console.error("Error fetching top resources:", error);
     
     return NextResponse.json(
       { 
