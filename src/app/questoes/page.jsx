@@ -24,7 +24,25 @@ export default function ListarQuestoesPage() {
         const res = await fetch('/api/questoes');
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
-        setQuestoes(data.items || []);
+        const items = Array.isArray(data.items) ? data.items : [];
+        // Para cada questão, se houver recurso por ID, buscar a URL
+        const itemsWithResourceUrl = await Promise.all(
+          items.map(async (q) => {
+            try {
+              const firstResourceId = Array.isArray(q.recursos) && q.recursos.length > 0 ? q.recursos[0] : null;
+              if (!firstResourceId) return q;
+              const r = await fetch(`/api/resources/${firstResourceId}`);
+              if (!r.ok) return q;
+              const rjson = await r.json();
+              const url = rjson?.resource?.url;
+              if (!url) return q;
+              return { ...q, recursoUrl: url };
+            } catch (_) {
+              return q;
+            }
+          })
+        );
+        setQuestoes(itemsWithResourceUrl);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
       } finally {
@@ -178,6 +196,22 @@ export default function ListarQuestoesPage() {
               <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
                 {questao.enunciado}
               </Typography>
+              {/* Exibir recurso associado (imagem) se houver */}
+              {questao.recursoUrl && (
+                <Box
+                  component="img"
+                  src={questao.recursoUrl}
+                  alt="Recurso da questão"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 300,
+                    objectFit: 'contain',
+                    borderRadius: 1,
+                    mb: 2,
+                    backgroundColor: 'background.default'
+                  }}
+                />
+              )}
               
               {/* Exibir tipo da questão */}
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
