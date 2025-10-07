@@ -55,20 +55,14 @@ export default function CriarQuestaoPage() {
   ), [tagsInput]);
 
   useEffect(() => {
-  if (tipo === 'vf') {
-    // Quando o tipo for 'vf', força as alternativas para o padrão Verdadeiro/Falso
-    setAlternativas([
-      { texto: 'Verdadeiro', correta: true },
-      { texto: 'Falso', correta: false },
-    ]);
-  } else {
-    // QUANDO FOR QUALQUER OUTRO TIPO (Múltipla Escolha ou Dissertativa),
-    // reseta para o padrão de duas alternativas vazias.
-    setAlternativas([
-      { texto: '', correta: true },
-      { texto: '', correta: false },
-    ]);
-  }
+  // Sempre que o tipo mudar, reseta as alternativas para o padrão inicial.
+  // Isso garante que, ao mudar de 'dissertativa' para 'múltipla escolha', por exemplo,
+  // a seção de alternativas apareça limpa.
+
+  setAlternativas([
+    { texto: '', correta: true },
+    { texto: '', correta: false },
+  ]);
 
   // Se o tipo NÃO for 'numérica', limpa os campos numéricos.
   if (tipo !== 'numerica') {
@@ -339,21 +333,8 @@ export default function CriarQuestaoPage() {
               setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
             }}
           >
-            {tipo === 'vf' ? (
-              // INTERFACE PARA 'VERDADEIRO OU FALSO'
-              alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                  <FormControlLabel
-                    value={index}
-                    control={<Radio />}
-                    label={<Typography sx={{ color: 'text.primary' }}>{alt.texto}</Typography>}
-                  />
-                </Box>
-              ))
-            ) : (
-
-              // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
-              alternativas.map((alt, index) => (
+              
+              {alternativas.map((alt, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <FormControlLabel value={index} control={<Radio />} label="" sx={{ margin: 0, marginRight: 1 }} />
                   <TextField
@@ -384,8 +365,7 @@ export default function CriarQuestaoPage() {
                     <Delete />
                   </IconButton>
                 </Box>
-              ))
-            )}
+            ))}
           </RadioGroup>
 
           {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
