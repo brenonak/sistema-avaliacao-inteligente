@@ -68,6 +68,7 @@ useEffect(() => {
     setMargemErro('');
     setGabarito('');
     setPalavrasChave('');
+    setProposicoes([{ texto: '', correta: false }]);
   }, [tipo]);
 
   const handleClearForm = () => {
@@ -85,6 +86,7 @@ useEffect(() => {
     setRespostaNumerica('');
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
+    setProposicoes([{ texto: '', correta: false }]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -154,6 +156,18 @@ useEffect(() => {
                 tags: cleanTags,
                 recursos: recursos.map((r) => r.url),
               }
+            : tipo === 'proposicoes' 
+              ? {
+                tipo,
+                enunciado,
+                proposicoes: proposicoes.map((p, index) => ({
+                  valor: Math.pow(2, index),
+                  texto: p.texto,
+                  correta: p.correta,
+                })),
+                tags: cleanTags,
+                recursos: recursos.map((r) => r.url),
+          }
             : {
             tipo, // Padrão: múltipla escolha
             enunciado,
