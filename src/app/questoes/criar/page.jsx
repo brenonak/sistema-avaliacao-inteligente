@@ -42,6 +42,10 @@ export default function CriarQuestaoPage() {
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
 
+  const [proposicoes, setProposicoes] = useState([
+    { texto: '', correta: false }, // Começa com uma proposição
+  ]);
+
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
