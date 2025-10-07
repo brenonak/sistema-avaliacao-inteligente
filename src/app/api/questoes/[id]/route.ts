@@ -24,10 +24,11 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
+    const { id } = await params;
+    const _id = oid(id); if (!_id) return badRequest("id inválido");
     const body = await request.json();
     const parsed = QuestaoUpdateSchema.safeParse(body);
     if (!parsed.success) return badRequest("payload inválido");
@@ -47,10 +48,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
+    const { id } = await params;
+    const _id = oid(id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const res = await db.collection("questoes").deleteOne({ _id });
     if (!res.deletedCount) return notFound("questão não encontrada");
