@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link'; 
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+import ColorModeButtons from '../components/ColorModeButtons';
+import EditQuestionModal from '../components/EditQuestionModal';
+
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
   useEffect(() => {
     async function fetchQuestoes() {
@@ -24,34 +33,200 @@ export default function ListarQuestoesPage() {
     fetchQuestoes();
   }, []);
 
+  const handleDelete = async (questionId) => {
+    if (!confirm('Tem certeza que deseja excluir esta questão? A ação não poderá ser desfeita')) {
+      return;
+    }
+
+    try {
+      // TODO: A chamada para a API abaixo está pronta.
+      // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
+      // Atualmente, essa chamada retornará um erro 404.
+      // Implemente o endpoint no back-end para que a exclusão funcione corretamente.
+      // Após implementar, teste a funcionalidade para garantir que tudo está funcionando como esperado.
+      const res = await fetch(`/api/questoes/${questionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Erro ao excluir questão');
+      }
+
+      // Remover a questão da lista localmente
+      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionId));
+      alert('Questão excluída com sucesso');
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Erro desconhecido ao excluir questão');
+    }
+  };
+
+  const handleOpenEditModal = (questao) => {
+    setEditingQuestion(questao); // Guarda a questão que o usuário clicou
+    setIsModalOpen(true);      // Abre o modal
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);     // Fecha o modal
+    setEditingQuestion(null);  // Limpa a questão em edição
+  };
+
+
+  const handleSaveSuccess = (updatedQuestion) => {
+    setQuestoes(prevQuestoes =>
+      prevQuestoes.map(q =>
+        q.id === updatedQuestion.id ? updatedQuestion : q
+      )
+    );
+  };
+
+  const handleExportarLatex = async () => {
+    try {
+      setExporting(true);
+      const res = await fetch('/api/gerar-prova', { method: 'POST' });
+
+      if (!res.ok) {
+        throw new Error('Erro ao gerar arquivo LaTeX');
+      }
+
+      const data = await res.json();
+
+      if (!data?.latexContent) {
+        throw new Error('Conteúdo LaTeX indisponível');
+      }
+
+      const blob = new Blob([data.latexContent], { type: 'application/x-tex;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.fileName || 'prova_gemini.tex';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert('Arquivo LaTeX gerado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Falha ao gerar arquivo LaTeX');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900 text-gray-100">
-      <h1 className="text-2xl font-bold mb-6 text-white">Questões Cadastradas</h1>
-      <div className="w-full max-w-2xl">
-        {loading && <p className="text-gray-300">Carregando...</p>}
-        {error && <p className="text-red-400">{error}</p>}
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        p: 3,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <ColorModeButtons />
+      
+      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+        Questões Cadastradas
+      </Typography>
+      
+      {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
+      {!loading && !error && questoes.length > 0 && (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleExportarLatex}
+          disabled={exporting}
+          sx={{ mb: 3 }}
+        >
+          {exporting ? 'Gerando...' : 'Exportar para LaTeX'}
+        </Button>
+      )}
+      
+      <Box sx={{ width: '100%', maxWidth: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando...</Typography>
+          </Box>
+        )}
+        {error && (
+          <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+            {error}
+          </Typography>
+        )}
         {!loading && !error && questoes.length === 0 && (
-          <p className="text-gray-300">Nenhuma questão cadastrada.</p>
+          <Typography sx={{ color: 'text.secondary', textAlign: 'center', p: 2 }}>
+            Nenhuma questão cadastrada.
+          </Typography>
         )}
         {questoes.map((questao, idx) => (
-          <div
-            key={questao.id || questao._id || idx}
-            className="mb-4 p-4 border border-gray-700 rounded shadow-lg bg-gray-800 hover:bg-gray-750"
+          <Card
+            key={questao.id || idx}
+            sx={{ 
+              mb: 2, 
+              backgroundColor: 'background.paper',
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                backgroundColor: 'action.hover'
+              }
+            }}
           >
-            <p className="font-semibold text-gray-100">{questao.enunciado}</p>
-            <ul className="list-disc pl-5 mt-2">
-              {questao.alternativas?.map((alt, index) => (
-                <li
-                  key={index}
-                  className={alt.correta ? 'font-bold text-emerald-400' : 'text-gray-300'}
+            <CardContent>
+              <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
+                {questao.enunciado}
+              </Typography>
+              <List dense>
+                {questao.alternativas?.map((alt, index) => (
+                  <ListItem key={index} sx={{ pl: 2 }}>
+                    <ListItemText
+                      primary={`${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                      sx={{
+                        '& .MuiListItemText-primary': {
+                          fontWeight: alt.correta ? 'bold' : 'normal',
+                          color: alt.correta ? 'success.main' : 'text.secondary'
+                        }
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+            <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  color="secondary"
+                  onClick={() => handleOpenEditModal(questao)}
                 >
-                  {alt.texto} {alt.correta && '(Correta)'}
-                </li>
-              ))}
-            </ul>
-          </div>
+                  Editar
+                </Button>
+                <Button 
+                    size="small" 
+                    variant="contained" 
+                    color="error"
+                    onClick={() => handleDelete(questao.id)}
+                >
+                    Excluir
+                </Button>
+            </CardActions>
+          </Card>
         ))}
-      </div>
-    </main>
+      </Box>
+
+      {/* O Modal é renderizado aqui, mas só aparece quando está "aberto" */}
+      {editingQuestion && (
+        <EditQuestionModal
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          question={editingQuestion}
+          onSaveSuccess={handleSaveSuccess}
+        />
+      )}
+
+    </Box>
   );
 }

@@ -1,6 +1,5 @@
 
 import { ObjectId } from "mongodb";
-import { NextRequest } from "next/server";
 import { getDb } from "../../../../lib/mongodb";
 import { json, notFound, badRequest, serverError } from "../../../../lib/http";
 import { QuestaoUpdateSchema } from "../../../../lib/validation";
@@ -9,9 +8,12 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-export async function GET(request: NextRequest, context: any) {
+
+export async function GET(
+  request: Request,
+  { params }: any
+) {
   try {
-    const params = context?.params ? await context.params : {};
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const item = await db.collection("questoes").findOne({ _id });
@@ -21,9 +23,12 @@ export async function GET(request: NextRequest, context: any) {
   } catch (e) { return serverError(e); }
 }
 
-export async function PUT(request: NextRequest, context: any) {
+
+export async function PUT(
+  request: Request,
+  { params }: any
+) {
   try {
-    const params = context?.params ? await context.params : {};
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const body = await request.json();
     const parsed = QuestaoUpdateSchema.safeParse(body);
@@ -35,15 +40,19 @@ export async function PUT(request: NextRequest, context: any) {
       { $set: { ...parsed.data, updatedAt: new Date() } },
       { returnDocument: "after" }
     );
-    if (!res || !res.value) return notFound("questão não encontrada");
-    const { _id: mongoId, ...rest } = res.value;
+    
+    if (!res) return notFound("questão não encontrada");
+    const { _id: mongoId, ...rest } = res;
     return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }
 
-export async function DELETE(request: NextRequest, context: any) {
+
+export async function DELETE(
+  request: Request,
+  { params }: any
+) {
   try {
-    const params = context?.params ? await context.params : {};
     const _id = oid(params.id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
     const res = await db.collection("questoes").deleteOne({ _id });

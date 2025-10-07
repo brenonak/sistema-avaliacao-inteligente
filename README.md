@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Plataforma Inteligente para Atividades Acadêmicas
 
-## Getting Started
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Sprint](https://img.shields.io/badge/sprint-1-green)
 
-First, run the development server:
+Uma plataforma web que permite aos professores criar, gerar estatísticas e corrigir atividades acadêmicas de forma automatizada, com suporte de inteligência artificial para gerar alternativas, refinar enunciados e dar feedback aos alunos.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Status do Projeto
+
+- **Fase Atual:** Sprint 1 
+- **Tasks:**
+    - Criação de atividades via template
+    - Funcionalidade de diferentes formatos de questões no template
+
+---
+
+## Funcionalidades
+
+### Para Professores:
+- **Criação de Atividades:** Formulários estruturados para gerar automaticamente código LaTeX e exportar para PDF.
+- **Correção Automática:** Upload de fotos ou PDFs digitalizados de provas objetivas para correção.
+- **Auxílio de IA:** Uso de LLMs para auxiliar na criação de enunciados, sugerir alternativas e distratores.
+- **Estatísticas:** Geração de gráficos e métricas de desempenho para os alunos.
+
+### Para Alunos:
+- **Métricas de Aprendizado:** Acompanhamento individual de métricas baseadas nas atividades submetidas na plataforma.
+- **Listas Personalizadas:** Criação de listas de exercícios de uma base de dados personalizadas com base no desempenho do aluno.
+
+---
+
+## Pilha de Tecnologia
+
+- **Frontend:** Next.js  
+- **Backend:** Next.js, LangGraph  
+- **Banco de Dados:** MongoDB
+
+---
+
+## Estrutura do Repositório
+```text
+/es-unifesp-2025-2-grupo-golf
+├── docs/                  # Documentação
+├── src/                   # Código-fonte
+│   └── app/
+│       └── ...
+├── public/                # Arquivos estáticos do Next.js
+├── .gitignore             # Arquivos ignorados pelo Git
+├── package.json           # Dependências do JavaScript
+└── README.md              
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Como Configurar o Ambiente de Desenvolvimento
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### **1. Clone o repositório**
 
-## Learn More
+```bash
+git clone https://github.com/ES-UNIFESP/es-unifesp-2025-2-grupo-golf.git
+cd es-unifesp-2025-2-grupo-golf
+```
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### **2. Instalar o Docker**
+Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows / macOS)  
+- Linux: siga as instruções oficiais para sua distribuição
+- Baixe o sub-sistema WSL
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Docker será usado para rodar backend e frontend em containers isolados.
+### **3. Rodar o projeto via Docker**
+- Acesse a pasta onde o arquivo ```docker-compose.yml``` se localiza via terminal
+- Rode o comando ```docker-compose up --build```
+- Espere até que todas as dependências e os conteiners sejam criados corretamente
+- Acesse a aplicação através da porta [3000](localhost:3000)
+- Pare de rodar a aplicação através do comando ```docker-compose stop```
+- Rode novamente a aplicação através do comando  ```docker-compose start```
+- Em caso de modificação de dependências, é necessário excluir os conteiners via ```docker-compose down``` e rodar o comando ```docker-compose up --build``` novamente
