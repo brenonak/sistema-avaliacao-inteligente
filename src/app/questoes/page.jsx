@@ -52,7 +52,7 @@ export default function ListarQuestoesPage() {
 
       // Remover a questão da lista localmente
       setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionToDelete.id));
-      alert('Questão excluída com sucesso');
+    //console.log('Questão excluída com sucesso');
 
     } catch (err) {
       console.error(err);
