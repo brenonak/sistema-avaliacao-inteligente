@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TipoQuestao = z.enum(["dissertativa", "alternativa", "vf"]);
+export const TipoQuestao = z.enum(["dissertativa", "alternativa", "vf", "numerica"]);
 
 export const AlternativaSchema = z.object({
   letra: z.string().min(1),
@@ -12,9 +12,10 @@ export const QuestaoCreateSchema = z
   .object({
     tipo: TipoQuestao,
     enunciado: z.string().min(1, "enunciado obrigatório"),
-    alternativas: z.array(AlternativaSchema).default([]),
+    alternativas: z.array(AlternativaSchema).optional().default([]),
     gabarito: z.string().optional(),
-    //palavrasChave: z.string().optional(), ARRUMAR DEPOIS
+    respostaCorreta: z.number().optional(),
+    margemErro: z.number().default(0),
   })
   .superRefine((data, ctx) => {
     // Validação específica por tipo
@@ -43,13 +44,6 @@ export const QuestaoCreateSchema = z
           path: ["gabarito"],
         });
       }
-      if (data.alternativas?.length) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Questões dissertativas não devem ter alternativas",
-          path: ["alternativas"],
-        });
-      }
     }
 
     if (data.tipo === "vf") {
@@ -65,6 +59,16 @@ export const QuestaoCreateSchema = z
           code: z.ZodIssueCode.custom,
           message: "Questões V/F não devem ter gabarito (use alternativas)",
           path: ["gabarito"],
+        });
+      }
+    }
+
+    if (data.tipo === "numerica") {
+      if (data.respostaCorreta === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões numéricas precisam ter uma resposta correta",
+          path: ["respostaCorreta"],
         });
       }
     }

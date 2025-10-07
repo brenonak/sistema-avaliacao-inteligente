@@ -178,22 +178,53 @@ export default function ListarQuestoesPage() {
               <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
                 {questao.enunciado}
               </Typography>
-              <List dense>
-                {questao.alternativas?.map((alt, index) => (
-                  <ListItem key={index} sx={{ pl: 2 }}>
-                    <ListItemText
-                      primary={`${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
-                      sx={{
-                        '& .MuiListItemText-primary': {
-                          fontWeight: alt.correta ? 'bold' : 'normal',
-                          color: alt.correta ? 'success.main' : 'text.secondary'
-                        }
-                      }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
+              
+              {/* Exibir tipo da questão */}
+              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
+                       questao.tipo === 'vf' ? 'Verdadeiro ou Falso' : 
+                       questao.tipo === 'dissertativa' ? 'Dissertativa' : 
+                       questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
+              </Typography>
+              
+              {/* Exibir resposta numérica se for questão numérica */}
+              {questao.tipo === 'numerica' && (
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    Resposta correta: {questao.respostaCorreta}
+                    {questao.margemErro > 0 && ` (± ${questao.margemErro})`}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Exibir gabarito para questões dissertativas */}
+              {questao.tipo === 'dissertativa' && questao.gabarito && (
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                    Gabarito: {questao.gabarito}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Exibir alternativas para questões de múltipla escolha e V/F */}
+              {(questao.tipo === 'alternativa' || questao.tipo === 'vf') && (
+                <List dense>
+                  {questao.alternativas?.map((alt, index) => (
+                    <ListItem key={index} sx={{ pl: 2 }}>
+                      <ListItemText
+                        primary={`${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                        sx={{
+                          '& .MuiListItemText-primary': {
+                            fontWeight: alt.correta ? 'bold' : 'normal',
+                            color: alt.correta ? 'success.main' : 'text.secondary'
+                          }
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+              </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
                 <Button 
                   size="small" 
