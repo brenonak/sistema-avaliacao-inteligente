@@ -317,6 +317,9 @@ useEffect(() => {
             value={tipo}
             label="Tipo de questão"
             onChange={(e) => setTipo(e.target.value)}
+            MenuProps={{
+              disableScrollLock: true, 
+            }}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>

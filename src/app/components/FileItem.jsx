@@ -82,14 +82,17 @@ const FileItem = ({ file, onExclude, isActiveImage, onSetActiveImage }) => {
             </IconButton>
           </span>
         </Tooltip>
-        <IconButton
-          onClick={() => onExclude(file)}
-          color="error"
-          sx={{ ml: 1 }}
-          title='Remover arquivo'
-        >
-          <DeleteIcon />
-        </IconButton>
+        <Tooltip title="Remover arquivo">
+          <span>
+            <IconButton
+              onClick={() => onExclude(file)}
+              color="error"
+              sx={{ ml: 1 }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
     </Box>
   );
 };
