@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
 import EditQuestionModal from '../components/EditQuestionModal';
-
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -14,6 +14,7 @@ export default function ListarQuestoesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [openExclusionPopup, setOpenExclusionPopup] = useState(false);
 
   useEffect(() => {
     async function fetchQuestoes() {
@@ -33,10 +34,6 @@ export default function ListarQuestoesPage() {
   }, []);
 
   const handleDelete = async (questionId) => {
-    if (!confirm('Tem certeza que deseja excluir esta questão? A ação não poderá ser desfeita')) {
-      return;
-    }
-
     try {
       // TODO: A chamada para a API abaixo está pronta.
       // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
@@ -59,6 +56,8 @@ export default function ListarQuestoesPage() {
       console.error(err);
       alert(err.message || 'Erro desconhecido ao excluir questão');
     }
+
+    setOpenExclusionPopup(false);
   };
 
   const handleOpenEditModal = (questao) => {
@@ -201,14 +200,23 @@ export default function ListarQuestoesPage() {
                 >
                   Editar
                 </Button>
-                <Button 
-                    size="small" 
+                <>
+                  <Button 
+                    size="small"
+                    color="error" 
                     variant="contained" 
-                    color="error"
-                    onClick={() => handleDelete(questao.id)}
-                >
+                    onClick={() => setOpenExclusionPopup(true)}
+                  >
                     Excluir
-                </Button>
+                  </Button>
+          
+                  <ConfirmDeleteDialog
+                    open={openExclusionPopup}
+                    elementText='esta questão'
+                    onClose={() => setOpenExclusionPopup(false)}
+                    onConfirm={() => handleDelete(questao.id)}
+                  />
+                </>
             </CardActions>
           </Card>
         ))}
