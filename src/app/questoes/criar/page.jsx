@@ -17,6 +17,7 @@ import {
   Paper,
   ToggleButton,
   ToggleButtonGroup,
+  Checkbox,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -42,6 +43,10 @@ export default function CriarQuestaoPage() {
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
 
+  const [proposicoes, setProposicoes] = useState([
+    { texto: '', correta: false }, // Começa com uma proposição
+  ]);
+
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
@@ -56,6 +61,18 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
+  const somaProposicoes = useMemo(() => {
+  // A função 'reduce' vai passar por cada proposição e acumular a soma
+  return proposicoes.reduce((soma, prop, index) => {
+    // Se a proposição estiver marcada como correta...
+    if (prop.correta) {
+      const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+      return soma + valor; // Adiciona o valor à soma
+    }
+    return soma; // Se não for correta, retorna a soma sem alteração
+  }, 0); // O '0' é o valor inicial da soma
+}, [proposicoes]); // Recalcula a soma sempre que o array 'proposicoes' mudar
+
 useEffect(() => {
     // Sempre que o tipo mudar, reseta os campos de tipos específicos
     setAlternativas([{ texto: '', correta: true }, { texto: '', correta: false }]);
@@ -64,6 +81,7 @@ useEffect(() => {
     setMargemErro('');
     setGabarito('');
     setPalavrasChave('');
+    setProposicoes([{ texto: '', correta: false }]);
   }, [tipo]);
 
   const handleClearForm = () => {
@@ -81,6 +99,7 @@ useEffect(() => {
     setRespostaNumerica('');
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
+    setProposicoes([{ texto: '', correta: false }]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -150,6 +169,18 @@ useEffect(() => {
                 tags: cleanTags,
                 recursos: recursos.map((r) => r.url),
               }
+            : tipo === 'proposicoes' 
+              ? {
+                tipo,
+                enunciado,
+                proposicoes: proposicoes.map((p, index) => ({
+                  valor: Math.pow(2, index),
+                  texto: p.texto,
+                  correta: p.correta,
+                })),
+                tags: cleanTags,
+                recursos: recursos.map((r) => r.url),
+                }
             : {
             tipo, // Padrão: múltipla escolha
             enunciado,
@@ -276,6 +307,7 @@ useEffect(() => {
             <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
+            <MenuItem value="proposicoes">Proposições Múltiplas (Somatório)</MenuItem>
           </Select>
         </FormControl>
 
@@ -470,6 +502,92 @@ useEffect(() => {
         />
       </Box>
     )}
+
+      {/* PROPOSIÇÕES MÚLTIPLAS */}
+      {tipo === 'proposicoes' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Proposições:
+          </Typography>
+          {proposicoes.map((prop, index) => {
+            const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+            return (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                
+                {/* 1. SELETOR V/F APRIMORADO À ESQUERDA */}
+                <ToggleButtonGroup
+                  value={prop.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) {
+                      const novasProposicoes = proposicoes.map((p, i) =>
+                        i === index ? { ...p, correta: novoValor } : p
+                      );
+                      setProposicoes(novasProposicoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+                
+                {/* 2. LABEL COM O VALOR DA PROPOSIÇÃO */}
+                <Typography sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
+                  {valor.toString().padStart(2, '0')}
+                </Typography>
+                
+                {/* 3. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
+                <TextField
+                  label={`Afirmação de valor ${valor}`}
+                  value={prop.texto}
+                  onChange={(e) => {
+                    const novoTexto = e.target.value;
+                    const novasProposicoes = proposicoes.map((p, i) =>
+                      i === index ? { ...p, texto: novoTexto } : p
+                    );
+                    setProposicoes(novasProposicoes);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+                
+                {/* 4. BOTÃO DE REMOVER */}
+                <IconButton
+                  onClick={() => {
+                    const novasProposicoes = proposicoes.filter((_, i) => i !== index);
+                    setProposicoes(novasProposicoes);
+                  }}
+                  color="error"
+                  disabled={proposicoes.length <= 1}
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
+            );
+          })}
+          {/* Botão de Adicionar */}
+          <Button
+            variant="outlined"
+            onClick={() => setProposicoes([...proposicoes, { texto: '', correta: false }])}
+            sx={{ mt: 1 }}
+          >
+            + Adicionar Proposição
+          </Button>
+
+          {/* EXIBIR A SOMA */}
+          <Box sx={{ mt: 3, p: 2, border: '1px dashed', borderColor: 'grey.500', borderRadius: 1 }}>
+            <Typography variant="h6" component="p" sx={{ color: 'text.primary' }}>
+              Resposta Correta (Soma):{' '}
+              <Typography component="span" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                {somaProposicoes}
+              </Typography>
+            </Typography>
+          </Box>
+
+        </Box>
+      )}
 
       {/* BLOCO PARA CAMPOS DISSERTATIVOS */}
         {tipo === 'dissertativa' && (
