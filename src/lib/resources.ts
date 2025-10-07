@@ -132,6 +132,25 @@ export async function incrementResourceUsage(ids: string[]): Promise<void> {
   );
 }
 
+export async function decrementResourceUsage(ids: string[]): Promise<void> {
+  if (!ids || ids.length === 0) return;
+  const collection = await getRecursosCollection();
+  const now = new Date();
+  const objectIds = ids
+    .map((id) => {
+      try { return new ObjectId(id); } catch { return null; }
+    })
+    .filter((v): v is ObjectId => !!v);
+  if (objectIds.length === 0) return;
+  await collection.updateMany(
+    { _id: { $in: objectIds }, "usage.refCount": { $gt: 0 } },
+    { 
+      $inc: { "usage.refCount": -1 }, 
+      $set: { updatedAt: now }
+    }
+  );
+}
+
 export async function getRecursoById(id: string): Promise<Recurso | null> {
   const collection = await getRecursosCollection();
   
