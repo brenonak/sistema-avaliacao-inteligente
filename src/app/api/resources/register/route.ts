@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("❌ Error registering resource:", error);
+    console.error("Error registering resource:", error);
     
     return NextResponse.json(
       { 

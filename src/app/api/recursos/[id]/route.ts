@@ -12,7 +12,7 @@ function oid(id: string) {
 // DELETE /recursos/:id - Remover imagem do banco e blob storage
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const id = params.id;
