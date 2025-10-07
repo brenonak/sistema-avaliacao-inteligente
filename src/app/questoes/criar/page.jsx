@@ -15,6 +15,8 @@ import {
   FormControlLabel, 
   IconButton,
   Paper,
+  ToggleButton,
+  ToggleButtonGroup,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -54,28 +56,15 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
-  useEffect(() => {
-  // Sempre que o tipo mudar, reseta as alternativas para o padrão inicial.
-  // Isso garante que, ao mudar de 'dissertativa' para 'múltipla escolha', por exemplo,
-  // a seção de alternativas apareça limpa.
-
-  setAlternativas([
-    { texto: '', correta: true },
-    { texto: '', correta: false },
-  ]);
-
-  // Se o tipo NÃO for 'numérica', limpa os campos numéricos.
-  if (tipo !== 'numerica') {
+useEffect(() => {
+    // Sempre que o tipo mudar, reseta os campos de tipos específicos
+    setAlternativas([{ texto: '', correta: true }, { texto: '', correta: false }]);
+    setAfirmacoes([{ texto: '', correta: true }]);
     setRespostaNumerica('');
     setMargemErro('');
-  }
-
-  // Se o tipo NÃO for 'dissertativa', limpa os campos dissertativos.
-  if (tipo !== 'dissertativa') {
     setGabarito('');
     setPalavrasChave('');
-  }
-}, [tipo]);
+  }, [tipo]);
 
   const handleClearForm = () => {
     setEnunciado('');
@@ -162,7 +151,7 @@ export default function CriarQuestaoPage() {
                 recursos: recursos.map((r) => r.url),
               }
             : {
-            tipo: 'alternativa', // "multipla escolha (alternativa)"
+            tipo, // Padrão: múltipla escolha
             enunciado,
             alternativas: alternativas.map((a, i) => ({
               letra: indexToLetter(i),
@@ -328,8 +317,8 @@ export default function CriarQuestaoPage() {
         />
         
 
-      {/* Alternativas (agora escondidas para dissertativa E numérica) */}
-      {!['dissertativa', 'numerica'].includes(tipo) && (
+      {/* Alternativas */}
+      {tipo === 'alternativa' && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
             Alternativas:
@@ -391,66 +380,71 @@ export default function CriarQuestaoPage() {
       )}
 
       {tipo === 'afirmacoes' && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
-            Afirmações:
-          </Typography>
-          {afirmacoes.map((afirmacao, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              {/* Campo de texto para a afirmação */}
-              <TextField
-                label={`Afirmação ${index + 1}`}
-                value={afirmacao.texto}
-                onChange={(e) => {
-                  const novoTexto = e.target.value;
-                  const novasAfirmacoes = afirmacoes.map((a, i) => 
-                    i === index ? { ...a, texto: novoTexto } : a
-                  );
-                  setAfirmacoes(novasAfirmacoes);
-                }}
-                fullWidth
-                variant="outlined"
-                size="small"
-              />
-              {/* Seletor V/F */}
-              <FormControl size="small">
-                <Select
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Afirmações:
+            </Typography>
+            {afirmacoes.map((afirmacao, index) => (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                
+                {/* 1. O NOVO SELETOR V/F (MAIS BONITO E À ESQUERDA) */}
+                <ToggleButtonGroup
                   value={afirmacao.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) { // Impede que o botão seja "desselecionado"
+                      const novasAfirmacoes = afirmacoes.map((a, i) => 
+                        i === index ? { ...a, correta: novoValor } : a
+                      );
+                      setAfirmacoes(novasAfirmacoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* 2. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
+                <TextField
+                  label={`Afirmação ${index + 1}`}
+                  value={afirmacao.texto}
                   onChange={(e) => {
-                    const novoValor = e.target.value;
+                    const novoTexto = e.target.value;
                     const novasAfirmacoes = afirmacoes.map((a, i) => 
-                      i === index ? { ...a, correta: novoValor } : a
+                      i === index ? { ...a, texto: novoTexto } : a
                     );
                     setAfirmacoes(novasAfirmacoes);
                   }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+
+                {/* 3. BOTÃO DE REMOVER */}
+                <IconButton
+                  onClick={() => {
+                    const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                  color="error"
+                  disabled={afirmacoes.length <= 1}
                 >
-                  <MenuItem value={true}>V</MenuItem>
-                  <MenuItem value={false}>F</MenuItem>
-                </Select>
-              </FormControl>
-              {/* Botão de Remover */}
-              <IconButton
-                onClick={() => {
-                  const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
-                  setAfirmacoes(novasAfirmacoes);
-                }}
-                color="error"
-                disabled={afirmacoes.length <= 1}
-              >
-                <Delete />
-              </IconButton>
-            </Box>
-          ))}
-          {/* Botão de Adicionar */}
-          <Button
-            variant="outlined"
-            onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
-            sx={{ mt: 1 }}
-          >
-            + Adicionar Afirmação
-          </Button>
-        </Box>
-      )}
+                  <Delete />
+                </IconButton>
+              </Box>
+            ))}
+            
+            {/* BOTÃO DE ADICIONAR */}
+            <Button
+              variant="outlined"
+              onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
+              sx={{ mt: 1 }}
+            >
+              + Adicionar Afirmação
+            </Button>
+          </Box>
+        )}
 
       {/* BLOCO PARA RESPOSTA NUMÉRICA */}
     {tipo === 'numerica' && (

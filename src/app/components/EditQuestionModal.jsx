@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -238,7 +240,26 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             </Typography>
             {afirmacoes.map((afirmacao, index) => (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                {/* Campo de texto para a afirmação */}
+                
+                {/* 1. O NOVO SELETOR V/F (MAIS BONITO E À ESQUERDA) */}
+                <ToggleButtonGroup
+                  value={afirmacao.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) { // Impede que o botão seja "desselecionado"
+                      const novasAfirmacoes = afirmacoes.map((a, i) => 
+                        i === index ? { ...a, correta: novoValor } : a
+                      );
+                      setAfirmacoes(novasAfirmacoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* 2. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
                 <TextField
                   label={`Afirmação ${index + 1}`}
                   value={afirmacao.texto}
@@ -253,23 +274,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                   variant="outlined"
                   size="small"
                 />
-                {/* Seletor V/F */}
-                <FormControl size="small">
-                  <Select
-                    value={afirmacao.correta}
-                    onChange={(e) => {
-                      const novoValor = e.target.value;
-                      const novasAfirmacoes = afirmacoes.map((a, i) => 
-                        i === index ? { ...a, correta: novoValor } : a
-                      );
-                      setAfirmacoes(novasAfirmacoes);
-                    }}
-                  >
-                    <MenuItem value={true}>V</MenuItem>
-                    <MenuItem value={false}>F</MenuItem>
-                  </Select>
-                </FormControl>
-                {/* Botão de Remover */}
+
+                {/* 3. BOTÃO DE REMOVER */}
                 <IconButton
                   onClick={() => {
                     const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
@@ -282,7 +288,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 </IconButton>
               </Box>
             ))}
-            {/* Botão de Adicionar */}
+            
+            {/* BOTÃO DE ADICIONAR */}
             <Button
               variant="outlined"
               onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
