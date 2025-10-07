@@ -7,7 +7,8 @@ import Menu from '@mui/material/Menu';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
-import { useState } from 'react'; 
+import { useState } from 'react';
+import HeaderThemeSelector from './HeaderThemeSelector'; 
 
 const Header = () => {
   const settings = ['Perfil', 'Mudar de conta', 'Configurações', 'Sair'];
@@ -102,7 +103,8 @@ const Header = () => {
             Criar
           </Button>
         </Box>
-        <Box sx={{ flexGrow: 0, mr: 2 }}>
+        <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
+          <HeaderThemeSelector />
           <Tooltip title="Open settings">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />

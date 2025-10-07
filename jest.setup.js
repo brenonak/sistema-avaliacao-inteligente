@@ -13,3 +13,8 @@ global.alert = jest.fn();
 // Mock para a API de criação de URL de objeto, usada no download de arquivos
 global.URL.createObjectURL = jest.fn();
 global.URL.revokeObjectURL = jest.fn();
+
+// Polyfills para APIs Web necessárias pelo @vercel/blob e outras dependências
+const { TextDecoder, TextEncoder } = require('util');
+global.TextDecoder = TextDecoder;
+global.TextEncoder = TextEncoder;
