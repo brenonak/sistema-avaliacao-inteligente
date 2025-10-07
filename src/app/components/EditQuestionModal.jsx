@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -34,6 +36,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [palavrasChave, setPalavrasChave] = useState('');
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
+  const [afirmacoes, setAfirmacoes] = useState([{ texto: '', correta: true }]);
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
@@ -48,46 +51,19 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
       setRespostaNumerica(question.respostaCorreta || '');
       setMargemErro(question.margemErro || '');
+      setAfirmacoes(question.afirmacoes && question.afirmacoes.length > 0 ? question.afirmacoes : [{ texto: '', correta: true }]);
     }
   }, [question]);
 
-  useEffect(() => {
-    // Só roda se o modal estiver aberto e a questão carregada
-    if (open && question) {
-
-      if (tipo === 'vf') {
-        // Se o tipo MUDOU para 'vf', define as alternativas padrão
-        if (alternativas.length !== 2 || alternativas[0].texto !== 'Verdadeiro') {
-          setAlternativas([
-            { texto: 'Verdadeiro', correta: true },
-            { texto: 'Falso', correta: false },
-          ]);
-        }
-      } else if (tipo === 'alternativa') {
-      // Se o tipo MUDOU para 'alternativa', restaura as alternativas ORIGINAIS da questão
+    useEffect(() => {
+    // Limpa os campos de tipos específicos sempre que o tipo da questão mudar no modal
+    if (open) { // Só executa a limpeza se o modal estiver aberto
       setAlternativas(question.alternativas || []);
-    }
-
-      // Limpa os campos de RESPOSTA NUMÉRICA se o tipo não for 'numerica'
-      if (tipo !== 'numerica') {
-        setRespostaNumerica('');
-        setMargemErro('');
-      } else {
-        // Se o tipo for 'numerica', restaura os valores originais
-        setRespostaNumerica(question.respostaCorreta || '');
-        setMargemErro(question.margemErro || '');
-      }
-
-      // Limpa os campos de DISSERTATIVA se o tipo não for 'dissertativa'
-      if (tipo !== 'dissertativa') {
-        setGabarito('');
-        setPalavrasChave('');
-      } else {
-        // Se o tipo for 'dissertativa', restaura os valores originais
-        setGabarito(question.gabarito || '');
-        setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
-      }
-
+      setAfirmacoes(question.afirmacoes || [{ texto: '', correta: true }]);
+      setRespostaNumerica(question.respostaCorreta || '');
+      setMargemErro(question.margemErro || '');
+      setGabarito(question.gabarito || '');
+      setPalavrasChave(Array.isArray(question.palavrasChave) ? question.palavrasChave.join(', ') : '');
     }
   }, [tipo, open, question]); // Roda quando o tipo, a visibilidade do modal ou a questão mudam
 
@@ -120,9 +96,15 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               margemErro: margemErro ? parseFloat(margemErro) : 0,
               tags: cleanTags,
             }
+        : tipo === 'afirmacoes' // --- ADICIONE ESTA CONDIÇÃO ---
+          ? {
+              tipo,
+              enunciado,
+              afirmacoes: afirmacoes,
+              tags: cleanTags,
+            }
         : {
-            // Se for de múltipla escolha ou V/F, envia as alternativas
-            tipo,
+            tipo, // Padrão: múltipla escolha
             enunciado,
             alternativas: alternativas.map((a, i) => ({
               letra: indexToLetter(i),
@@ -168,7 +150,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             onChange={(e) => setTipo(e.target.value)}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
-            <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
+            <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
@@ -199,7 +181,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           sx={{ mb: 3 }}
         />
 
-        {!['dissertativa', 'numerica'].includes(tipo) && (
+        {tipo === 'alternativa' && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6">Alternativas:</Typography>
             <RadioGroup
@@ -209,20 +191,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
               }}
             >
-              {tipo === 'vf' ? (
-                // NOVA INTERFACE PARA 'VERDADEIRO OU FALSO'
-                alternativas.map((alt, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <FormControlLabel 
-                      value={index} 
-                      control={<Radio />} 
-                      label={<Typography>{alt.texto}</Typography>} 
-                    />
-                  </Box>
-                ))
-              ) : (
-                // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
-                alternativas.map((alt, index) => (
+              
+                {alternativas.map((alt, index) => (
                   <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <FormControlLabel value={index} control={<Radio />} label="" sx={{ mr: 1 }} />
                     <TextField
@@ -247,8 +217,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                       <Delete />
                     </IconButton>
                   </Box>
-                ))
-              )}
+              ))}
             </RadioGroup>
 
 
@@ -261,6 +230,73 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 + Adicionar alternativa
               </Button>
             )}
+          </Box>
+        )}
+
+        {tipo === 'afirmacoes' && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Afirmações:
+            </Typography>
+            {afirmacoes.map((afirmacao, index) => (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                
+                {/* 1. O NOVO SELETOR V/F (MAIS BONITO E À ESQUERDA) */}
+                <ToggleButtonGroup
+                  value={afirmacao.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) { // Impede que o botão seja "desselecionado"
+                      const novasAfirmacoes = afirmacoes.map((a, i) => 
+                        i === index ? { ...a, correta: novoValor } : a
+                      );
+                      setAfirmacoes(novasAfirmacoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* 2. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
+                <TextField
+                  label={`Afirmação ${index + 1}`}
+                  value={afirmacao.texto}
+                  onChange={(e) => {
+                    const novoTexto = e.target.value;
+                    const novasAfirmacoes = afirmacoes.map((a, i) => 
+                      i === index ? { ...a, texto: novoTexto } : a
+                    );
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+
+                {/* 3. BOTÃO DE REMOVER */}
+                <IconButton
+                  onClick={() => {
+                    const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                  color="error"
+                  disabled={afirmacoes.length <= 1}
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
+            ))}
+            
+            {/* BOTÃO DE ADICIONAR */}
+            <Button
+              variant="outlined"
+              onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
+              sx={{ mt: 1 }}
+            >
+              + Adicionar Afirmação
+            </Button>
           </Box>
         )}
 

@@ -15,6 +15,8 @@ import {
   FormControlLabel, 
   IconButton,
   Paper,
+  ToggleButton,
+  ToggleButtonGroup,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -33,6 +35,10 @@ export default function CriarQuestaoPage() {
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [afirmacoes, setAfirmacoes] = useState([
+  { texto: '', correta: true }, // Começa com uma afirmação, marcada como V por padrão
+  ]);
+
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
 
@@ -50,34 +56,15 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
-  useEffect(() => {
-  if (tipo === 'vf') {
-    // Quando o tipo for 'vf', força as alternativas para o padrão Verdadeiro/Falso
-    setAlternativas([
-      { texto: 'Verdadeiro', correta: true },
-      { texto: 'Falso', correta: false },
-    ]);
-  } else {
-    // QUANDO FOR QUALQUER OUTRO TIPO (Múltipla Escolha ou Dissertativa),
-    // reseta para o padrão de duas alternativas vazias.
-    setAlternativas([
-      { texto: '', correta: true },
-      { texto: '', correta: false },
-    ]);
-  }
-
-  // Se o tipo NÃO for 'numérica', limpa os campos numéricos.
-  if (tipo !== 'numerica') {
+useEffect(() => {
+    // Sempre que o tipo mudar, reseta os campos de tipos específicos
+    setAlternativas([{ texto: '', correta: true }, { texto: '', correta: false }]);
+    setAfirmacoes([{ texto: '', correta: true }]);
     setRespostaNumerica('');
     setMargemErro('');
-  }
-
-  // Se o tipo NÃO for 'dissertativa', limpa os campos dissertativos.
-  if (tipo !== 'dissertativa') {
     setGabarito('');
     setPalavrasChave('');
-  }
-}, [tipo]);
+  }, [tipo]);
 
   const handleClearForm = () => {
     setEnunciado('');
@@ -93,6 +80,7 @@ export default function CriarQuestaoPage() {
     setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
+    setAfirmacoes([{ texto: '', correta: true }]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -154,8 +142,16 @@ export default function CriarQuestaoPage() {
               tags: cleanTags,
               recursos: recursos.map((r) => r.url),
             }
-        : {
-            tipo, // "alternativa" ou "vf"
+          : tipo === 'afirmacoes'
+            ? {
+                tipo,
+                enunciado,
+                afirmacoes: afirmacoes, // Envia o novo array de afirmações
+                tags: cleanTags,
+                recursos: recursos.map((r) => r.url),
+              }
+            : {
+            tipo, // Padrão: múltipla escolha
             enunciado,
             alternativas: alternativas.map((a, i) => ({
               letra: indexToLetter(i),
@@ -277,7 +273,7 @@ export default function CriarQuestaoPage() {
             onChange={(e) => setTipo(e.target.value)}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
-            <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
+            <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
@@ -321,8 +317,8 @@ export default function CriarQuestaoPage() {
         />
         
 
-      {/* Alternativas (agora escondidas para dissertativa E numérica) */}
-      {!['dissertativa', 'numerica'].includes(tipo) && (
+      {/* Alternativas */}
+      {tipo === 'alternativa' && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
             Alternativas:
@@ -335,21 +331,8 @@ export default function CriarQuestaoPage() {
               setAlternativas(alternativas.map((a, i) => ({ ...a, correta: i === selectedIndex })));
             }}
           >
-            {tipo === 'vf' ? (
-              // INTERFACE PARA 'VERDADEIRO OU FALSO'
-              alternativas.map((alt, index) => (
-                <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                  <FormControlLabel
-                    value={index}
-                    control={<Radio />}
-                    label={<Typography sx={{ color: 'text.primary' }}>{alt.texto}</Typography>}
-                  />
-                </Box>
-              ))
-            ) : (
-
-              // INTERFACE ANTIGA PARA 'MÚLTIPLA ESCOLHA'
-              alternativas.map((alt, index) => (
+              
+              {alternativas.map((alt, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <FormControlLabel value={index} control={<Radio />} label="" sx={{ margin: 0, marginRight: 1 }} />
                   <TextField
@@ -380,8 +363,7 @@ export default function CriarQuestaoPage() {
                     <Delete />
                   </IconButton>
                 </Box>
-              ))
-            )}
+            ))}
           </RadioGroup>
 
           {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
@@ -396,6 +378,73 @@ export default function CriarQuestaoPage() {
           )}
         </Box>
       )}
+
+      {tipo === 'afirmacoes' && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+              Afirmações:
+            </Typography>
+            {afirmacoes.map((afirmacao, index) => (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                
+                {/* 1. O NOVO SELETOR V/F (MAIS BONITO E À ESQUERDA) */}
+                <ToggleButtonGroup
+                  value={afirmacao.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) { // Impede que o botão seja "desselecionado"
+                      const novasAfirmacoes = afirmacoes.map((a, i) => 
+                        i === index ? { ...a, correta: novoValor } : a
+                      );
+                      setAfirmacoes(novasAfirmacoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+
+                {/* 2. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
+                <TextField
+                  label={`Afirmação ${index + 1}`}
+                  value={afirmacao.texto}
+                  onChange={(e) => {
+                    const novoTexto = e.target.value;
+                    const novasAfirmacoes = afirmacoes.map((a, i) => 
+                      i === index ? { ...a, texto: novoTexto } : a
+                    );
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+
+                {/* 3. BOTÃO DE REMOVER */}
+                <IconButton
+                  onClick={() => {
+                    const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                  color="error"
+                  disabled={afirmacoes.length <= 1}
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
+            ))}
+            
+            {/* BOTÃO DE ADICIONAR */}
+            <Button
+              variant="outlined"
+              onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
+              sx={{ mt: 1 }}
+            >
+              + Adicionar Afirmação
+            </Button>
+          </Box>
+        )}
 
       {/* BLOCO PARA RESPOSTA NUMÉRICA */}
     {tipo === 'numerica' && (
