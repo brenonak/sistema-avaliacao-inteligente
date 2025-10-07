@@ -276,6 +276,7 @@ useEffect(() => {
             <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
+            <MenuItem value="proposicoes">Proposições Múltiplas (Somatório)</MenuItem>
           </Select>
         </FormControl>
 
@@ -470,6 +471,73 @@ useEffect(() => {
         />
       </Box>
     )}
+
+      {/* --- NOVO BLOCO PARA PROPOSIÇÕES MÚLTIPLAS --- */}
+      {tipo === 'proposicoes' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Proposições:
+          </Typography>
+          {proposicoes.map((prop, index) => {
+            const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+            return (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                {/* Checkbox para marcar como verdadeira */}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={prop.correta}
+                      onChange={(e) => {
+                        const novasProposicoes = proposicoes.map((p, i) =>
+                          i === index ? { ...p, correta: e.target.checked } : p
+                        );
+                        setProposicoes(novasProposicoes);
+                      }}
+                    />
+                  }
+                  label={valor.toString().padStart(2, '0')} // Mostra o valor (01, 02, 04...)
+                />
+                
+                {/* Campo de texto para a afirmação */}
+                <TextField
+                  label={`Afirmação ${valor}`}
+                  value={prop.texto}
+                  onChange={(e) => {
+                    const novoTexto = e.target.value;
+                    const novasProposicoes = proposicoes.map((p, i) =>
+                      i === index ? { ...p, texto: novoTexto } : p
+                    );
+                    setProposicoes(novasProposicoes);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+                
+                {/* Botão de Remover */}
+                <IconButton
+                  onClick={() => {
+                    const novasProposicoes = proposicoes.filter((_, i) => i !== index);
+                    setProposicoes(novasProposicoes);
+                  }}
+                  color="error"
+                  disabled={proposicoes.length <= 1}
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
+            );
+          })}
+          {/* Botão de Adicionar */}
+          <Button
+            variant="outlined"
+            onClick={() => setProposicoes([...proposicoes, { texto: '', correta: false }])}
+            sx={{ mt: 1 }}
+          >
+            + Adicionar Proposição
+          </Button>
+        </Box>
+      )}
 
       {/* BLOCO PARA CAMPOS DISSERTATIVOS */}
         {tipo === 'dissertativa' && (
