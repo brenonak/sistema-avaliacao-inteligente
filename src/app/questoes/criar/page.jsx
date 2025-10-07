@@ -91,6 +91,7 @@ export default function CriarQuestaoPage() {
     setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
+    setAfirmacoes([{ texto: '', correta: true }]);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -152,8 +153,16 @@ export default function CriarQuestaoPage() {
               tags: cleanTags,
               recursos: recursos.map((r) => r.url),
             }
-        : {
-            tipo, // "alternativa" ou "vf"
+          : tipo === 'afirmacoes'
+            ? {
+                tipo,
+                enunciado,
+                afirmacoes: afirmacoes, // Envia o novo array de afirmações
+                tags: cleanTags,
+                recursos: recursos.map((r) => r.url),
+              }
+            : {
+            tipo: 'alternativa', // "multipla escolha (alternativa)"
             enunciado,
             alternativas: alternativas.map((a, i) => ({
               letra: indexToLetter(i),
