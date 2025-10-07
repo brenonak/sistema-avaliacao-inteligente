@@ -657,6 +657,7 @@ useEffect(() => {
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
+              if (activeImage === f) setActiveImage(null);
             }}
             isActiveImage={activeImage === file}
             onSetActiveImage={handleSetActiveImage}
