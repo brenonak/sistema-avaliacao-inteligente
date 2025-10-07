@@ -14,7 +14,8 @@ export default function ListarQuestoesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
-  const [openExclusionPopup, setOpenExclusionPopup] = useState(false);
+  //const [openExclusionPopup, setOpenExclusionPopup] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
 
   useEffect(() => {
     async function fetchQuestoes() {
@@ -33,14 +34,15 @@ export default function ListarQuestoesPage() {
     fetchQuestoes();
   }, []);
 
-  const handleDelete = async (questionId) => {
+  const handleDelete = async () => {
+    if (!questionToDelete) return; // Segurança extra
     try {
       // TODO: A chamada para a API abaixo está pronta.
       // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
       // Atualmente, essa chamada retornará um erro 404.
       // Implemente o endpoint no back-end para que a exclusão funcione corretamente.
       // Após implementar, teste a funcionalidade para garantir que tudo está funcionando como esperado.
-      const res = await fetch(`/api/questoes/${questionId}`, {
+      const res = await fetch(`/api/questoes/${questionToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -49,7 +51,7 @@ export default function ListarQuestoesPage() {
       }
 
       // Remover a questão da lista localmente
-      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionId));
+      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionToDelete.id));
       alert('Questão excluída com sucesso');
 
     } catch (err) {
@@ -57,7 +59,8 @@ export default function ListarQuestoesPage() {
       alert(err.message || 'Erro desconhecido ao excluir questão');
     }
 
-    setOpenExclusionPopup(false);
+    //setOpenExclusionPopup(false);
+    setQuestionToDelete(null);
   };
 
   const handleOpenEditModal = (questao) => {
@@ -205,16 +208,16 @@ export default function ListarQuestoesPage() {
                     size="small"
                     color="error" 
                     variant="contained" 
-                    onClick={() => setOpenExclusionPopup(true)}
+                    onClick={() => setQuestionToDelete(questao)}
                   >
                     Excluir
                   </Button>
           
                   <ConfirmDeleteDialog
-                    open={openExclusionPopup}
+                    open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
                     elementText='esta questão'
-                    onClose={() => setOpenExclusionPopup(false)}
-                    onConfirm={() => handleDelete(questao.id)}
+                    onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
+                    onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
                   />
                 </>
             </CardActions>

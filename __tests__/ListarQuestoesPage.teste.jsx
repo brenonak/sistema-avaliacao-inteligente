@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ListarQuestoesPage from '../src/app/questoes/page'; 
 
 // Mock dos dados que a API retornaria
@@ -26,6 +27,25 @@ const mockQuestoes = [
   },
 ];
 
+const theme = createTheme({
+  palette: {
+    accent: {
+      main: '#ff5722', // Pode ser qualquer cor, só precisa existir
+    },
+    success: {
+        main: '#4caf50',
+    },
+    text: {
+        primary: '#000000',
+        secondary: '#666666'
+    }
+  },
+});
+
+const renderWithTheme = (component) => {
+  return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>);
+};
+
 // Mock do componente EditQuestionModal
 jest.mock('../src/app/components/EditQuestionModal', () => {
   return function MockEditQuestionModal({ open, onClose, question, onSaveSuccess }) {
@@ -49,7 +69,7 @@ jest.mock('../src/app/components/EditQuestionModal', () => {
 // Resetar os mocks antes de cada teste
 beforeEach(() => {
   fetch.mockClear();
-  global.confirm = jest.fn();
+  
   global.alert = jest.fn();
   
   // Mock para a funcionalidade de download
@@ -59,17 +79,16 @@ beforeEach(() => {
 
 describe('ListarQuestoesPage', () => {
   
-  // ... (outros testes permanecem iguais) ...
   it('deve exibir o estado de carregamento inicialmente', () => {
     fetch.mockImplementation(() => new Promise(() => {})); 
-    render(<ListarQuestoesPage />);
+    renderWithTheme(<ListarQuestoesPage />);
     expect(screen.getByText(/carregando.../i)).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('deve exibir uma mensagem de erro se a busca de questões falhar', async () => {
     fetch.mockRejectedValueOnce(new Error('Erro ao buscar questões'));
-    render(<ListarQuestoesPage />);
+    renderWithTheme(<ListarQuestoesPage />);
     expect(await screen.findByText('Erro ao buscar questões')).toBeInTheDocument();
   });
 
@@ -78,7 +97,7 @@ describe('ListarQuestoesPage', () => {
       ok: true,
       json: async () => ({ items: [] }),
     });
-    render(<ListarQuestoesPage />);
+    renderWithTheme(<ListarQuestoesPage />);
     expect(await screen.findByText('Nenhuma questão cadastrada.')).toBeInTheDocument();
   });
 
@@ -87,47 +106,65 @@ describe('ListarQuestoesPage', () => {
       ok: true,
       json: async () => ({ items: mockQuestoes }),
     });
-    render(<ListarQuestoesPage />);
+    renderWithTheme(<ListarQuestoesPage />);
     expect(await screen.findByText('Qual é a capital do Brasil?')).toBeInTheDocument();
     expect(screen.getByText('A Terra é plana?')).toBeInTheDocument();
     expect(screen.getByText('Brasília (Correta)')).toBeInTheDocument();
   });
 
-  describe('Funcionalidade de Exclusão', () => {
-    it('deve excluir uma questão com sucesso após a confirmação do usuário', async () => {
-      const user = userEvent.setup();
-      confirm.mockReturnValueOnce(true); 
+ describe('Funcionalidade de Exclusão', () => {
 
-      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
-      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ message: 'Questão excluída' }) });
-      
-      render(<ListarQuestoesPage />);
-      const card = await screen.findByText('Qual é a capital do Brasil?');
-      const deleteButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
-      
-      await user.click(deleteButton);
+  it('deve excluir uma questão com sucesso após a confirmação do usuário', async () => {
+    const user = userEvent.setup();
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ message: 'Questão excluída' }) });
+    
+    renderWithTheme(<ListarQuestoesPage />);
+    
+    // Encontra o botão "Excluir" no card
+    const card = await screen.findByText('Qual é a capital do Brasil?');
+    const deleteButtonOnCard = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
+    await user.click(deleteButtonOnCard);
 
-      expect(confirm).toHaveBeenCalledWith('Tem certeza que deseja excluir esta questão? A ação não poderá ser desfeita');
-      await waitFor(() => {
-        expect(screen.queryByText('Qual é a capital do Brasil?')).not.toBeInTheDocument();
-      });
-      expect(fetch).toHaveBeenCalledWith('/api/questoes/1', { method: 'DELETE' });
-      expect(alert).toHaveBeenCalledWith('Questão excluída com sucesso');
+    // Espera o diálogo aparecer
+    const dialog = await screen.findByRole('dialog');
+    
+    // Usa getByRole e busca por "Excluir"
+    const confirmButtonInDialog = within(dialog).getByRole('button', { name: /excluir/i });
+    await user.click(confirmButtonInDialog);
+
+    // Verifica os resultados
+    expect(fetch).toHaveBeenCalledWith('/api/questoes/1', { method: 'DELETE' });
+    expect(alert).toHaveBeenCalledWith('Questão excluída com sucesso');
+    await waitFor(() => {
+      expect(screen.queryByText('Qual é a capital do Brasil?')).not.toBeInTheDocument();
     });
+  });
 
-    it('não deve excluir a questão se o usuário cancelar a ação', async () => {
-        const user = userEvent.setup();
-        confirm.mockReturnValueOnce(false);
-        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
-        render(<ListarQuestoesPage />);
+  it('não deve excluir a questão se o usuário cancelar a ação', async () => {
+    const user = userEvent.setup();
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
+    
+    renderWithTheme(<ListarQuestoesPage />);
 
-        const card = await screen.findByText('Qual é a capital do Brasil?');
-        const deleteButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
-        await user.click(deleteButton);
-        
-        expect(confirm).toHaveBeenCalledTimes(1);
-        expect(fetch).not.toHaveBeenCalledWith('/api/questoes/1', { method: 'DELETE' });
-        expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    // Encontra o botão "Excluir" no card
+    const card = await screen.findByText('Qual é a capital do Brasil?');
+    const deleteButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
+    await user.click(deleteButton);
+
+    // Espera o diálogo aparecer
+    const dialog = await screen.findByRole('dialog');
+    
+    // Usa getByRole para encontrar o botão "Cancelar"
+    const cancelButton = within(dialog).getByRole('button', { name: /cancelar/i });
+    await user.click(cancelButton);
+    
+    // Verifica os resultados
+    await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalledWith('/api/questoes/1', { method: 'DELETE' });
     });
   });
 
@@ -135,7 +172,7 @@ describe('ListarQuestoesPage', () => {
     it('deve abrir o modal de edição ao clicar em "Editar"', async () => {
         const user = userEvent.setup();
         fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
-        render(<ListarQuestoesPage />);
+        renderWithTheme(<ListarQuestoesPage />);
     
         const card = await screen.findByText('Qual é a capital do Brasil?');
         const editButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /editar/i });
@@ -146,7 +183,6 @@ describe('ListarQuestoesPage', () => {
     });
   });
 
-  // 👇 ALTERAÇÃO AQUI: 'describe' foi trocado para 'describe.skip'
   describe.skip('Funcionalidade de Exportação', () => {
     it('deve chamar a API de gerar prova e iniciar o download', async () => {
         const user = userEvent.setup();
@@ -166,7 +202,7 @@ describe('ListarQuestoesPage', () => {
         document.body.appendChild = jest.fn();
         document.body.removeChild = jest.fn();
 
-        render(<ListarQuestoesPage />);
+        renderWithTheme(<ListarQuestoesPage />);
 
         const exportButton = await screen.findByRole('button', { name: /exportar para latex/i });
         await user.click(exportButton);
