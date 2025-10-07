@@ -221,7 +221,8 @@ export default function ListarQuestoesPage() {
               {/* Exibir tipo da questão */}
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
-                       questao.tipo === 'vf' ? 'Verdadeiro ou Falso' : 
+                       questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
+                       questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
                        questao.tipo === 'dissertativa' ? 'Dissertativa' : 
                        questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
               </Typography>
@@ -245,13 +246,13 @@ export default function ListarQuestoesPage() {
                 </Box>
               )}
               
-              {/* Exibir alternativas para questões de múltipla escolha e V/F */}
-              {(questao.tipo === 'alternativa' || questao.tipo === 'vf') && (
+              {/* Exibir alternativas para questões de múltipla escolha */}
+              {questao.tipo === 'alternativa' && (
                 <List dense>
                   {questao.alternativas?.map((alt, index) => (
                     <ListItem key={index} sx={{ pl: 2 }}>
                       <ListItemText
-                        primary={`${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                        primary={`${(alt.letra || String.fromCharCode(65 + index))}) ${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
                         sx={{
                           '& .MuiListItemText-primary': {
                             fontWeight: alt.correta ? 'bold' : 'normal',
@@ -279,6 +280,33 @@ export default function ListarQuestoesPage() {
                     </ListItem>
                   ))}
                 </List>
+              )}
+
+              {/* Exibir proposições (somatório) com valor e gabarito */}
+              {questao.tipo === 'proposicoes' && Array.isArray(questao.proposicoes) && (
+                <>
+                  <List dense>
+                    {questao.proposicoes.map((p, index) => (
+                      <ListItem key={index} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                        <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'monospace' }}>
+                          {String(p.valor).padStart(2, '0')}
+                        </Typography>
+                        <Typography sx={{ mr: 1, fontWeight: 'bold', color: p.correta ? 'success.main' : 'error.main' }}>
+                          ({p.correta ? 'V' : 'F'})
+                        </Typography>
+                        <ListItemText primary={p.texto} />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                      Gabarito (Soma):{' '}
+                      <Typography component="span" sx={{ color: 'success.main' }}>
+                        {questao.proposicoes.reduce((acc, p) => acc + (p.correta ? (Number(p.valor) || 0) : 0), 0)}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                </>
               )}
               </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
