@@ -33,6 +33,10 @@ export default function CriarQuestaoPage() {
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [afirmacoes, setAfirmacoes] = useState([
+  { texto: '', correta: true }, // Começa com uma afirmação, marcada como V por padrão
+  ]);
+
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
 
@@ -277,7 +281,7 @@ export default function CriarQuestaoPage() {
             onChange={(e) => setTipo(e.target.value)}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
-            <MenuItem value="vf">Verdadeiro ou Falso</MenuItem>
+            <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
           </Select>
@@ -394,6 +398,68 @@ export default function CriarQuestaoPage() {
               + Adicionar alternativa
             </Button>
           )}
+        </Box>
+      )}
+
+      {tipo === 'afirmacoes' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Afirmações:
+          </Typography>
+          {afirmacoes.map((afirmacao, index) => (
+            <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              {/* Campo de texto para a afirmação */}
+              <TextField
+                label={`Afirmação ${index + 1}`}
+                value={afirmacao.texto}
+                onChange={(e) => {
+                  const novoTexto = e.target.value;
+                  const novasAfirmacoes = afirmacoes.map((a, i) => 
+                    i === index ? { ...a, texto: novoTexto } : a
+                  );
+                  setAfirmacoes(novasAfirmacoes);
+                }}
+                fullWidth
+                variant="outlined"
+                size="small"
+              />
+              {/* Seletor V/F */}
+              <FormControl size="small">
+                <Select
+                  value={afirmacao.correta}
+                  onChange={(e) => {
+                    const novoValor = e.target.value;
+                    const novasAfirmacoes = afirmacoes.map((a, i) => 
+                      i === index ? { ...a, correta: novoValor } : a
+                    );
+                    setAfirmacoes(novasAfirmacoes);
+                  }}
+                >
+                  <MenuItem value={true}>V</MenuItem>
+                  <MenuItem value={false}>F</MenuItem>
+                </Select>
+              </FormControl>
+              {/* Botão de Remover */}
+              <IconButton
+                onClick={() => {
+                  const novasAfirmacoes = afirmacoes.filter((_, i) => i !== index);
+                  setAfirmacoes(novasAfirmacoes);
+                }}
+                color="error"
+                disabled={afirmacoes.length <= 1}
+              >
+                <Delete />
+              </IconButton>
+            </Box>
+          ))}
+          {/* Botão de Adicionar */}
+          <Button
+            variant="outlined"
+            onClick={() => setAfirmacoes([...afirmacoes, { texto: '', correta: true }])}
+            sx={{ mt: 1 }}
+          >
+            + Adicionar Afirmação
+          </Button>
         </Box>
       )}
 
