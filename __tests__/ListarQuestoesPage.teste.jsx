@@ -109,7 +109,7 @@ describe('ListarQuestoesPage', () => {
     renderWithTheme(<ListarQuestoesPage />);
     expect(await screen.findByText('Qual é a capital do Brasil?')).toBeInTheDocument();
     expect(screen.getByText('A Terra é plana?')).toBeInTheDocument();
-    expect(screen.getByText('Brasília (Correta)')).toBeInTheDocument();
+    expect(screen.getByText(/Brasília \(Correta\)/)).toBeInTheDocument();
   });
 
  describe('Funcionalidade de Exclusão', () => {

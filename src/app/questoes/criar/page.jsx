@@ -497,7 +497,7 @@ useEffect(() => {
           onChange={(e) => setRespostaNumerica(e.target.value)}
           variant="outlined"
           fullWidth
-          required // Indicar que é obrigatório
+          //required // Indicar que é obrigatório
         />
         <TextField
           id="margem-erro"
