@@ -77,6 +77,18 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
       .slice(0, 10)
   ), [tagsInput]);
 
+  const somaProposicoes = useMemo(() => {
+  // A função 'reduce' vai passar por cada proposição e acumular a soma
+  return proposicoes.reduce((soma, prop, index) => {
+    // Se a proposição estiver marcada como correta...
+    if (prop.correta) {
+      const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+      return soma + valor; // Adiciona o valor à soma
+    }
+    return soma; // Se não for correta, retorna a soma sem alteração
+  }, 0); // O '0' é o valor inicial da soma
+}, [proposicoes]); // Recalcula a soma sempre que o array 'proposicoes' mudar
+
   const handleSave = async () => {
     // Monta o payload para a API de forma condicional
     const payload =
@@ -89,6 +101,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             gabarito: gabarito,
             palavrasChave: palavrasChave.split(',').map(s => s.trim()),
             tags: cleanTags,
+            recursos: question.recursos || [],
           }
         : tipo === 'numerica'
           ? {
@@ -97,6 +110,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               respostaCorreta: parseFloat(respostaNumerica || 0),
               margemErro: margemErro ? parseFloat(margemErro) : 0,
               tags: cleanTags,
+              recursos: question.recursos || [],
             }
         : tipo === 'afirmacoes' 
           ? {
@@ -104,6 +118,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               enunciado,
               afirmacoes: afirmacoes,
               tags: cleanTags,
+              recursos: question.recursos || [],
             }
           : tipo === 'proposicoes' 
             ? {
@@ -115,7 +130,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                 correta: p.correta,
               })),
               tags: cleanTags,
-              recursos: recursos.map((r) => r.url),
+              recursos: question.recursos || [],
               }
         : {
             tipo, // Padrão: múltipla escolha
@@ -126,6 +141,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               correta: !!a.correta,
             })),
             tags: cleanTags,
+            recursos: question.recursos || [],
           };
 
   
@@ -340,7 +356,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           </Box>
         )}
 
-        {/* --- NOVO BLOCO PARA PROPOSIÇÕES MÚLTIPLAS --- */}
+        {/* PROPOSIÇÕES MÚLTIPLAS */}
         {tipo === 'proposicoes' && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
@@ -350,25 +366,33 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
               return (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  {/* Checkbox para marcar como verdadeira */}
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={prop.correta}
-                        onChange={(e) => {
-                          const novasProposicoes = proposicoes.map((p, i) =>
-                            i === index ? { ...p, correta: e.target.checked } : p
-                          );
-                          setProposicoes(novasProposicoes);
-                        }}
-                      />
-                    }
-                    label={valor.toString().padStart(2, '0')} // Mostra o valor (01, 02, 04...)
-                  />
                   
-                  {/* Campo de texto para a afirmação */}
+                  {/* 1. SELETOR V/F APRIMORADO À ESQUERDA */}
+                  <ToggleButtonGroup
+                    value={prop.correta}
+                    exclusive
+                    size="small"
+                    onChange={(event, novoValor) => {
+                      if (novoValor !== null) {
+                        const novasProposicoes = proposicoes.map((p, i) =>
+                          i === index ? { ...p, correta: novoValor } : p
+                        );
+                        setProposicoes(novasProposicoes);
+                      }
+                    }}
+                  >
+                    <ToggleButton value={true} color="success">V</ToggleButton>
+                    <ToggleButton value={false} color="error">F</ToggleButton>
+                  </ToggleButtonGroup>
+                  
+                  {/* 2. LABEL COM O VALOR DA PROPOSIÇÃO */}
+                  <Typography sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
+                    {valor.toString().padStart(2, '0')}
+                  </Typography>
+                  
+                  {/* 3. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
                   <TextField
-                    label={`Afirmação ${valor}`}
+                    label={`Afirmação de valor ${valor}`}
                     value={prop.texto}
                     onChange={(e) => {
                       const novoTexto = e.target.value;
@@ -382,7 +406,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
                     size="small"
                   />
                   
-                  {/* Botão de Remover */}
+                  {/* 4. BOTÃO DE REMOVER */}
                   <IconButton
                     onClick={() => {
                       const novasProposicoes = proposicoes.filter((_, i) => i !== index);
@@ -404,6 +428,17 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             >
               + Adicionar Proposição
             </Button>
+
+            {/* EXIBIR A SOMA */}
+            <Box sx={{ mt: 3, p: 2, border: '1px dashed', borderColor: 'grey.500', borderRadius: 1 }}>
+              <Typography variant="h6" component="p" sx={{ color: 'text.primary' }}>
+                Resposta Correta (Soma):{' '}
+                <Typography component="span" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                  {somaProposicoes}
+                </Typography>
+              </Typography>
+            </Box>
+
           </Box>
         )}
 
