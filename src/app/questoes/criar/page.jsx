@@ -17,6 +17,7 @@ import {
   Paper,
   ToggleButton,
   ToggleButtonGroup,
+  Checkbox,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -167,7 +168,7 @@ useEffect(() => {
                 })),
                 tags: cleanTags,
                 recursos: recursos.map((r) => r.url),
-          }
+                }
             : {
             tipo, // Padrão: múltipla escolha
             enunciado,

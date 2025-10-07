@@ -21,6 +21,7 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  Checkbox,
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
@@ -97,13 +98,25 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
               margemErro: margemErro ? parseFloat(margemErro) : 0,
               tags: cleanTags,
             }
-        : tipo === 'afirmacoes' // --- ADICIONE ESTA CONDIÇÃO ---
+        : tipo === 'afirmacoes' 
           ? {
               tipo,
               enunciado,
               afirmacoes: afirmacoes,
               tags: cleanTags,
             }
+          : tipo === 'proposicoes' 
+            ? {
+              tipo,
+              enunciado,
+              proposicoes: proposicoes.map((p, index) => ({
+                valor: Math.pow(2, index),
+                texto: p.texto,
+                correta: p.correta,
+              })),
+              tags: cleanTags,
+              recursos: recursos.map((r) => r.url),
+              }
         : {
             tipo, // Padrão: múltipla escolha
             enunciado,
