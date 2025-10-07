@@ -100,6 +100,11 @@ export default function ListarQuestoesPage() {
     );
   };
 
+  const toRoman = (num) => {
+    const romans = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+    return romans[num] || String(num + 1);
+  };
+
   const handleExportarLatex = async () => {
     try {
       setExporting(true);
@@ -254,6 +259,23 @@ export default function ListarQuestoesPage() {
                           }
                         }}
                       />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+
+              {/* Exibir afirmações (novo tipo) com gabarito visível */}
+              {questao.tipo === 'afirmacoes' && Array.isArray(questao.afirmacoes) && (
+                <List dense>
+                  {questao.afirmacoes.map((af, index) => (
+                    <ListItem key={index} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                      <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary' }}>
+                        {toRoman(index)}.
+                      </Typography>
+                      <Typography sx={{ mr: 1, fontWeight: 'bold', color: af.correta ? 'success.main' : 'error.main' }}>
+                        ({af.correta ? 'V' : 'F'})
+                      </Typography>
+                      <ListItemText primary={af.texto} />
                     </ListItem>
                   ))}
                 </List>
