@@ -105,7 +105,9 @@ export default function CriarQuestaoPage() {
       alert('Por favor, preencha o enunciado da questão.');
       return;
     }
-    if (tipo !== 'dissertativa') {
+    
+    // Validações específicas por tipo de questão
+    if (tipo === 'alternativa' || tipo === 'vf') {
       if (alternativas.some((a) => a.texto.trim() === '')) {
         alert('Todas as alternativas devem ser preenchidas.');
         return;
@@ -114,6 +116,12 @@ export default function CriarQuestaoPage() {
         alert('Marque uma alternativa como correta.');
         return;
       }
+    }
+    
+    // Validação para questão numérica
+    if (tipo === 'numerica' && !respostaNumerica) {
+      alert('Por favor, informe a resposta correta.');
+      return;
     }
 
     // realiza upload dos arquivos selecionados (se houver)
