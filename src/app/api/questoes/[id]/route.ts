@@ -8,7 +8,6 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-
 export async function GET(
   request: Request,
   { params }: any
@@ -22,7 +21,6 @@ export async function GET(
     return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }
-
 
 export async function PUT(
   request: Request,
@@ -46,7 +44,6 @@ export async function PUT(
     return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
   } catch (e) { return serverError(e); }
 }
-
 
 export async function DELETE(
   request: Request,
