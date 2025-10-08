@@ -3,8 +3,10 @@ import { Box, IconButton, TextField, Avatar } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ImageIcon from '@mui/icons-material/Image';
+import Tooltip from '@mui/material/Tooltip';
 
-const FileItem = ({ file, onExclude }) => {
+const FileItem = ({ file, onExclude, isActiveImage, onSetActiveImage }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const isImage = file.type.startsWith('image/');
   const isPDF = file.type === 'application/pdf';
@@ -68,15 +70,29 @@ const FileItem = ({ file, onExclude }) => {
         variant="outlined"
         size="small"
       />
-
-        <IconButton
-          onClick={() => onExclude(file)}
-          color="error"
-          sx={{ ml: 1 }}
-          title='Remover arquivo'
-        >
-          <DeleteIcon />
-        </IconButton>
+        <Tooltip title="Definir como imagem do enunciado">
+          <span>
+            <IconButton
+              onClick={() => onSetActiveImage(file)}
+              color={isActiveImage ? 'accent' : 'primary'}
+              sx={{ ml: 1 }}
+              disabled={!isImage}
+            >
+              <ImageIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Remover arquivo">
+          <span>
+            <IconButton
+              onClick={() => onExclude(file)}
+              color="error"
+              sx={{ ml: 1 }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
     </Box>
   );
 };
