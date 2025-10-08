@@ -14,7 +14,6 @@ export default function ListarQuestoesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
-  //const [openExclusionPopup, setOpenExclusionPopup] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState(null);
 
   useEffect(() => {
