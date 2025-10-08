@@ -74,12 +74,11 @@ Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
 ### **3. Rodar o projeto via Docker**
 - Acesse a pasta onde o arquivo ```docker-compose.yml``` se localiza via terminal
 - Rode o comando ```docker-compose up --build```
-
-### **4. Acesso Deploy**
-https://f1-mu-nine.vercel.app/
-
 - Espere até que todas as dependências e os conteiners sejam criados corretamente
 - Acesse a aplicação através da porta [3000](localhost:3000)
 - Pare de rodar a aplicação através do comando ```docker-compose stop```
 - Rode novamente a aplicação através do comando  ```docker-compose start```
 - Em caso de modificação de dependências, é necessário excluir os conteiners via ```docker-compose down``` e rodar o comando ```docker-compose up --build``` novamente
+
+### **4. Acesso Deploy**
+https://f1-mu-nine.vercel.app/
