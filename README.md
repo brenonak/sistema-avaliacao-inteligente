@@ -11,8 +11,9 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 - **Fase Atual:** Sprint 2 
 - **Tasks:**
-    - Criação de atividades via template
-    - Funcionalidade de diferentes formatos de questões no template
+    - Banco de questões
+    - Geração de Documento
+    - Banco de Recursos Frequentes
 
 ---
 
