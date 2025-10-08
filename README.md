@@ -76,8 +76,8 @@ Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
 - Rode o comando ```docker-compose up --build```
 
 ### **4. Acesso Deploy**
--https://f1-mu-nine.vercel.app/
-- 
+https://f1-mu-nine.vercel.app/
+
 - Espere até que todas as dependências e os conteiners sejam criados corretamente
 - Acesse a aplicação através da porta [3000](localhost:3000)
 - Pare de rodar a aplicação através do comando ```docker-compose stop```
