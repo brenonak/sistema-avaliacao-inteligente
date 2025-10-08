@@ -1,7 +1,7 @@
 # Plataforma Inteligente para Atividades Acadêmicas
 
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Sprint](https://img.shields.io/badge/sprint-1-green)
+![Sprint](https://img.shields.io/badge/sprint-2-green)
 
 Uma plataforma web que permite aos professores criar, gerar estatísticas e corrigir atividades acadêmicas de forma automatizada, com suporte de inteligência artificial para gerar alternativas, refinar enunciados e dar feedback aos alunos.
 
@@ -9,7 +9,7 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 ## Status do Projeto
 
-- **Fase Atual:** Sprint 1 
+- **Fase Atual:** Sprint 2 
 - **Tasks:**
     - Criação de atividades via template
     - Funcionalidade de diferentes formatos de questões no template
