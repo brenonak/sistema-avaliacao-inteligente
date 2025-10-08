@@ -13,22 +13,11 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=development
-      - MONGODB_URI= mongodb+srv://golf_db_example
-      - MONGODB_DB= "glof_db_example"
     restart: unless-stopped
-    depends_on:
-      - mongo
+    # 'depends_on' e o serviço 'mongo' foram removidos
 
-  mongo:
-    image: mongo:latest
-    container_name: mongodb_dev_server
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    restart: unless-stopped
-
-volumes:
-  mongodb_data:
+# O volume 'mongodb_data' também foi removido

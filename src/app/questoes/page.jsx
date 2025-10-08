@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link'; 
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+import EditQuestionModal from '../components/EditQuestionModal';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
 
   useEffect(() => {
     async function fetchQuestoes() {
@@ -14,7 +23,25 @@ export default function ListarQuestoesPage() {
         const res = await fetch('/api/questoes');
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
-        setQuestoes(data.items || []);
+        const items = Array.isArray(data.items) ? data.items : [];
+        // Para cada questão, se houver recurso por ID, buscar a URL
+        const itemsWithResourceUrl = await Promise.all(
+          items.map(async (q) => {
+            try {
+              const firstResourceId = Array.isArray(q.recursos) && q.recursos.length > 0 ? q.recursos[0] : null;
+              if (!firstResourceId) return q;
+              const r = await fetch(`/api/resources/${firstResourceId}`);
+              if (!r.ok) return q;
+              const rjson = await r.json();
+              const url = rjson?.resource?.url;
+              if (!url) return q;
+              return { ...q, recursoUrl: url };
+            } catch (_) {
+              return q;
+            }
+          })
+        );
+        setQuestoes(itemsWithResourceUrl);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
       } finally {
@@ -24,34 +51,304 @@ export default function ListarQuestoesPage() {
     fetchQuestoes();
   }, []);
 
+  const handleDelete = async () => {
+    if (!questionToDelete) return; // Segurança extra
+    try {
+      // TODO: A chamada para a API abaixo está pronta.
+      // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
+      // Atualmente, essa chamada retornará um erro 404.
+      // Implemente o endpoint no back-end para que a exclusão funcione corretamente.
+      // Após implementar, teste a funcionalidade para garantir que tudo está funcionando como esperado.
+      const res = await fetch(`/api/questoes/${questionToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Erro ao excluir questão');
+      }
+      alert('Questão excluída com sucesso');
+      // Remover a questão da lista localmente
+      setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionToDelete.id));
+    //console.log('Questão excluída com sucesso');
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Erro desconhecido ao excluir questão');
+    }
+
+    //setOpenExclusionPopup(false);
+    setQuestionToDelete(null);
+  };
+
+  const handleOpenEditModal = (questao) => {
+    setEditingQuestion(questao); // Guarda a questão que o usuário clicou
+    setIsModalOpen(true);      // Abre o modal
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);     // Fecha o modal
+    setEditingQuestion(null);  // Limpa a questão em edição
+  };
+
+
+  const handleSaveSuccess = (updatedQuestion) => {
+    setQuestoes(prevQuestoes =>
+      prevQuestoes.map(q =>
+        q.id === updatedQuestion.id ? updatedQuestion : q
+      )
+    );
+  };
+
+  const toRoman = (num) => {
+    const romans = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+    return romans[num] || String(num + 1);
+  };
+
+  const handleExportarLatex = async () => {
+    try {
+      setExporting(true);
+      const res = await fetch('/api/gerar-prova', { method: 'POST' });
+
+      if (!res.ok) {
+        throw new Error('Erro ao gerar arquivo LaTeX');
+      }
+
+      const data = await res.json();
+
+      if (!data?.latexContent) {
+        throw new Error('Conteúdo LaTeX indisponível');
+      }
+
+      const blob = new Blob([data.latexContent], { type: 'application/x-tex;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.fileName || 'prova_gemini.tex';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert('Arquivo LaTeX gerado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Falha ao gerar arquivo LaTeX');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-24 bg-gray-900 text-gray-100">
-      <h1 className="text-2xl font-bold mb-6 text-white">Questões Cadastradas</h1>
-      <div className="w-full max-w-2xl">
-        {loading && <p className="text-gray-300">Carregando...</p>}
-        {error && <p className="text-red-400">{error}</p>}
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        p: 3,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+        Questões Cadastradas
+      </Typography>
+      
+      {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
+      {!loading && !error && questoes.length > 0 && (
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleExportarLatex}
+          disabled={exporting}
+          sx={{ mb: 3 }}
+        >
+          {exporting ? 'Gerando...' : 'Exportar para LaTeX'}
+        </Button>
+      )}
+      
+      <Box sx={{ width: '100%', maxWidth: 800 }}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando...</Typography>
+          </Box>
+        )}
+        {error && (
+          <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+            {error}
+          </Typography>
+        )}
         {!loading && !error && questoes.length === 0 && (
-          <p className="text-gray-300">Nenhuma questão cadastrada.</p>
+          <Typography sx={{ color: 'text.secondary', textAlign: 'center', p: 2 }}>
+            Nenhuma questão cadastrada.
+          </Typography>
         )}
         {questoes.map((questao, idx) => (
-          <div
-            key={questao.id || questao._id || idx}
-            className="mb-4 p-4 border border-gray-700 rounded shadow-lg bg-gray-800 hover:bg-gray-750"
+          <Card
+            key={questao.id || idx}
+            sx={{ 
+              mb: 2, 
+              backgroundColor: 'background.paper',
+              display: 'flex',
+              flexDirection: 'column',
+              '&:hover': {
+                backgroundColor: 'action.hover'
+              }
+            }}
           >
-            <p className="font-semibold text-gray-100">{questao.enunciado}</p>
-            <ul className="list-disc pl-5 mt-2">
-              {questao.alternativas?.map((alt, index) => (
-                <li
-                  key={index}
-                  className={alt.correta ? 'font-bold text-emerald-400' : 'text-gray-300'}
+            <CardContent>
+              <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
+                {questao.enunciado}
+              </Typography>
+              {/* Exibir recurso associado (imagem) se houver */}
+              {questao.recursoUrl && (
+                <Box
+                  component="img"
+                  src={questao.recursoUrl}
+                  alt="Recurso da questão"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 300,
+                    objectFit: 'contain',
+                    borderRadius: 1,
+                    mb: 2,
+                    backgroundColor: 'background.default'
+                  }}
+                />
+              )}
+              
+              {/* Exibir tipo da questão */}
+              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
+                       questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
+                       questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
+                       questao.tipo === 'dissertativa' ? 'Dissertativa' : 
+                       questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
+              </Typography>
+              
+              {/* Exibir resposta numérica se for questão numérica */}
+              {questao.tipo === 'numerica' && (
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    Resposta correta: {questao.respostaCorreta}
+                    {questao.margemErro > 0 && ` (± ${questao.margemErro})`}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Exibir gabarito para questões dissertativas */}
+              {questao.tipo === 'dissertativa' && questao.gabarito && (
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                    Gabarito: {questao.gabarito}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Exibir alternativas para questões de múltipla escolha */}
+              {questao.tipo === 'alternativa' && (
+                <List dense>
+                  {questao.alternativas?.map((alt, index) => (
+                    <ListItem key={index} sx={{ pl: 2 }}>
+                      <ListItemText
+                        primary={`${(alt.letra || String.fromCharCode(65 + index))}) ${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                        sx={{
+                          '& .MuiListItemText-primary': {
+                            fontWeight: alt.correta ? 'bold' : 'normal',
+                            color: alt.correta ? 'success.main' : 'text.secondary'
+                          }
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+
+              {/* Exibir afirmações (novo tipo) com gabarito visível */}
+              {questao.tipo === 'afirmacoes' && Array.isArray(questao.afirmacoes) && (
+                <List dense>
+                  {questao.afirmacoes.map((af, index) => (
+                    <ListItem key={index} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                      <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary' }}>
+                        {toRoman(index)}.
+                      </Typography>
+                      <Typography sx={{ mr: 1, fontWeight: 'bold', color: af.correta ? 'success.main' : 'error.main' }}>
+                        ({af.correta ? 'V' : 'F'})
+                      </Typography>
+                      <ListItemText primary={af.texto} />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+
+              {/* Exibir proposições (somatório) com valor e gabarito */}
+              {questao.tipo === 'proposicoes' && Array.isArray(questao.proposicoes) && (
+                <>
+                  <List dense>
+                    {questao.proposicoes.map((p, index) => (
+                      <ListItem key={index} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                        <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'monospace' }}>
+                          {String(p.valor).padStart(2, '0')}
+                        </Typography>
+                        <Typography sx={{ mr: 1, fontWeight: 'bold', color: p.correta ? 'success.main' : 'error.main' }}>
+                          ({p.correta ? 'V' : 'F'})
+                        </Typography>
+                        <ListItemText primary={p.texto} />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                      Gabarito (Soma):{' '}
+                      <Typography component="span" sx={{ color: 'success.main' }}>
+                        {questao.proposicoes.reduce((acc, p) => acc + (p.correta ? (Number(p.valor) || 0) : 0), 0)}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                </>
+              )}
+              </CardContent>
+            <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  color="secondary"
+                  onClick={() => handleOpenEditModal(questao)}
                 >
-                  {alt.texto} {alt.correta && '(Correta)'}
-                </li>
-              ))}
-            </ul>
-          </div>
+                  Editar
+                </Button>
+                <>
+                  <Button 
+                    size="small"
+                    color="error" 
+                    variant="contained" 
+                    onClick={() => setQuestionToDelete(questao)}
+                  >
+                    Excluir
+                  </Button>
+          
+                  <ConfirmDeleteDialog
+                    open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
+                    elementText='esta questão'
+                    onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
+                    onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
+                  />
+                </>
+            </CardActions>
+          </Card>
         ))}
-      </div>
-    </main>
+      </Box>
+
+      {/* O Modal é renderizado aqui, mas só aparece quando está "aberto" */}
+      {editingQuestion && (
+        <EditQuestionModal
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          question={editingQuestion}
+          onSaveSuccess={handleSaveSuccess}
+        />
+      )}
+
+    </Box>
   );
 }
