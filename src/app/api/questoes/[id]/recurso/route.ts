@@ -12,7 +12,7 @@ function oid(id: string) {
 // POST /questoes/:id/recurso - Adicionar nova imagem a uma questão
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Aguardar params antes de acessar suas propriedades

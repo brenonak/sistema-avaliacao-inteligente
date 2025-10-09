@@ -11,11 +11,12 @@ function oid(id: string) {
 // POST /questoes/:id/recurso/:idRecurso - Adicionar recurso existente a uma questão
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string, idRecurso: string } }
+  { params }: { params: Promise<{ id: string, idRecurso: string }> }
 ) {
   try {
-    const questaoId = oid(params.id);
-    const recursoId = params.idRecurso;
+    const { id, idRecurso } = await params;
+    const questaoId = oid(id);
+    const recursoId = idRecurso;
     
     if (!questaoId) return badRequest("ID de questão inválido");
     if (!recursoId) return badRequest("ID de recurso inválido");
@@ -65,11 +66,12 @@ export async function POST(
 // DELETE /questoes/:id/recurso/:idRecurso - Remover recurso de uma questão
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string, idRecurso: string } }
+  { params }: { params: Promise<{ id: string, idRecurso: string }> }
 ) {
   try {
-    const questaoId = oid(params.id);
-    const recursoId = params.idRecurso;
+    const { id, idRecurso } = await params;
+    const questaoId = oid(id);
+    const recursoId = idRecurso;
     
     if (!questaoId) return badRequest("ID de questão inválido");
     if (!recursoId) return badRequest("ID de recurso inválido");

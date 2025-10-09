@@ -79,3 +79,6 @@ Certifique-se de ter o **Docker** e o **Docker Compose** instalados:
 - Pare de rodar a aplicação através do comando ```docker-compose stop```
 - Rode novamente a aplicação através do comando  ```docker-compose start```
 - Em caso de modificação de dependências, é necessário excluir os conteiners via ```docker-compose down``` e rodar o comando ```docker-compose up --build``` novamente
+
+### **4. Acesso Deploy**
+https://f1-mu-nine.vercel.app/
