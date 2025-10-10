@@ -56,6 +56,7 @@ async function ensureIndexes() {
     void col.createIndex({ createdAt: 1 }, { name: "idx_createdAt_asc", background: true });
     void col.createIndex({ updatedAt: -1 }, { name: "idx_updatedAt_desc", background: true });
     void col.createIndex({ updatedAt: 1 }, { name: "idx_updatedAt_asc", background: true });
+    void col.createIndex({ enunciado: "text" }, { name: "idx_enunciado_text", background: true });
   } catch {
     // silencioso: não falhar request por causa de índice
   }
@@ -84,6 +85,9 @@ export async function GET(request: NextRequest) {
     
     const sortObject = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
 
+    // Parâmetro de busca
+    const searchQuery = url.searchParams.get("search") || "";
+
     const tagFilter = parseTagFilterFromQuery(url);
 
     const db = await getDb();
@@ -91,6 +95,11 @@ export async function GET(request: NextRequest) {
     if (tipo) filter.tipo = tipo;
     if (tagFilter.mode === "any") {
       filter.tags = { $in: tagFilter.values };
+    }
+    
+    // Adicionar filtro de busca por enunciado
+    if (searchQuery.trim()) {
+      filter.enunciado = { $regex: searchQuery.trim(), $options: "i" }; // Case-insensitive search
     }
 
     // criar índices 

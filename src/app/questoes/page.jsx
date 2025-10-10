@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
-import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete } from '@mui/material';
+import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
 import EditQuestionModal from '../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
@@ -22,16 +22,55 @@ export default function ListarQuestoesPage() {
   // Estados para ordenação
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+  
+  // Estados para busca
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  
+  // Estados para filtros de tags
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionToDelete, setQuestionToDelete] = useState(null);
 
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Carregar tags disponíveis
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setLoadingTags(true);
+        const res = await fetch('/api/questoes/tags');
+        if (!res.ok) throw new Error('Erro ao buscar tags');
+        const data = await res.json();
+        setAvailableTags(data.tags || []);
+      } catch (err) {
+        console.error('Erro ao carregar tags:', err);
+        setAvailableTags([]);
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+    fetchTags();
+  }, []);
+
   useEffect(() => {
     async function fetchQuestoes() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
+        const searchParam = debouncedSearchQuery ? `&search=${encodeURIComponent(debouncedSearchQuery)}` : '';
+        const tagsParam = selectedTags.length > 0 ? `&tags=${selectedTags.map(tag => encodeURIComponent(tag)).join(',')}` : '';
+        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}${searchParam}${tagsParam}`);
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
@@ -65,7 +104,7 @@ export default function ListarQuestoesPage() {
       }
     }
     fetchQuestoes();
-  }, [currentPage, limit, sortBy, sortOrder]);
+  }, [currentPage, limit, sortBy, sortOrder, debouncedSearchQuery, selectedTags]);
 
   const handleDelete = async () => {
     if (!questionToDelete) return; // Segurança extra
@@ -129,6 +168,26 @@ export default function ListarQuestoesPage() {
     setCurrentPage(1); // Reset para primeira página ao mudar ordenação
   };
 
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset para primeira página ao buscar
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  const handleTagsChange = (event, newValue) => {
+    setSelectedTags(newValue);
+    setCurrentPage(1); // Reset para primeira página ao filtrar
+  };
+
+  const handleClearTags = () => {
+    setSelectedTags([]);
+    setCurrentPage(1);
+  };
+
   const toRoman = (num) => {
     const romans = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
     return romans[num] || String(num + 1);
@@ -183,10 +242,108 @@ export default function ListarQuestoesPage() {
         Questões Cadastradas
       </Typography>
       
+      {/* Barra de pesquisa */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+        <TextField
+          placeholder="Buscar por enunciado..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          sx={{ 
+            minWidth: 400,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={handleClearSearch}
+                  edge="end"
+                  size="small"
+                  title="Limpar busca"
+                >
+                  <Clear />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      {/* Filtro de tags */}
+      {availableTags.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Autocomplete
+            multiple
+            options={availableTags}
+            value={selectedTags}
+            onChange={handleTagsChange}
+            loading={loadingTags}
+            sx={{ minWidth: 400 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Filtrar por tags"
+                placeholder="Selecione as tags..."
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <>
+                      <InputAdornment position="start">
+                        <FilterList color="action" />
+                      </InputAdornment>
+                      {params.InputProps.startAdornment}
+                    </>
+                  ),
+                  endAdornment: (
+                    <>
+                      {selectedTags.length > 0 && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={handleClearTags}
+                            size="small"
+                            title="Limpar filtros"
+                          >
+                            <Clear />
+                          </IconButton>
+                        </InputAdornment>
+                      )}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  variant="outlined"
+                  label={option}
+                  {...getTagProps({ index })}
+                  key={option}
+                />
+              ))
+            }
+          />
+        </Box>
+      )}
+
       {/* Informações de paginação */}
       {!loading && !error && totalQuestoes > 0 && (
         <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
           Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
+          {debouncedSearchQuery && (
+            <span> • Buscando por: "<strong>{debouncedSearchQuery}</strong>"</span>
+          )}
+          {selectedTags.length > 0 && (
+            <span> • Filtrado por tags: <strong>{selectedTags.join(', ')}</strong></span>
+          )}
         </Typography>
       )}
       
