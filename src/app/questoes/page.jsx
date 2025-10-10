@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination } from '@mui/material';
 import EditQuestionModal from '../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
@@ -11,6 +11,12 @@ export default function ListarQuestoesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
+  
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalQuestoes, setTotalQuestoes] = useState(0);
+  const [limit] = useState(10); // 10 questões por página
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -20,10 +26,15 @@ export default function ListarQuestoesPage() {
     async function fetchQuestoes() {
       try {
         setLoading(true);
-        const res = await fetch('/api/questoes');
+        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}`);
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
+        
+        // Atualizar informações de paginação
+        setTotalPages(data.total ? Math.ceil(data.total / limit) : 1);
+        setTotalQuestoes(data.total || 0);
+        
         // Para cada questão, se houver recurso por ID, buscar a URL
         const itemsWithResourceUrl = await Promise.all(
           items.map(async (q) => {
@@ -49,7 +60,7 @@ export default function ListarQuestoesPage() {
       }
     }
     fetchQuestoes();
-  }, []);
+  }, [currentPage, limit]);
 
   const handleDelete = async () => {
     if (!questionToDelete) return; // Segurança extra
@@ -97,6 +108,10 @@ export default function ListarQuestoesPage() {
         q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
+  };
+
+  const handlePageChange = (event, page) => {
+    setCurrentPage(page);
   };
 
   const toRoman = (num) => {
@@ -149,9 +164,31 @@ export default function ListarQuestoesPage() {
         backgroundColor: 'background.default'
       }}
     >
-      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+      <Typography variant="h4" component="h1" sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}>
         Questões Cadastradas
       </Typography>
+      
+      {/* Informações de paginação */}
+      {!loading && !error && totalQuestoes > 0 && (
+        <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+          Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
+        </Typography>
+      )}
+      
+      {/* Componente de paginação no topo */}
+      {!loading && !error && totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
       
       {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
       {!loading && !error && questoes.length > 0 && (
@@ -337,6 +374,21 @@ export default function ListarQuestoesPage() {
             </CardActions>
           </Card>
         ))}
+        
+        {/* Componente de paginação no final */}
+        {!loading && !error && totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={handlePageChange}
+              color="primary"
+              size="large"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+        )}
       </Box>
 
       {/* O Modal é renderizado aqui, mas só aparece quando está "aberto" */}
