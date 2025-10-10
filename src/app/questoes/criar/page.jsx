@@ -52,6 +52,12 @@ export default function CriarQuestaoPage() {
 
   const [arquivos, setArquivos] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
+
+  const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
+
+  const handleSetActiveImage = (file) => {
+    setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
+  };
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -100,6 +106,7 @@ useEffect(() => {
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
     setProposicoes([{ texto: '', correta: false }]);
+    setActiveImage(null);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -310,6 +317,9 @@ useEffect(() => {
             value={tipo}
             label="Tipo de questão"
             onChange={(e) => setTipo(e.target.value)}
+            MenuProps={{
+              disableScrollLock: true, 
+            }}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
@@ -497,7 +507,7 @@ useEffect(() => {
           onChange={(e) => setRespostaNumerica(e.target.value)}
           variant="outlined"
           fullWidth
-          required // Indicar que é obrigatório
+          //required // Indicar que é obrigatório
         />
         <TextField
           id="margem-erro"
@@ -647,7 +657,10 @@ useEffect(() => {
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
+              if (activeImage === f) setActiveImage(null);
             }}
+            isActiveImage={activeImage === file}
+            onSetActiveImage={handleSetActiveImage}
           />
         ))}
 

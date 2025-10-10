@@ -55,10 +55,41 @@ export async function POST(request: NextRequest) {
     \\usepackage{geometry}
     \\geometry{a4paper, left=30mm, right=20mm, top=30mm, bottom=20mm}
     \\usepackage{xcolor}
+    \\usepackage{tikz}
 
     % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
     \\renewcommand{\\thechoice}{\\Alph{choice}} % Usa A, B, C...
     \\renewcommand{\\choicelabel}{\\thechoice)} % Formato (A), (B), (C)
+
+    % AMBIENTE PARA QUESTÃO SOMATÓRIO
+    \\newcounter{somatorioitem} % Contador para as opções
+    \\setcounter{somatorioitem}{0} % Inicializa o contador
+
+    % Comando para gerar o rótulo da opção (potência de 2)
+    \\newcommand{\\somatorioitemlabel}{
+        \\stepcounter{somatorioitem}% 1, 2, 3, ...
+        % Calcula 2^(n-1) e armazena como float
+        \\pgfmathsetmacro{\\poweroftwo}{2^(\\value{somatorioitem}-1)}%
+        % IMPRIME O RESULTADO CONVERTENDO PARA INTEIRO
+        ( \\pgfmathprintnumber[int detect]{\\poweroftwo} )
+    }
+
+    % Ambiente para a Questão Somatório
+    \\newenvironment{somatoriochoices}{
+        % O ambiente simula uma lista sem marcadores
+        \\list{\\somatorioitemlabel}{% Usa o novo rótulo (potência de 2)
+            \\setlength{\\labelwidth}{4em}% Ajusta o espaço para o rótulo
+            \\setlength{\\leftmargin}{\\labelwidth}% Ajusta a margem esquerda
+            \\addtolength{\\leftmargin}{\\labelsep}% Adiciona o espaço do separador
+            \\setlength{\\itemsep}{0.5ex}% Espaço entre itens
+            \\setlength{\\parsep}{0.3ex}% Espaço entre parágrafos
+            \\setlength{\\topsep}{0.3ex}% Espaço antes do primeiro item
+            \\renewcommand{\\makelabel}[1]{\\hss##1}
+        }
+        \\setcounter{somatorioitem}{0}% Reinicia o contador no início
+    }{
+        \\endlist
+    }
 
     \\begin{document}
 
@@ -103,10 +134,11 @@ export async function POST(request: NextRequest) {
       4.  **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
       5.  **Regras de Formatação por Tipo:**
           * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
-          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{checkboxes}}\` e \`\\end{{checkboxes}}\`**. As alternativas devem ser \`\\choice Verdadeiro\` e \`\\choice Falso\`.
+          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\item[($\\quad$)] <texto da alternativa>\`.
           * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
-
-      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`.
+          * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{choices}}\` insira \`\\answerline\`.
+          * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\`\\answerline\`** para o espaço de resposta.
+      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
 
       **[JSON DA PROVA PARA CONVERSÃO]**
       \`\`\`json
