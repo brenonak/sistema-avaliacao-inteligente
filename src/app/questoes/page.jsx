@@ -242,14 +242,16 @@ export default function ListarQuestoesPage() {
         Questões Cadastradas
       </Typography>
       
-      {/* Barra de pesquisa */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+      {/* Linha 1: Barra de pesquisa (esquerda) + Ordenação (direita) */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
+        {/* Barra de pesquisa */}
         <TextField
           placeholder="Buscar por enunciado..."
           value={searchQuery}
           onChange={handleSearchChange}
           sx={{ 
-            minWidth: 400,
+            flexGrow: 1,
+            maxWidth: 600,
             '& .MuiOutlinedInput-root': {
               borderRadius: 2
             }
@@ -274,9 +276,47 @@ export default function ListarQuestoesPage() {
             ),
           }}
         />
+
+        {/* Seletor de ordenação */}
+        {!loading && !error && totalQuestoes > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 300 }}>
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel id="sort-field-label">Ordenar por</InputLabel>
+              <Select
+                labelId="sort-field-label"
+                value={sortBy}
+                label="Ordenar por"
+                onChange={handleSortFieldChange}
+              >
+                <MenuItem value="createdAt">Data de criação</MenuItem>
+                <MenuItem value="updatedAt">Data de atualização</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <IconButton 
+              onClick={handleSortOrderToggle}
+              color="primary"
+              sx={{ 
+                border: 1, 
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'white'
+                }
+              }}
+              title={sortOrder === 'desc' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}
+            >
+              {sortOrder === 'desc' ? <ArrowDownward /> : <ArrowUpward />}
+            </IconButton>
+            
+            <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 100 }}>
+              {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigas'}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
-      {/* Filtro de tags */}
+      {/* Linha 2: Filtro de tags */}
       {availableTags.length > 0 && (
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
           <Autocomplete
@@ -285,7 +325,7 @@ export default function ListarQuestoesPage() {
             value={selectedTags}
             onChange={handleTagsChange}
             loading={loadingTags}
-            sx={{ minWidth: 400 }}
+            sx={{ minWidth: 300, maxWidth: 400 }}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -334,53 +374,17 @@ export default function ListarQuestoesPage() {
         </Box>
       )}
 
-      {/* Informações de paginação */}
+      {/* Linha 3: Informações de paginação */}
       {!loading && !error && totalQuestoes > 0 && (
-        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-          Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
-          {debouncedSearchQuery && (
-            <span> • Buscando por: "<strong>{debouncedSearchQuery}</strong>"</span>
-          )}
-          {selectedTags.length > 0 && (
-            <span> • Filtrado por tags: <strong>{selectedTags.join(', ')}</strong></span>
-          )}
-        </Typography>
-      )}
-      
-      {/* Seletor de ordenação */}
-      {!loading && !error && totalQuestoes > 0 && (
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="sort-field-label">Ordenar por</InputLabel>
-            <Select
-              labelId="sort-field-label"
-              value={sortBy}
-              label="Ordenar por"
-              onChange={handleSortFieldChange}
-            >
-              <MenuItem value="createdAt">Data de criação</MenuItem>
-              <MenuItem value="updatedAt">Data de atualização</MenuItem>
-            </Select>
-          </FormControl>
-          
-          <IconButton 
-            onClick={handleSortOrderToggle}
-            color="primary"
-            sx={{ 
-              border: 1, 
-              borderColor: 'primary.main',
-              '&:hover': {
-                backgroundColor: 'primary.light',
-                color: 'white'
-              }
-            }}
-            title={sortOrder === 'desc' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}
-          >
-            {sortOrder === 'desc' ? <ArrowDownward /> : <ArrowUpward />}
-          </IconButton>
-          
-          <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 120 }}>
-            {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigas'}
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
+            {debouncedSearchQuery && (
+              <span> • Buscando por: "<strong>{debouncedSearchQuery}</strong>"</span>
+            )}
+            {selectedTags.length > 0 && (
+              <span> • Filtrado por tags: <strong>{selectedTags.join(', ')}</strong></span>
+            )}
           </Typography>
         </Box>
       )}
