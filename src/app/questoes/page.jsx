@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete } from '@mui/material';
+import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
 import EditQuestionModal from '../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
@@ -11,19 +12,73 @@ export default function ListarQuestoesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
+  
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalQuestoes, setTotalQuestoes] = useState(0);
+  const [limit] = useState(10); // 10 questões por página
+  
+  // Estados para ordenação
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  
+  // Estados para busca
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  
+  // Estados para filtros de tags
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionToDelete, setQuestionToDelete] = useState(null);
 
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Carregar tags disponíveis
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setLoadingTags(true);
+        const res = await fetch('/api/questoes/tags');
+        if (!res.ok) throw new Error('Erro ao buscar tags');
+        const data = await res.json();
+        setAvailableTags(data.tags || []);
+      } catch (err) {
+        console.error('Erro ao carregar tags:', err);
+        setAvailableTags([]);
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+    fetchTags();
+  }, []);
+
   useEffect(() => {
     async function fetchQuestoes() {
       try {
         setLoading(true);
-        const res = await fetch('/api/questoes');
+        const searchParam = debouncedSearchQuery ? `&search=${encodeURIComponent(debouncedSearchQuery)}` : '';
+        const tagsParam = selectedTags.length > 0 ? `&tags=${selectedTags.map(tag => encodeURIComponent(tag)).join(',')}` : '';
+        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}${searchParam}${tagsParam}`);
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
+        
+        // Atualizar informações de paginação
+        setTotalPages(data.total ? Math.ceil(data.total / limit) : 1);
+        setTotalQuestoes(data.total || 0);
+        
         // Para cada questão, se houver recurso por ID, buscar a URL
         const itemsWithResourceUrl = await Promise.all(
           items.map(async (q) => {
@@ -49,7 +104,7 @@ export default function ListarQuestoesPage() {
       }
     }
     fetchQuestoes();
-  }, []);
+  }, [currentPage, limit, sortBy, sortOrder, debouncedSearchQuery, selectedTags]);
 
   const handleDelete = async () => {
     if (!questionToDelete) return; // Segurança extra
@@ -97,6 +152,40 @@ export default function ListarQuestoesPage() {
         q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
+  };
+
+  const handlePageChange = (event, page) => {
+    setCurrentPage(page);
+  };
+
+  const handleSortFieldChange = (event) => {
+    setSortBy(event.target.value);
+    setCurrentPage(1); // Reset para primeira página ao mudar ordenação
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    setCurrentPage(1); // Reset para primeira página ao mudar ordenação
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset para primeira página ao buscar
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  const handleTagsChange = (event, newValue) => {
+    setSelectedTags(newValue);
+    setCurrentPage(1); // Reset para primeira página ao filtrar
+  };
+
+  const handleClearTags = () => {
+    setSelectedTags([]);
+    setCurrentPage(1);
   };
 
   const toRoman = (num) => {
@@ -149,9 +238,171 @@ export default function ListarQuestoesPage() {
         backgroundColor: 'background.default'
       }}
     >
-      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
+      <Typography variant="h4" component="h1" sx={{ mb: 2, fontWeight: 'bold', color: 'text.primary' }}>
         Questões Cadastradas
       </Typography>
+      
+      {/* Linha 1: Barra de pesquisa (esquerda) + Ordenação (direita) */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
+        {/* Barra de pesquisa */}
+        <TextField
+          placeholder="Buscar por enunciado..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          sx={{ 
+            flexGrow: 1,
+            maxWidth: 600,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={handleClearSearch}
+                  edge="end"
+                  size="small"
+                  title="Limpar busca"
+                >
+                  <Clear />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {/* Seletor de ordenação */}
+        {!loading && !error && totalQuestoes > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 300 }}>
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel id="sort-field-label">Ordenar por</InputLabel>
+              <Select
+                labelId="sort-field-label"
+                value={sortBy}
+                label="Ordenar por"
+                onChange={handleSortFieldChange}
+              >
+                <MenuItem value="createdAt">Data de criação</MenuItem>
+                <MenuItem value="updatedAt">Data de atualização</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <IconButton 
+              onClick={handleSortOrderToggle}
+              color="primary"
+              sx={{ 
+                border: 1, 
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'white'
+                }
+              }}
+              title={sortOrder === 'desc' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}
+            >
+              {sortOrder === 'desc' ? <ArrowDownward /> : <ArrowUpward />}
+            </IconButton>
+            
+            <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 100 }}>
+              {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigas'}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      {/* Linha 2: Filtro de tags */}
+      {availableTags.length > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Autocomplete
+            multiple
+            options={availableTags}
+            value={selectedTags}
+            onChange={handleTagsChange}
+            loading={loadingTags}
+            sx={{ minWidth: 300, maxWidth: 400 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Filtrar por tags"
+                placeholder="Selecione as tags..."
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <>
+                      <InputAdornment position="start">
+                        <FilterList color="action" />
+                      </InputAdornment>
+                      {params.InputProps.startAdornment}
+                    </>
+                  ),
+                  endAdornment: (
+                    <>
+                      {selectedTags.length > 0 && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={handleClearTags}
+                            size="small"
+                            title="Limpar filtros"
+                          >
+                            <Clear />
+                          </IconButton>
+                        </InputAdornment>
+                      )}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  variant="outlined"
+                  label={option}
+                  {...getTagProps({ index })}
+                  key={option}
+                />
+              ))
+            }
+          />
+        </Box>
+      )}
+
+      {/* Linha 3: Informações de paginação */}
+      {!loading && !error && totalQuestoes > 0 && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Página {currentPage} de {totalPages} • {totalQuestoes} quest{totalQuestoes !== 1 ? 'ões' : 'ão'} no total
+            {debouncedSearchQuery && (
+              <span> • Buscando por: "<strong>{debouncedSearchQuery}</strong>"</span>
+            )}
+            {selectedTags.length > 0 && (
+              <span> • Filtrado por tags: <strong>{selectedTags.join(', ')}</strong></span>
+            )}
+          </Typography>
+        </Box>
+      )}
+      
+      {/* Componente de paginação no topo */}
+      {!loading && !error && totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
       
       {/* Só mostra o botão se não estiver carregando, não houver erro, e houver pelo menos uma questão na lista */}
       {!loading && !error && questoes.length > 0 && (
@@ -337,6 +588,21 @@ export default function ListarQuestoesPage() {
             </CardActions>
           </Card>
         ))}
+        
+        {/* Componente de paginação no final */}
+        {!loading && !error && totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={handlePageChange}
+              color="primary"
+              size="large"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+        )}
       </Box>
 
       {/* O Modal é renderizado aqui, mas só aparece quando está "aberto" */}
