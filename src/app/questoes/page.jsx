@@ -378,7 +378,7 @@ export default function ListarQuestoesPage() {
       {!loading && !error && totalQuestoes > 0 && (
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
+            Página {currentPage} de {totalPages} • {totalQuestoes} quest{totalQuestoes !== 1 ? 'ões' : 'ão'} no total
             {debouncedSearchQuery && (
               <span> • Buscando por: "<strong>{debouncedSearchQuery}</strong>"</span>
             )}
