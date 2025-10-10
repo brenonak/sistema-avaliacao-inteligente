@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton } from '@mui/material';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import EditQuestionModal from '../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
@@ -17,6 +18,10 @@ export default function ListarQuestoesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalQuestoes, setTotalQuestoes] = useState(0);
   const [limit] = useState(10); // 10 questões por página
+  
+  // Estados para ordenação
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -26,7 +31,7 @@ export default function ListarQuestoesPage() {
     async function fetchQuestoes() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}`);
+        const res = await fetch(`/api/questoes?page=${currentPage}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
         if (!res.ok) throw new Error('Erro ao buscar questões');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
@@ -60,7 +65,7 @@ export default function ListarQuestoesPage() {
       }
     }
     fetchQuestoes();
-  }, [currentPage, limit]);
+  }, [currentPage, limit, sortBy, sortOrder]);
 
   const handleDelete = async () => {
     if (!questionToDelete) return; // Segurança extra
@@ -112,6 +117,16 @@ export default function ListarQuestoesPage() {
 
   const handlePageChange = (event, page) => {
     setCurrentPage(page);
+  };
+
+  const handleSortFieldChange = (event) => {
+    setSortBy(event.target.value);
+    setCurrentPage(1); // Reset para primeira página ao mudar ordenação
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    setCurrentPage(1); // Reset para primeira página ao mudar ordenação
   };
 
   const toRoman = (num) => {
@@ -170,9 +185,47 @@ export default function ListarQuestoesPage() {
       
       {/* Informações de paginação */}
       {!loading && !error && totalQuestoes > 0 && (
-        <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
           Página {currentPage} de {totalPages} • {totalQuestoes} questão{totalQuestoes !== 1 ? 'ões' : ''} total
         </Typography>
+      )}
+      
+      {/* Seletor de ordenação */}
+      {!loading && !error && totalQuestoes > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="sort-field-label">Ordenar por</InputLabel>
+            <Select
+              labelId="sort-field-label"
+              value={sortBy}
+              label="Ordenar por"
+              onChange={handleSortFieldChange}
+            >
+              <MenuItem value="createdAt">Data de criação</MenuItem>
+              <MenuItem value="updatedAt">Data de atualização</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <IconButton 
+            onClick={handleSortOrderToggle}
+            color="primary"
+            sx={{ 
+              border: 1, 
+              borderColor: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                color: 'white'
+              }
+            }}
+            title={sortOrder === 'desc' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}
+          >
+            {sortOrder === 'desc' ? <ArrowDownward /> : <ArrowUpward />}
+          </IconButton>
+          
+          <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 120 }}>
+            {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigas'}
+          </Typography>
+        </Box>
       )}
       
       {/* Componente de paginação no topo */}

@@ -53,6 +53,9 @@ async function ensureIndexes() {
     // dispara sem aguardar para não bloquear requisição
     void col.createIndex({ tags: 1 }, { name: "idx_tags_1", background: true });
     void col.createIndex({ createdAt: -1 }, { name: "idx_createdAt_desc", background: true });
+    void col.createIndex({ createdAt: 1 }, { name: "idx_createdAt_asc", background: true });
+    void col.createIndex({ updatedAt: -1 }, { name: "idx_updatedAt_desc", background: true });
+    void col.createIndex({ updatedAt: 1 }, { name: "idx_updatedAt_asc", background: true });
   } catch {
     // silencioso: não falhar request por causa de índice
   }
@@ -67,6 +70,19 @@ export async function GET(request: NextRequest) {
     const pageParam = url.searchParams.get("page");
     const skip = skipParam !== null ? Math.max(Number(skipParam) || 0, 0) : Math.max(((Number(pageParam) || 1) - 1) * limit, 0);
     const page = skipParam !== null ? Math.floor(skip / limit) + 1 : Math.max(Number(pageParam) || 1, 1);
+
+    // Parâmetros de ordenação
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const sortOrder = url.searchParams.get("sortOrder") || "desc";
+    
+    // Validar parâmetros de ordenação
+    const validSortFields = ["createdAt", "updatedAt"];
+    const validSortOrders = ["asc", "desc"];
+    
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const finalSortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "desc";
+    
+    const sortObject = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
 
     const tagFilter = parseTagFilterFromQuery(url);
 
@@ -83,7 +99,7 @@ export async function GET(request: NextRequest) {
     const [rawItems, total] = await Promise.all([
       db.collection("questoes")
         .find(filter)
-        .sort({ createdAt: -1 })
+        .sort(sortObject)
         .skip(skip)
         .limit(limit)
         .toArray(),
