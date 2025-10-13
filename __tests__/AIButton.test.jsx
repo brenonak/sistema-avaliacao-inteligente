@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AIButton from '../src/app/components/AIButton';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import userEvent from '@testing-library/user-event';
 
 // Mock theme para os testes
 const theme = createTheme();
@@ -91,11 +92,12 @@ describe('AIButton Component', () => {
   });
 
   describe('Interações', () => {
-    test('deve chamar onClick quando clicado', () => {
+    test('deve chamar onClick quando clicado', async () => {
+      const user = userEvent.setup();
       const handleClick = jest.fn();
       renderWithTheme(<AIButton onClick={handleClick} />);
       
-      fireEvent.click(screen.getByRole('button'));
+      await user.click(screen.getByRole('button'));
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
@@ -103,6 +105,8 @@ describe('AIButton Component', () => {
       const handleClick = jest.fn();
       renderWithTheme(<AIButton onClick={handleClick} disabled />);
       
+      // userEvent.click throws an error on disabled elements because a user can't click them.
+      // We use fireEvent here to bypass the pointer-events check for this specific assertion.
       fireEvent.click(screen.getByRole('button'));
       expect(handleClick).not.toHaveBeenCalled();
     });
@@ -111,6 +115,7 @@ describe('AIButton Component', () => {
       const handleClick = jest.fn();
       renderWithTheme(<AIButton onClick={handleClick} loading />);
       
+      // userEvent.click throws an error on disabled elements.
       fireEvent.click(screen.getByRole('button'));
       expect(handleClick).not.toHaveBeenCalled();
     });
@@ -125,33 +130,34 @@ describe('AIButton Component', () => {
 
   describe('Tooltips', () => {
     test('deve exibir tooltip padrão', async () => {
+      const user = userEvent.setup();
       renderWithTheme(<AIButton />);
       const button = screen.getByRole('button');
       
-      fireEvent.mouseOver(button);
-      await waitFor(() => {
-        expect(screen.getByRole('tooltip')).toHaveTextContent('Gerar com IA');
-      });
+      await user.hover(button);
+      
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Gerar com IA');
     });
 
     test('deve exibir tooltip customizado', async () => {
+        const user = userEvent.setup();
       renderWithTheme(<AIButton tooltipText="Revisar com IA" />);
       const button = screen.getByRole('button');
       
-      fireEvent.mouseOver(button);
-      await waitFor(() => {
-        expect(screen.getByRole('tooltip')).toHaveTextContent('Revisar com IA');
-      });
+      await user.hover(button);
+      
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Revisar com IA');
     });
 
     test('deve alterar tooltip quando loading', async () => {
       renderWithTheme(<AIButton loading />);
       const button = screen.getByRole('button');
       
+      // userEvent.hover throws on disabled elements.
+      // We use fireEvent.mouseOver to check the tooltip on the wrapper.
       fireEvent.mouseOver(button);
-      await waitFor(() => {
-        expect(screen.getByRole('tooltip')).toHaveTextContent('Aguarde, processando...');
-      });
+      
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Aguarde, processando...');
     });
   });
 
@@ -161,11 +167,14 @@ describe('AIButton Component', () => {
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
-    test('deve ser focável com teclado', () => {
+    test('deve ser focável com teclado', async () => {
+      const user = userEvent.setup();
       renderWithTheme(<AIButton />);
       const button = screen.getByRole('button');
       
-      button.focus();
+      // Simula o usuário apertando Tab para focar no botão
+      await user.tab();
+      
       expect(button).toHaveFocus();
     });
 
@@ -204,6 +213,7 @@ describe('AIButton Component', () => {
 
   describe('Integração com Formulários', () => {
     test('deve funcionar em fluxo de loading assíncrono', async () => {
+      const user = userEvent.setup();
       const AsyncComponent = () => {
         const [loading, setLoading] = React.useState(false);
         
@@ -224,15 +234,11 @@ describe('AIButton Component', () => {
       expect(button).not.toBeDisabled();
       
       // Clica e verifica loading
-      fireEvent.click(button);
-      await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument();
-      });
+      await user.click(button);
+      expect(await screen.findByRole('progressbar')).toBeInTheDocument();
       
-      // Aguarda finalizar
-      await waitFor(() => {
-        expect(button).toHaveTextContent('Gerar com IA');
-      }, { timeout: 200 });
+      // Aguarda finalizar e busca especificamente pelo botão para evitar ambiguidade com o tooltip
+      expect(await screen.findByRole('button', { name: /Gerar com IA/i })).toBeInTheDocument();
     });
   });
 
@@ -252,6 +258,7 @@ describe('AIButton Component', () => {
 
   describe('Casos de Uso Reais', () => {
     test('deve simular geração de questão com IA', async () => {
+        const user = userEvent.setup();
       const mockGenerate = jest.fn(async () => {
         return new Promise(resolve => {
           setTimeout(() => resolve({ question: 'Nova questão' }), 100);
@@ -278,15 +285,17 @@ describe('AIButton Component', () => {
       
       renderWithTheme(<QuestionForm />);
       
-      fireEvent.click(screen.getByRole('button'));
+      await user.click(screen.getByRole('button'));
       
-      await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument();
-      });
+      expect(await screen.findByRole('progressbar')).toBeInTheDocument();
       
+      // Espera o mock ser chamado e o loading sumir
       await waitFor(() => {
         expect(mockGenerate).toHaveBeenCalled();
       });
+      await waitFor(() => {
+          expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      })
     });
 
     test('deve renderizar botão de gerar enunciado', () => {
@@ -326,3 +335,4 @@ describe('AIButton Component', () => {
     });
   });
 });
+

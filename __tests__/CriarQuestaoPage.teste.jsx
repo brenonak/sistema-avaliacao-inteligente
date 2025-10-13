@@ -37,7 +37,7 @@ describe('CriarQuestaoPage', () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
-    // Usar mockReset() é mais seguro pois limpa implementações e chamadas.
+    
     fetch.mockReset();
     window.alert.mockClear();
   });
@@ -75,7 +75,7 @@ describe('CriarQuestaoPage', () => {
     
     await user.click(screen.getByRole('button', { name: /\+ Adicionar Afirmação/i }));
     
-    // CORREÇÃO 1: Escopo da busca para a segunda afirmação
+   
     const segundaAfirmacao = screen.getByLabelText('Afirmação 2');
     await user.type(segundaAfirmacao, 'A terra é plana.');
     
@@ -93,7 +93,7 @@ describe('CriarQuestaoPage', () => {
     });
   });
 
-  // CORREÇÃO 2: Aumentar o timeout para este teste mais longo
+  
   it('deve submeter com sucesso uma questão de proposições múltiplas (somatório)', async () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     renderWithTheme(<CriarQuestaoPage />);
@@ -123,7 +123,7 @@ describe('CriarQuestaoPage', () => {
 
   // --- TESTES DE VALIDAÇÃO E ERROS ---
 
-  // CORREÇÃO 3: Este teste agora passa após remover o `required` do componente
+  
   it('deve exibir alerta se a resposta numérica estiver vazia', async () => {
     renderWithTheme(<CriarQuestaoPage />);
     await selectQuestionType(user, /Resposta Numérica/i);
@@ -132,8 +132,10 @@ describe('CriarQuestaoPage', () => {
     expect(window.alert).toHaveBeenCalledWith('Por favor, informe a resposta correta.');
   });
   
-  // CORREÇÃO 4: A correção do `beforeEach` para `mockReset` resolve este teste
+  
   it('deve exibir um alerta de erro se a API falhar', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -149,11 +151,13 @@ describe('CriarQuestaoPage', () => {
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Erro interno do servidor');
     });
+
+    consoleErrorSpy.mockRestore();
   });
 
   // --- TESTES DE UI ADICIONAIS ---
 
-  // CORREÇÃO 5: Usar getByText em vez de getByRole para encontrar os chips
+  
   it('deve renderizar chips de tags ao digitar no campo de tags', async () => {
     renderWithTheme(<CriarQuestaoPage />);
     const tagsInput = screen.getByLabelText('Tags (separadas por vírgula)');
