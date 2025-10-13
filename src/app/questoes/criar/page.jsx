@@ -24,6 +24,7 @@ import { Delete } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
+import AIButton from '../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 
 export default function CriarQuestaoPage() {
@@ -35,6 +36,12 @@ export default function CriarQuestaoPage() {
   ]);
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFormFilled, setIsFormFilled] = useState(false);
+  
+  // Estados para ações de IA
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiReviewing, setAiReviewing] = useState(false);
+  const [aiGeneratingDistractors, setAiGeneratingDistractors] = useState(false);
 
   const [afirmacoes, setAfirmacoes] = useState([
   { texto: '', correta: true }, // Começa com uma afirmação, marcada como V por padrão
@@ -55,8 +62,64 @@ export default function CriarQuestaoPage() {
 
   const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
 
+  useEffect(() => {
+    const isAnyFieldFilled =
+      enunciado.trim() !== '' ||
+      tagsInput.trim() !== '' ||
+      (tipo === 'alternativa' && alternativas.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'afirmacoes' && afirmacoes.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'numerica' && (respostaNumerica.trim() !== '' || margemErro.trim() !== '')) ||
+      (tipo === 'proposicoes' && proposicoes.some(p => p.texto.trim() !== '')) ||
+      (tipo === 'dissertativa' && (gabarito.trim() !== '' || palavrasChave.trim() !== ''));
+
+    setIsFormFilled(isAnyFieldFilled);
+  }, [enunciado, tagsInput, tipo, alternativas, afirmacoes, respostaNumerica, margemErro, proposicoes, gabarito, palavrasChave]);
+
   const handleSetActiveImage = (file) => {
     setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
+  };
+
+  // Handlers para funcionalidades de IA
+  const handleGenerateEnunciadoWithAI = async () => {
+    setAiGenerating(true);
+    try {
+      // TODO: Implementar chamada à API de IA
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      alert('Funcionalidade de geração de enunciado com IA será implementada em breve!');
+    } catch (error) {
+      console.error('Erro ao gerar enunciado:', error);
+      alert('Erro ao gerar enunciado com IA');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleReviewSpellingWithAI = async () => {
+    setAiReviewing(true);
+    try {
+      // TODO: Implementar chamada à API de IA
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      alert('Funcionalidade de revisão ortográfica com IA será implementada em breve!');
+    } catch (error) {
+      console.error('Erro ao revisar ortografia:', error);
+      alert('Erro ao revisar ortografia com IA');
+    } finally {
+      setAiReviewing(false);
+    }
+  };
+
+  const handleGenerateDistractorsWithAI = async () => {
+    setAiGeneratingDistractors(true);
+    try {
+      // TODO: Implementar chamada à API de IA
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      alert('Funcionalidade de geração de distratores com IA será implementada em breve!');
+    } catch (error) {
+      console.error('Erro ao gerar distratores:', error);
+      alert('Erro ao gerar distratores com IA');
+    } finally {
+      setAiGeneratingDistractors(false);
+    }
   };
   
   const cleanTags = useMemo(() => (
@@ -365,6 +428,38 @@ useEffect(() => {
           fullWidth
           sx={{ mb: 3 }}
         />
+
+        {/* Botões de IA */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+          <AIButton 
+            onClick={handleReviewSpellingWithAI}
+            loading={aiReviewing}
+            disabled={!isFormFilled || loading}
+            variant="outlined"
+            label="Revisar"
+            tooltipText="Usar IA para revisar ortografia e gramática do que foi preenchido"
+          />
+          
+          <AIButton 
+            onClick={handleGenerateEnunciadoWithAI}
+            loading={aiGenerating}
+            disabled={!isFormFilled || loading}
+            variant="outlined"
+            label="Gerar Enunciado"
+            tooltipText="Usar IA para gerar um enunciado de questão com base nas tags"
+          />
+
+          {['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) && (
+            <AIButton 
+              onClick={handleGenerateDistractorsWithAI}
+              loading={aiGeneratingDistractors}
+              disabled={!isFormFilled || loading}
+              variant="outlined"
+              label="Gerar Distratores"
+              tooltipText="Gerar alternativas/afirmações incorretas com base no que já foi preenchido"
+            />
+          )}
+        </Box>
         
 
       {/* Alternativas */}
@@ -418,13 +513,14 @@ useEffect(() => {
 
           {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
           {tipo === 'alternativa' && (
-            <Button
-              variant="outlined"
-              onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
-              sx={{ mt: 1 }}
-            >
-              + Adicionar alternativa
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outlined"
+                onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+              >
+                + Adicionar alternativa
+              </Button>
+            </Box>
           )}
         </Box>
       )}

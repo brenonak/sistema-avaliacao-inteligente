@@ -52,10 +52,10 @@ describe('CriarQuestaoPage', () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ id: '123' }) });
     renderWithTheme(<CriarQuestaoPage />);
     
-    await user.type(screen.getByLabelText(/Enunciado da Questão/i), 'Qual a capital do Brasil?');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
     await user.type(screen.getByPlaceholderText('Alternativa A'), 'Brasília');
     await user.type(screen.getByPlaceholderText('Alternativa B'), 'São Paulo');
-    await user.type(screen.getByLabelText(/Tags/i), 'geografia, brasil');
+    await user.type(screen.getByLabelText('Tags (separadas por vírgula)'), 'geografia, brasil');
 
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
 
@@ -65,13 +65,12 @@ describe('CriarQuestaoPage', () => {
     });
   });
 
-  // --- TESTES PARA OS DEMAIS TIPOS DE QUESTÃO ---
   it('deve submeter com sucesso uma questão de afirmações (V/F)', async () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     renderWithTheme(<CriarQuestaoPage />);
 
     await selectQuestionType(user, /Múltiplas Afirmações/i);
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Julgue os itens a seguir.');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Julgue os itens a seguir.');
     await user.type(screen.getByLabelText('Afirmação 1'), 'O céu é azul.');
     
     await user.click(screen.getByRole('button', { name: /\+ Adicionar Afirmação/i }));
@@ -101,7 +100,7 @@ describe('CriarQuestaoPage', () => {
 
     await selectQuestionType(user, /Proposições Múltiplas/i);
     
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Some os valores das proposições corretas.');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Some os valores das proposições corretas.');
     await user.type(screen.getByLabelText(/Afirmação de valor 1/i), 'Primeira proposição');
     
     await user.click(screen.getByRole('button', { name: /\+ Adicionar Proposição/i }));
@@ -128,7 +127,7 @@ describe('CriarQuestaoPage', () => {
   it('deve exibir alerta se a resposta numérica estiver vazia', async () => {
     renderWithTheme(<CriarQuestaoPage />);
     await selectQuestionType(user, /Resposta Numérica/i);
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Teste numérico');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste numérico');
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
     expect(window.alert).toHaveBeenCalledWith('Por favor, informe a resposta correta.');
   });
@@ -142,7 +141,7 @@ describe('CriarQuestaoPage', () => {
     });
     renderWithTheme(<CriarQuestaoPage />);
     
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Teste de falha');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste de falha');
     await user.type(screen.getByPlaceholderText('Alternativa A'), 'A');
     await user.type(screen.getByPlaceholderText('Alternativa B'), 'B');
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
@@ -157,7 +156,7 @@ describe('CriarQuestaoPage', () => {
   // CORREÇÃO 5: Usar getByText em vez de getByRole para encontrar os chips
   it('deve renderizar chips de tags ao digitar no campo de tags', async () => {
     renderWithTheme(<CriarQuestaoPage />);
-    const tagsInput = screen.getByLabelText(/Tags/i);
+    const tagsInput = screen.getByLabelText('Tags (separadas por vírgula)');
     await user.type(tagsInput, 'react, jest, testing');
 
     expect(screen.getByText('react')).toBeInTheDocument();
