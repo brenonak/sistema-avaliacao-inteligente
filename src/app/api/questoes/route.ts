@@ -102,6 +102,12 @@ export async function GET(request: NextRequest) {
       filter.enunciado = { $regex: searchQuery.trim(), $options: "i" }; // Case-insensitive search
     }
 
+    // Filtro por cursoId (campo 'cursoIds' inclui o id passado)
+    const curso = url.searchParams.get("curso");
+    if (curso) {
+      filter.cursoIds = curso;
+    }
+
     // criar índices 
     void ensureIndexes();
 
@@ -161,6 +167,7 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       tags,
       recursos: recursoIds, // references
+      cursoIds: Array.isArray(body.cursoIds) ? body.cursoIds : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
