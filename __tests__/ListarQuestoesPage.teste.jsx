@@ -87,42 +87,98 @@ describe('ListarQuestoesPage', () => {
   });
 
   it('deve exibir uma mensagem de erro se a busca de questões falhar', async () => {
+    // Mock da requisição de tags
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ tags: [] }),
+    });
+    
+    // Mock da requisição de questões que falha
     fetch.mockRejectedValueOnce(new Error('Erro ao buscar questões'));
+    
     renderWithTheme(<ListarQuestoesPage />);
-    expect(await screen.findByText('Erro ao buscar questões')).toBeInTheDocument();
+    
+    // Aguarda o erro ser exibido
+    await waitFor(() => {
+      expect(screen.getByText(/Erro ao buscar questões/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('deve exibir uma mensagem quando nenhuma questão for encontrada', async () => {
+    // Mock da requisição de tags
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ items: [] }),
+      json: async () => ({ tags: [] }),
     });
+    
+    // Mock da requisição de questões vazia
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: [], total: 0 }),
+    });
+    
     renderWithTheme(<ListarQuestoesPage />);
-    expect(await screen.findByText('Nenhuma questão cadastrada.')).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Nenhuma questão cadastrada.')).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('deve renderizar a lista de questões com sucesso', async () => {
+    // Mock da requisição de tags
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ items: mockQuestoes }),
+      json: async () => ({ tags: ['geografia', 'brasil', 'ciência'] }),
     });
+    
+    // Mock da requisição de questões
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }),
+    });
+    
     renderWithTheme(<ListarQuestoesPage />);
-    expect(await screen.findByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    }, { timeout: 3000 });
+    
     expect(screen.getByText('A Terra é plana?')).toBeInTheDocument();
-    expect(screen.getByText(/Brasília \(Correta\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Brasília.*Correta/i)).toBeInTheDocument();
   });
 
  describe('Funcionalidade de Exclusão', () => {
 
   it('deve excluir uma questão com sucesso após a confirmação do usuário', async () => {
     const user = userEvent.setup();
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ message: 'Questão excluída' }) });
+    
+    // Mock da requisição de tags
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ tags: ['geografia', 'brasil'] }),
+    });
+    
+    // Mock da requisição inicial de questões
+    fetch.mockResolvedValueOnce({ 
+      ok: true, 
+      json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) 
+    });
+    
+    // Mock da requisição de exclusão
+    fetch.mockResolvedValueOnce({ 
+      ok: true, 
+      json: async () => ({ message: 'Questão excluída' }) 
+    });
     
     renderWithTheme(<ListarQuestoesPage />);
     
+    // Aguarda a questão ser renderizada
+    await waitFor(() => {
+      expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    }, { timeout: 3000 });
+    
     // Encontra o botão "Excluir" no card
-    const card = await screen.findByText('Qual é a capital do Brasil?');
+    const card = screen.getByText('Qual é a capital do Brasil?');
     const deleteButtonOnCard = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
     await user.click(deleteButtonOnCard);
 
@@ -143,12 +199,28 @@ describe('ListarQuestoesPage', () => {
 
   it('não deve excluir a questão se o usuário cancelar a ação', async () => {
     const user = userEvent.setup();
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
+    
+    // Mock da requisição de tags
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ tags: ['geografia', 'brasil'] }),
+    });
+    
+    // Mock da requisição inicial de questões
+    fetch.mockResolvedValueOnce({ 
+      ok: true, 
+      json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) 
+    });
     
     renderWithTheme(<ListarQuestoesPage />);
 
+    // Aguarda a questão ser renderizada
+    await waitFor(() => {
+      expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+    }, { timeout: 3000 });
+    
     // Encontra o botão "Excluir" no card
-    const card = await screen.findByText('Qual é a capital do Brasil?');
+    const card = screen.getByText('Qual é a capital do Brasil?');
     const deleteButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /excluir/i });
     await user.click(deleteButton);
 
@@ -171,10 +243,27 @@ describe('ListarQuestoesPage', () => {
   describe('Funcionalidade de Edição', () => {
     it('deve abrir o modal de edição ao clicar em "Editar"', async () => {
         const user = userEvent.setup();
-        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes }) });
+        
+        // Mock da requisição de tags
+        fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ tags: ['geografia', 'brasil'] }),
+        });
+        
+        // Mock da requisição inicial de questões
+        fetch.mockResolvedValueOnce({ 
+          ok: true, 
+          json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) 
+        });
+        
         renderWithTheme(<ListarQuestoesPage />);
     
-        const card = await screen.findByText('Qual é a capital do Brasil?');
+        // Aguarda a questão ser renderizada
+        await waitFor(() => {
+          expect(screen.getByText('Qual é a capital do Brasil?')).toBeInTheDocument();
+        }, { timeout: 3000 });
+        
+        const card = screen.getByText('Qual é a capital do Brasil?');
         const editButton = within(card.closest('.MuiCard-root')).getByRole('button', { name: /editar/i });
         await user.click(editButton);
     

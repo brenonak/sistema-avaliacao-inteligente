@@ -37,7 +37,7 @@ describe('CriarQuestaoPage', () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
-    // Usar mockReset() é mais seguro pois limpa implementações e chamadas.
+    
     fetch.mockReset();
     window.alert.mockClear();
   });
@@ -52,10 +52,10 @@ describe('CriarQuestaoPage', () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ id: '123' }) });
     renderWithTheme(<CriarQuestaoPage />);
     
-    await user.type(screen.getByLabelText(/Enunciado da Questão/i), 'Qual a capital do Brasil?');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
     await user.type(screen.getByPlaceholderText('Alternativa A'), 'Brasília');
     await user.type(screen.getByPlaceholderText('Alternativa B'), 'São Paulo');
-    await user.type(screen.getByLabelText(/Tags/i), 'geografia, brasil');
+    await user.type(screen.getByLabelText('Tags (separadas por vírgula)'), 'geografia, brasil');
 
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
 
@@ -65,18 +65,17 @@ describe('CriarQuestaoPage', () => {
     });
   });
 
-  // --- TESTES PARA OS DEMAIS TIPOS DE QUESTÃO ---
   it('deve submeter com sucesso uma questão de afirmações (V/F)', async () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     renderWithTheme(<CriarQuestaoPage />);
 
     await selectQuestionType(user, /Múltiplas Afirmações/i);
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Julgue os itens a seguir.');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Julgue os itens a seguir.');
     await user.type(screen.getByLabelText('Afirmação 1'), 'O céu é azul.');
     
     await user.click(screen.getByRole('button', { name: /\+ Adicionar Afirmação/i }));
     
-    // CORREÇÃO 1: Escopo da busca para a segunda afirmação
+   
     const segundaAfirmacao = screen.getByLabelText('Afirmação 2');
     await user.type(segundaAfirmacao, 'A terra é plana.');
     
@@ -94,14 +93,14 @@ describe('CriarQuestaoPage', () => {
     });
   });
 
-  // CORREÇÃO 2: Aumentar o timeout para este teste mais longo
+  
   it('deve submeter com sucesso uma questão de proposições múltiplas (somatório)', async () => {
     fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     renderWithTheme(<CriarQuestaoPage />);
 
     await selectQuestionType(user, /Proposições Múltiplas/i);
     
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Some os valores das proposições corretas.');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Some os valores das proposições corretas.');
     await user.type(screen.getByLabelText(/Afirmação de valor 1/i), 'Primeira proposição');
     
     await user.click(screen.getByRole('button', { name: /\+ Adicionar Proposição/i }));
@@ -124,17 +123,19 @@ describe('CriarQuestaoPage', () => {
 
   // --- TESTES DE VALIDAÇÃO E ERROS ---
 
-  // CORREÇÃO 3: Este teste agora passa após remover o `required` do componente
+  
   it('deve exibir alerta se a resposta numérica estiver vazia', async () => {
     renderWithTheme(<CriarQuestaoPage />);
     await selectQuestionType(user, /Resposta Numérica/i);
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Teste numérico');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste numérico');
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
     expect(window.alert).toHaveBeenCalledWith('Por favor, informe a resposta correta.');
   });
   
-  // CORREÇÃO 4: A correção do `beforeEach` para `mockReset` resolve este teste
+  
   it('deve exibir um alerta de erro se a API falhar', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -142,7 +143,7 @@ describe('CriarQuestaoPage', () => {
     });
     renderWithTheme(<CriarQuestaoPage />);
     
-    await user.type(screen.getByLabelText(/Enunciado/i), 'Teste de falha');
+    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste de falha');
     await user.type(screen.getByPlaceholderText('Alternativa A'), 'A');
     await user.type(screen.getByPlaceholderText('Alternativa B'), 'B');
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
@@ -150,14 +151,16 @@ describe('CriarQuestaoPage', () => {
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Erro interno do servidor');
     });
+
+    consoleErrorSpy.mockRestore();
   });
 
   // --- TESTES DE UI ADICIONAIS ---
 
-  // CORREÇÃO 5: Usar getByText em vez de getByRole para encontrar os chips
+  
   it('deve renderizar chips de tags ao digitar no campo de tags', async () => {
     renderWithTheme(<CriarQuestaoPage />);
-    const tagsInput = screen.getByLabelText(/Tags/i);
+    const tagsInput = screen.getByLabelText('Tags (separadas por vírgula)');
     await user.type(tagsInput, 'react, jest, testing');
 
     expect(screen.getByText('react')).toBeInTheDocument();
