@@ -15,33 +15,56 @@ export function GalleryGrid() {
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("/api/recursos")
-      if (!response.ok) throw new Error("Failed to fetch images")
-      const data = await response.json()
+      // Adicionar um timestamp para evitar cache
+      const timestamp = Date.now();
+      const response = await fetch(`/api/recursos?_t=${timestamp}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Server error:", data.error);
+        throw new Error(data.error || "Failed to fetch images");
+      }
+      
+      // Validar se temos os dados esperados
+      if (!Array.isArray(data.items)) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response format");
+      }
       
       // Mapear os recursos do banco para o formato esperado pela galeria
       // e garantir que não haja duplicatas usando Set com URLs
-      const uniqueUrls = new Set()
-      const uniqueImages = (data.items || [])
+      const uniqueUrls = new Set();
+      const uniqueImages = data.items
         .filter(resource => {
-          if (uniqueUrls.has(resource.url)) {
-            return false // Skip duplicadas
+          // Validar se o recurso tem uma URL válida
+          if (!resource?.url || typeof resource.url !== 'string') {
+            console.warn('Invalid resource:', resource);
+            return false;
           }
-          uniqueUrls.add(resource.url)
-          return true
+          
+          // Verificar duplicatas
+          if (uniqueUrls.has(resource.url)) {
+            console.warn('Duplicate URL found:', resource.url);
+            return false;
+          }
+          
+          uniqueUrls.add(resource.url);
+          return true;
         })
         .map(resource => ({
           url: resource.url,
-          pathname: resource.filename,
-          uploadedAt: resource.updatedAt || resource.createdAt,
-          size: resource.sizeBytes
-        }))
+          pathname: resource.filename || 'Sem nome',
+          uploadedAt: resource.updatedAt || resource.createdAt || new Date().toISOString(),
+          size: resource.sizeBytes || 0
+        }));
 
-      setImages(uniqueImages)
+      setImages(uniqueImages);
     } catch (error) {
-      console.error("Error fetching images:", error)
+      console.error("Error fetching images:", error);
+      // Mostrar mensagem de erro para o usuário
+      alert("Erro ao carregar as imagens. Por favor, tente novamente mais tarde.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
