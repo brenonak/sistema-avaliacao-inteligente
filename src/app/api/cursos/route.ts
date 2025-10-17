@@ -7,8 +7,15 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     const cursos = await db.collection("cursos").find({}).toArray();
+    // Para cada curso, contar questões associadas
+    const questoesCounts = await db.collection("questoes").aggregate([
+      { $unwind: "$cursoIds" },
+      { $group: { _id: "$cursoIds", count: { $sum: 1 } } }
+    ]).toArray();
+    const countsMap = Object.fromEntries(questoesCounts.map(q => [q._id, q.count]));
     const itens = cursos.map(({ _id, ...rest }) => ({
       id: _id.toString(),
+      questoesCount: countsMap[_id.toString()] || 0,
       ...rest,
     }));
     return json({ itens });

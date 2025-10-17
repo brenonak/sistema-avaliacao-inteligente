@@ -26,8 +26,12 @@ import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
 import AIButton from '../../components/AIButton';
 import { upload } from "@vercel/blob/client";
+import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function CriarQuestaoPage() {
+export default function CriarQuestaoPage(props) {
+  const searchParams = useSearchParams();
+  const router = useRouter();  // Já importado provavelmente, se não, garantir aqui.
+  const cursoId = searchParams.get('curso'); // permite '?curso=<id>' na url
   const [enunciado, setEnunciado] = useState('');
   const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([
@@ -270,6 +274,10 @@ useEffect(() => {
             tags:cleanTags,
             recursos: recursos.map((r) => r.url),
           };
+
+    if (cursoId) {
+      payload.cursoIds = [cursoId];
+    }
 
     try {
       setLoading(true);

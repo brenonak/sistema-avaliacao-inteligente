@@ -52,181 +52,52 @@ export default function CursoDetalhesPage() {
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Dados de exemplo embutidos
-  const cursosExemplo = [
-    {
-      id: '1',
-      nome: 'Engenharia de Software',
-      descricao: 'Curso abrangente sobre metodologias, ferramentas e práticas modernas de desenvolvimento de software.',
-      professor: 'Prof. Dr. Fabio Fagundes Silveira',
-      tags: ['software', 'programação', 'metodologia', 'engenharia'],
-      questoes: [
-        {
-          id: 'q1',
-          enunciado: 'Qual das seguintes é uma metodologia ágil de desenvolvimento de software?',
-          tipo: 'alternativa',
-          tags: ['scrum', 'metodologia'],
-          alternativas: [
-            { letra: 'A', texto: 'Scrum', correta: true },
-            { letra: 'B', texto: 'Waterfall', correta: false },
-            { letra: 'C', texto: 'V-Model', correta: false },
-            { letra: 'D', texto: 'Spiral', correta: false }
-          ]
-        },
-        {
-          id: 'q2',
-          enunciado: 'O que significa refatoração de código?',
-          tipo: 'dissertativa',
-          tags: ['refatoracao', 'qualidade'],
-          gabarito: 'Refatoração é o processo de reestruturar código existente sem alterar seu comportamento externo, visando melhorar sua legibilidade, estrutura e design.'
-        }
-      ],
-      createdAt: new Date('2024-10-01')
-    },
-    {
-      id: '2',
-      nome: 'Estruturas de Dados',
-      descricao: 'Estudo das principais estruturas de dados e algoritmos fundamentais para a ciência da computação.',
-      professor: 'Prof. Dr. Ana Maria Santos',
-      tags: ['algoritmos', 'estruturas', 'programação', 'complexidade'],
-      questoes: [
-        {
-          id: 'q3',
-          enunciado: 'Qual é a complexidade de tempo da operação de busca em uma árvore binária de busca balanceada?',
-          tipo: 'alternativa',
-          tags: ['complexidade', 'arvore', 'busca'],
-          alternativas: [
-            { letra: 'A', texto: 'O(n)', correta: false },
-            { letra: 'B', texto: 'O(log n)', correta: true },
-            { letra: 'C', texto: 'O(n²)', correta: false },
-            { letra: 'D', texto: 'O(1)', correta: false }
-          ]
-        },
-        {
-          id: 'q4',
-          enunciado: 'Uma pilha (stack) segue qual princípio de organização?',
-          tipo: 'alternativa',
-          tags: ['pilha', 'estruturas'],
-          alternativas: [
-            { letra: 'A', texto: 'FIFO - First In, First Out', correta: false },
-            { letra: 'B', texto: 'LIFO - Last In, First Out', correta: true },
-            { letra: 'C', texto: 'Random Access', correta: false },
-            { letra: 'D', texto: 'Priority Based', correta: false }
-          ]
-        },
-        {
-          id: 'q5',
-          enunciado: 'Calcule o resultado da expressão pós-fixa: 5 3 + 2 *',
-          tipo: 'numerica',
-          tags: ['expressao', 'pilha', 'calculo'],
-          respostaCorreta: 16,
-          margemErro: 0
-        }
-      ],
-      createdAt: new Date('2024-09-15')
-    },
-    {
-      id: '3',
-      nome: 'Banco de Dados',
-      descricao: 'Fundamentos de sistemas de gerenciamento de banco de dados, modelagem e linguagem SQL.',
-      professor: 'Prof. Dr. Carlos Roberto Lima',
-      tags: ['sql', 'modelagem', 'banco', 'dados'],
-      questoes: [
-        {
-          id: 'q6',
-          enunciado: 'Analise as seguintes afirmações sobre normalização de banco de dados:',
-          tipo: 'afirmacoes',
-          tags: ['normalizacao', 'modelagem'],
-          afirmacoes: [
-            { texto: 'A primeira forma normal elimina grupos repetidos', correta: true },
-            { texto: 'A segunda forma normal elimina dependências funcionais parciais', correta: true },
-            { texto: 'A terceira forma normal permite dependências transitivas', correta: false },
-            { texto: 'BCNF é mais restritiva que a terceira forma normal', correta: true }
-          ]
-        }
-      ],
-      createdAt: new Date('2024-10-10')
-    },
-    {
-      id: '4',
-      nome: 'Sistemas Operacionais',
-      descricao: 'Conceitos fundamentais de sistemas operacionais, processos, threads, gerenciamento de memória e sistemas de arquivos.',
-      professor: 'Prof. Dr. Roberto Silva Mendes',
-      tags: ['so', 'processos', 'memoria', 'sistemas'],
-      questoes: [],
-      createdAt: new Date('2024-10-05')
-    }
-  ];
-
-  // Questões de exemplo disponíveis para adicionar
-  const questoesExemplo = [
-    {
-      id: 'q7',
-      enunciado: 'Qual é o principal objetivo dos padrões de projeto (design patterns)?',
-      tipo: 'alternativa',
-      tags: ['design-patterns', 'arquitetura'],
-      alternativas: [
-        { letra: 'A', texto: 'Aumentar a velocidade de execução', correta: false },
-        { letra: 'B', texto: 'Reutilizar soluções testadas para problemas recorrentes', correta: true },
-        { letra: 'C', texto: 'Reduzir o tamanho do código', correta: false },
-        { letra: 'D', texto: 'Eliminar bugs', correta: false }
-      ]
-    },
-    {
-      id: 'q8',
-      enunciado: 'Explique o conceito de herança em programação orientada a objetos.',
-      tipo: 'dissertativa',
-      tags: ['oop', 'heranca'],
-      gabarito: 'Herança é um mecanismo da POO que permite criar uma nova classe baseada em uma classe existente, herdando seus atributos e métodos.'
-    },
-    {
-      id: 'q9',
-      enunciado: 'Quantas comparações são necessárias no pior caso para encontrar um elemento em um array ordenado de 1000 elementos usando busca binária?',
-      tipo: 'numerica',
-      tags: ['busca-binaria', 'complexidade'],
-      respostaCorreta: 10,
-      margemErro: 1
-    }
-  ];
+  // Substituir uso de cursosExemplo, questoesExemplo, dados mockados e simulação de timeouts por integração real (fetch) à API.
 
   useEffect(() => {
-    fetchCurso();
-  }, [cursoId]);
-
-  const fetchCurso = async () => {
-    try {
-      setLoading(true);
-      // Simular busca no banco de dados
-      setTimeout(() => {
-        const cursoEncontrado = cursosExemplo.find(c => c.id === cursoId);
-        if (cursoEncontrado) {
-          setCurso(cursoEncontrado);
-        } else {
-          setError('Curso não encontrado');
-        }
+    if (!cursoId) return;
+    setLoading(true);
+    setError(null);
+    async function fetchData() {
+      try {
+        // 1) Buscar detalhes do curso
+        const resCurso = await fetch(`/api/cursos/${cursoId}`);
+        if (!resCurso.ok) throw new Error('Erro ao buscar curso');
+        const cJson = await resCurso.json();
+        setCurso(cJson);
+        // 2) Buscar questões associadas a esse curso
+        const resQuestoes = await fetch(`/api/questoes?curso=${cursoId}`);
+        if (!resQuestoes.ok) throw new Error('Erro ao buscar questões');
+        const qJson = await resQuestoes.json();
+        setCurso(cursoAnt => ({ ...cursoAnt, questoes: qJson.items || [] }));
+      } catch (err) {
+        setError(err.message || 'Erro desconhecido');
+      } finally {
         setLoading(false);
-      }, 500);
-    } catch (err) {
-      setError(err.message || 'Erro desconhecido');
-      setLoading(false);
+      }
     }
-  };
+    fetchData();
+  }, [cursoId]);
 
   const handleOpenAddDialog = async () => {
     setOpenAddDialog(true);
     setLoadingQuestoes(true);
-    
-    // Simular carregamento de questões
-    setTimeout(() => {
-      // Filtrar questões que já estão no curso
-      const questoesJaAdicionadas = curso.questoes?.map(q => q.id || q) || [];
-      const questoesFiltradas = questoesExemplo.filter(
-        q => !questoesJaAdicionadas.includes(q.id)
+    try {
+      // Buscar todas as questões não vinculadas a este curso
+      const res = await fetch('/api/questoes');
+      if (!res.ok) throw new Error('Erro ao buscar questões');
+      const json = await res.json();
+      // filtra só as que não têm cursoId igual ao abrindo
+      const questoesJaAdicionadas = curso?.questoes?.map(q => q.id) || [];
+      const questoesFiltradas = (json.items || []).filter(
+        q => !q.cursoIds?.includes(cursoId)
       );
-      
       setQuestoesDisponiveis(questoesFiltradas);
+    } catch (err) {
+      setQuestoesDisponiveis([]);
+    } finally {
       setLoadingQuestoes(false);
-    }, 500);
+    }
   };
 
   const handleToggleQuestao = (questaoId) => {
@@ -240,44 +111,81 @@ export default function CursoDetalhesPage() {
   };
 
   const handleAddQuestoes = async () => {
+    // Para cada questão selecionada, faz PUT adicionando o cursoId a cursoIds
     if (selectedQuestoes.length === 0) {
       alert('Selecione pelo menos uma questão');
       return;
     }
-
-    // Simular adição de questões
-    const questoesParaAdicionar = questoesExemplo.filter(q => 
-      selectedQuestoes.includes(q.id)
-    );
-    
-    setCurso(prevCurso => ({
-      ...prevCurso,
-      questoes: [...(prevCurso.questoes || []), ...questoesParaAdicionar]
-    }));
-    
-    alert(`${selectedQuestoes.length} questão(ões) adicionada(s) com sucesso!`);
+    setLoadingQuestoes(true);
+    let sucesso = 0;
+    for (const questaoId of selectedQuestoes) {
+      try {
+        // Buscar a questão atual para pegar cursoIds existentes
+        const resGet = await fetch(`/api/questoes/${questaoId}`);
+        if (!resGet.ok) throw new Error();
+        const qAtual = await resGet.json();
+        const cursoIds = Array.isArray(qAtual.cursoIds) ? [...qAtual.cursoIds] : [];
+        // Se já está vinculada evitar duplicidade
+        if (!cursoIds.includes(cursoId)) cursoIds.push(cursoId);
+        const resPut = await fetch(`/api/questoes/${questaoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...qAtual, cursoIds }),
+        });
+        if (resPut.ok) sucesso++;
+      } catch (e) {}
+    }
+    alert(`${sucesso} questão(ões) atribuída(s) ao curso com sucesso!`);
     setOpenAddDialog(false);
     setSelectedQuestoes([]);
+    // Atualizar lista exibida
+    // reload questões do curso
+    setLoading(true);
+    try {
+      const resQuestoes = await fetch(`/api/questoes?curso=${cursoId}`);
+      const qJson = await resQuestoes.json();
+      setCurso(cursoAnt => ({ ...cursoAnt, questoes: qJson.items || [] }));
+    } catch (e) {}
+    setLoading(false);
   };
 
   const handleRemoveQuestao = async (questaoId) => {
     if (!confirm('Tem certeza que deseja remover esta questão do curso?')) return;
-
-    // Simular remoção de questão
-    setCurso(prevCurso => ({
-      ...prevCurso,
-      questoes: (prevCurso.questoes || []).filter(q => q.id !== questaoId)
-    }));
-    
-    alert('Questão removida com sucesso!');
+    setLoading(true);
+    try {
+      // buscar questao atual
+      const resGet = await fetch(`/api/questoes/${questaoId}`);
+      if (!resGet.ok) throw new Error('Erro ao buscar questão.');
+      const qAtual = await resGet.json();
+      const cursoIds = (qAtual.cursoIds || []).filter(id => id !== cursoId);
+      await fetch(`/api/questoes/${questaoId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...qAtual, cursoIds }),
+      });
+      // Atualizar listagem
+      const resQuestoes = await fetch(`/api/questoes?curso=${cursoId}`);
+      const qJson = await resQuestoes.json();
+      setCurso(cursoAnt => ({ ...cursoAnt, questoes: qJson.items || [] }));
+      alert('Questão removida com sucesso!');
+    } catch (e) {
+      alert(e?.message || 'Erro ao remover questão.');
+    }
+    setLoading(false);
   };
 
   const handleDeleteCurso = async () => {
     if (!confirm('Tem certeza que deseja excluir este curso? Esta ação não pode ser desfeita.')) return;
-
-    // Simular exclusão do curso
-    alert('Curso excluído com sucesso!');
-    router.push('/cursos');
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao excluir curso.');
+      alert('Curso excluído com sucesso!');
+      router.push('/cursos');
+    } catch (e) {
+      alert(e?.message || 'Erro ao excluir curso.');
+      setLoading(false);
+    }
   };
 
   const filteredQuestoes = questoesDisponiveis.filter(q => 
@@ -381,7 +289,7 @@ export default function CursoDetalhesPage() {
             >
               Adicionar Questões Existentes
             </Button>
-            <Link href="/questoes/criar" passHref style={{ textDecoration: 'none' }}>
+            <Link href={`/questoes/criar?curso=${cursoId}`} passHref style={{ textDecoration: 'none' }}>
               <Button
                 variant="contained"
                 color="primary"

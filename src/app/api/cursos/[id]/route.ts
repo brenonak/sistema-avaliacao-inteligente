@@ -46,6 +46,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const { id } = await params;
     const _id = oid(id); if (!_id) return badRequest("id inválido");
     const db = await getDb();
+    // 1. Desreferenciar este curso das questões
+    await db.collection("questoes").updateMany(
+      { cursoIds: id },
+      { $pull: { cursoIds: id as any } }
+    );
+    // 2. Agora pode deletar o curso
     const res = await db.collection("cursos").deleteOne({ _id });
     if (!res.deletedCount) return notFound("curso não encontrado");
     return json({ ok: true });
