@@ -226,3 +226,87 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function POST_revisar_prova(request: NextRequest) {
+  try {
+    console.log("Recebida requisição para revisar prova com Gemini...");
+    const body = await request.json();
+    const provaJson = body.prova; // Espera receber o JSON da prova no corpo da requisição
+
+    if (!provaJson || !provaJson.questoes || provaJson.questoes.length === 0) {
+      console.error("JSON da prova inválido ou vazio recebido.");
+      return NextResponse.json(
+        { success: false, message: 'O JSON da prova é inválido ou não contém questões.' },
+        { status: 400 } 
+      );
+    }
+
+    const model = new ChatGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+      model: "gemini-2.5-flash", 
+      temperature: 0.3, 
+      maxOutputTokens: 8192,
+    });
+
+    // 3. Criar o prompt de revisão
+    const reviewTemplate = `
+      Você é um revisor e editor pedagógico especialista. Sua tarefa é revisar o JSON de uma prova que será fornecido.
+      Para cada questão e suas alternativas, você deve:
+
+      1.  **Corrigir erros ortográficos e gramaticais.** Seja minucioso e corrija qualquer deslize.
+      2.  **Melhorar a clareza e a concisão dos enunciados e das alternativas.** Se uma frase for ambígua ou prolixa, reescreva-a para ser mais direta e compreensível, sem alterar o sentido original da pergunta ou da resposta.
+      3.  **Manter a estrutura do JSON original.** O objeto JSON de saída deve ter exatamente a mesma estrutura (mesmas chaves, mesmos tipos de dados) do objeto de entrada.
+      4.  **NÃO altere o tipo da questão, o gabarito, os recursos (imagens) ou a estrutura dos dados.** Sua função é puramente textual e editorial.
+
+      **[INSTRUÇÕES DE SAÍDA]**
+      -   Responda **APENAS** com o objeto JSON revisado.
+      -   **NÃO** inclua explicações, saudações ou qualquer texto fora do JSON.
+      -   O JSON de saída deve estar formatado corretamente para que possa ser diretamente parseado.
+
+      **[JSON DA PROVA PARA REVISÃO]**
+      \`\`\`json
+      {prova_json_input}
+      \`\`\`
+
+      **[JSON REVISADO]**
+    `;
+
+    const prompt = new PromptTemplate({
+      template: reviewTemplate,
+      inputVariables: ["prova_json_input"],
+    });
+
+    const chain = prompt.pipe(model).pipe(new StringOutputParser());
+
+    const revisedJsonString = await chain.invoke({
+      prova_json_input: JSON.stringify(provaJson, null, 2),
+    });
+    
+    console.log("Resposta bruta do modelo:", revisedJsonString);
+
+    const cleanedResponse = revisedJsonString.replace(/^```json\s*|```$/g, '').trim();
+    
+    let revisedProva;
+    try {
+        revisedProva = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+        console.error("Erro ao fazer o parse do JSON retornado pela IA:", parseError);
+        console.error("String que falhou no parse:", cleanedResponse);
+        throw new Error("A resposta da IA não é um JSON válido.");
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Prova revisada com sucesso!',
+      revisedProva: revisedProva,
+    });
+
+  } catch (error) {
+    console.error("Erro no endpoint de revisão de prova:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+    return NextResponse.json(
+      { success: false, message: 'Falha ao revisar a prova.', error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
