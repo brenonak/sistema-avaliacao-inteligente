@@ -88,6 +88,22 @@ const Header = () => {
           </Button>
           <Button
             component={Link}
+            href="/galeria"
+            sx={{
+              color: 'text.primary',
+              px: 2,
+              py: 1,
+              borderRadius: 1,
+              '&:hover': {
+                backgroundColor: 'action.hover'
+              },
+              transition: 'background-color 0ms ease, color 0ms ease',
+            }}
+          >
+            Galeria
+          </Button>
+          <Button
+            component={Link}
             href="/questoes"
             sx={{
               color: 'text.primary',
