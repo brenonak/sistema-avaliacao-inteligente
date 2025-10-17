@@ -7,31 +7,20 @@ export default function GaleriaPage() {
   return (
     <Box sx={{ minHeight: "100vh" }}>
       {/* Header */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          borderBottom: 1, 
-          borderColor: "divider",
-          backgroundColor: "background.paper",
-          mb: 4
-        }}
-      >
         <Container maxWidth="lg" sx={{ py: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <GalleryIcon sx={{ fontSize: 40, color: "primary.main" }} />
+          <Box sx={{ minHeight: '10vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        p: 3,
+        backgroundColor: 'background.default' }}>
             <Typography 
-              variant="h3" 
-              component="h1" 
-              sx={{ 
-                fontWeight: "light",
-                fontFamily: "var(--font-serif)",
-              }}
+              variant="h3" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}
             >
               Galeria
             </Typography>
           </Box>
         </Container>
-      </Paper>
 
       {/* Main Content */}
       <Container maxWidth="lg">
