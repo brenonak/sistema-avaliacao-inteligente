@@ -1,7 +1,14 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Upload } from "lucide-react"
+import { 
+  Button, 
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Box
+} from "@mui/material"
+import { CloudUpload as UploadIcon } from "@mui/icons-material"
 
 export function UploadButton() {
   const [isUploading, setIsUploading] = useState(false)
@@ -13,7 +20,7 @@ export function UploadButton() {
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Por favor, selecione apenas arquivos de imagem")
+      showErrorMessage("Por favor, selecione apenas arquivos de imagem")
       return
     }
 
@@ -36,7 +43,7 @@ export function UploadButton() {
       window.location.reload()
     } catch (error) {
       console.error("Upload error:", error)
-      alert("Erro ao fazer upload da foto. Tente novamente.")
+      showErrorMessage("Erro ao fazer upload da foto. Tente novamente.")
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) {
@@ -45,28 +52,55 @@ export function UploadButton() {
     }
   }
 
+  const [error, setError] = useState("")
+  const [showError, setShowError] = useState(false)
+
+  const handleCloseError = () => {
+    setShowError(false)
+  }
+
+  const showErrorMessage = (message) => {
+    setError(message)
+    setShowError(true)
+  }
+
   return (
-    <div>
+    <Box>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleUpload}
-        className="hidden"
+        style={{ display: 'none' }}
         id="file-upload"
         disabled={isUploading}
       />
       <label htmlFor="file-upload">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
+        <Button
+          component="span"
+          variant="contained"
           disabled={isUploading}
-          className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+          startIcon={isUploading ? <CircularProgress size={20} /> : <UploadIcon />}
+          sx={{
+            px: 4,
+            py: 1.5,
+            borderRadius: 2,
+          }}
         >
-          <Upload className="w-5 h-5" />
           {isUploading ? "Enviando..." : "Enviar Foto"}
-        </button>
+        </Button>
       </label>
-    </div>
+
+      <Snackbar 
+        open={showError} 
+        autoHideDuration={6000} 
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Box>
   )
 }

@@ -1,26 +1,50 @@
 import { GalleryGrid } from "../components/gallery-grid"
 import { UploadButton } from "../components/upload-button"
+import { Container, Box, Typography, Paper, Divider } from "@mui/material"
+import { Collections as GalleryIcon } from "@mui/icons-material"
 
 export default function GaleriaPage() {
   return (
-    <div className="min-h-screen">
+    <Box sx={{ minHeight: "100vh" }}>
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="font-serif text-4xl md:text-5xl font-light text-balance">Galeria</h1>
-        </div>
-      </header>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          borderBottom: 1, 
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+          mb: 4
+        }}
+      >
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <GalleryIcon sx={{ fontSize: 40, color: "primary.main" }} />
+            <Typography 
+              variant="h3" 
+              component="h1" 
+              sx={{ 
+                fontWeight: "light",
+                fontFamily: "var(--font-serif)",
+              }}
+            >
+              Galeria
+            </Typography>
+          </Box>
+        </Container>
+      </Paper>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
+      <Container maxWidth="lg">
         {/* Upload Section */}
-        <div className="mb-12 flex justify-center">
+        <Box sx={{ mb: 4, display: "flex", justifyContent: "center" }}>
           <UploadButton />
-        </div>
+        </Box>
+
+        <Divider sx={{ mb: 4 }} />
 
         {/* Gallery Grid */}
         <GalleryGrid />
-      </main>
-    </div>
+      </Container>
+    </Box>
   )
 }

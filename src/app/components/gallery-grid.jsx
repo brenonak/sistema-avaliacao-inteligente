@@ -2,7 +2,25 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Trash2 } from "lucide-react"
+import { 
+  Box, 
+  ImageList, 
+  ImageListItem, 
+  IconButton, 
+  Typography, 
+  CircularProgress,
+  Card,
+  CardMedia,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  useTheme,
+  useMediaQuery
+} from "@mui/material"
+import { Delete as DeleteIcon } from "@mui/icons-material"
 
 export function GalleryGrid() {
   const [images, setImages] = useState([])
@@ -99,61 +117,134 @@ export function GalleryGrid() {
     }
   }
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="text-muted-foreground">Carregando fotos...</div>
-      </div>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 10 }}>
+        <CircularProgress />
+        <Typography variant="body1" color="text.secondary" sx={{ ml: 2 }}>
+          Carregando fotos...
+        </Typography>
+      </Box>
     )
   }
 
   if (images.length === 0) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="text-center">
-          <p className="text-muted-foreground text-lg mb-2">Nenhuma foto na galeria</p>
-          <p className="text-muted-foreground text-sm">Envie sua primeira foto usando o botão acima</p>
-        </div>
-      </div>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 10 }}>
+        <Card sx={{ maxWidth: 400, textAlign: "center", p: 4 }}>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Nenhuma foto na galeria
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Envie sua primeira foto usando o botão acima
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
     )
   }
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {images.map((image) => (
-        <div
-          key={image.url}
-          className="group relative aspect-square bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
-        >
-          {/* Image */}
-          <div className="relative w-full h-full overflow-hidden">
-            <Image
-              src={image.url || "/placeholder.svg"}
-              alt={image.pathname}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-110"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            />
-          </div>
+  // Define o número de colunas com base no tamanho da tela
+  const getCols = () => {
+    if (isMobile) return 1;
+    if (isTablet) return 2;
+    return 4;
+  };
 
-          {/* Hover Overlay */}
-          <div className="absolute inset-0 bg-secondary/0 group-hover:bg-secondary/60 transition-colors duration-300 flex items-center justify-center">
-            <button
+  return (
+    <ImageList 
+      variant="standard" 
+      cols={getCols()} 
+      gap={24}
+      sx={{
+        // Remove o espaçamento padrão do ImageList
+        m: 0,
+        // Adiciona animação suave na transição do layout
+        '& .MuiImageListItem-root': {
+          transition: 'all 0.3s ease-in-out'
+        }
+      }}
+    >
+      {images.map((image) => (
+        <ImageListItem 
+          key={image.url}
+          sx={{
+            borderRadius: 1,
+            overflow: 'hidden',
+            boxShadow: 1,
+            '&:hover': {
+              boxShadow: 3,
+              '& .overlay': {
+                opacity: 1
+              }
+            }
+          }}
+        >
+          <Image
+            src={image.url}
+            alt={image.pathname}
+            width={500}
+            height={500}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: 'scale(1)',
+              transition: 'transform 0.3s ease-in-out'
+            }}
+          />
+          
+          {/* Overlay com botão de delete e data */}
+          <Box
+            className="overlay"
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              opacity: 0,
+              transition: 'opacity 0.3s ease-in-out',
+              p: 2
+            }}
+          >
+            <IconButton
               onClick={() => handleDelete(image.url)}
               disabled={deletingUrl === image.url}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-card rounded-full hover:bg-muted disabled:opacity-50 cursor-pointer"
-              aria-label="Excluir foto"
+              sx={{
+                bgcolor: 'background.paper',
+                '&:hover': {
+                  bgcolor: 'background.default'
+                }
+              }}
             >
-              <Trash2 className="w-5 h-5 text-foreground" />
-            </button>
-          </div>
+              <DeleteIcon />
+            </IconButton>
 
-          {/* Image Info */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-secondary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <p className="text-white text-xs truncate">{new Date(image.uploadedAt).toLocaleDateString("pt-BR")}</p>
-          </div>
-        </div>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'white',
+                width: '100%',
+                textAlign: 'center',
+                mt: 1
+              }}
+            >
+              {new Date(image.uploadedAt).toLocaleDateString("pt-BR")}
+            </Typography>
+          </Box>
+        </ImageListItem>
       ))}
-    </div>
+    </ImageList>
   )
 }
