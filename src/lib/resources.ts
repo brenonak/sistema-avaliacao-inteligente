@@ -50,10 +50,10 @@ async function createIndexes(collection: Collection<Recurso>): Promise<void> {
       { unique: true, name: "url_unique" }
     );
     
-    // Index for provider + key (alternative unique constraint)
+    // Index for provider + key (unique constraint for hash-based deduplication)
     await collection.createIndex(
       { "provider": 1, "key": 1 },
-      { name: "provider_key" }
+      { unique: true, name: "provider_key" }
     );
     
     console.log("✅ Recursos collection indexes created successfully");

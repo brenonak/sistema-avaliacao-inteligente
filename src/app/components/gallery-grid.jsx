@@ -15,10 +15,29 @@ export function GalleryGrid() {
 
   const fetchImages = async () => {
     try {
-      const response = await fetch("/api/galeria")
+      const response = await fetch("/api/recursos")
       if (!response.ok) throw new Error("Failed to fetch images")
       const data = await response.json()
-      setImages(data.images || [])
+      
+      // Mapear os recursos do banco para o formato esperado pela galeria
+      // e garantir que não haja duplicatas usando Set com URLs
+      const uniqueUrls = new Set()
+      const uniqueImages = (data.items || [])
+        .filter(resource => {
+          if (uniqueUrls.has(resource.url)) {
+            return false // Skip duplicadas
+          }
+          uniqueUrls.add(resource.url)
+          return true
+        })
+        .map(resource => ({
+          url: resource.url,
+          pathname: resource.filename,
+          uploadedAt: resource.updatedAt || resource.createdAt,
+          size: resource.sizeBytes
+        }))
+
+      setImages(uniqueImages)
     } catch (error) {
       console.error("Error fetching images:", error)
     } finally {
@@ -37,10 +56,18 @@ export function GalleryGrid() {
         body: JSON.stringify({ url }),
       })
 
-      if (!response.ok) throw new Error("Failed to delete image")
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete image")
+      }
 
-      // Remove from state
-      setImages((prev) => prev.filter((img) => img.url !== url))
+      if (data.success) {
+        // Remove from state only if deletion was successful
+        setImages((prev) => prev.filter((img) => img.url !== url))
+      } else {
+        throw new Error(data.error || "Failed to delete image")
+      }
     } catch (error) {
       console.error("Error deleting image:", error)
       alert("Erro ao excluir a foto. Tente novamente.")
@@ -73,7 +100,7 @@ export function GalleryGrid() {
       {images.map((image) => (
         <div
           key={image.url}
-          className="group relative aspect-square bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
+          className="group relative aspect-square bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
         >
           {/* Image */}
           <div className="relative w-full h-full overflow-hidden">
@@ -91,7 +118,7 @@ export function GalleryGrid() {
             <button
               onClick={() => handleDelete(image.url)}
               disabled={deletingUrl === image.url}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-card rounded-full hover:bg-muted disabled:opacity-50"
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 bg-card rounded-full hover:bg-muted disabled:opacity-50 cursor-pointer"
               aria-label="Excluir foto"
             >
               <Trash2 className="w-5 h-5 text-foreground" />
