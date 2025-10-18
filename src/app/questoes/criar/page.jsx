@@ -18,7 +18,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Checkbox,
-  Chip
+  Chip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -26,6 +28,7 @@ import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
 import AIButton from '../../components/AIButton';
 import { upload } from "@vercel/blob/client";
+import { set } from 'zod';
 
 export default function CriarQuestaoPage() {
   const [enunciado, setEnunciado] = useState('');
@@ -62,6 +65,8 @@ export default function CriarQuestaoPage() {
 
   const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
 
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
   useEffect(() => {
     const isAnyFieldFilled =
       enunciado.trim() !== '' ||
@@ -75,51 +80,34 @@ export default function CriarQuestaoPage() {
     setIsFormFilled(isAnyFieldFilled);
   }, [enunciado, tagsInput, tipo, alternativas, afirmacoes, respostaNumerica, margemErro, proposicoes, gabarito, palavrasChave]);
 
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  }
+
+
   const handleSetActiveImage = (file) => {
     setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
   };
 
-  // Handlers para funcionalidades de IA
+  const showAIDevelopmentMessage = () => {
+    setSnackbar({ open: true, message: 'Funcionalidade de IA em desenvolvimento.', severity: 'info' });
+  }
+
+
+  // Handlers para funcionalidades de IA (futuramente implementar)
   const handleGenerateEnunciadoWithAI = async () => {
-    setAiGenerating(true);
-    try {
-      // TODO: Implementar chamada à API de IA
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('Funcionalidade de geração de enunciado com IA será implementada em breve!');
-    } catch (error) {
-      console.error('Erro ao gerar enunciado:', error);
-      alert('Erro ao gerar enunciado com IA');
-    } finally {
-      setAiGenerating(false);
-    }
-  };
+    showAIDevelopmentMessage();
+  };  
 
   const handleReviewSpellingWithAI = async () => {
-    setAiReviewing(true);
-    try {
-      // TODO: Implementar chamada à API de IA
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('Funcionalidade de revisão ortográfica com IA será implementada em breve!');
-    } catch (error) {
-      console.error('Erro ao revisar ortografia:', error);
-      alert('Erro ao revisar ortografia com IA');
-    } finally {
-      setAiReviewing(false);
-    }
+    showAIDevelopmentMessage();
   };
 
   const handleGenerateDistractorsWithAI = async () => {
-    setAiGeneratingDistractors(true);
-    try {
-      // TODO: Implementar chamada à API de IA
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('Funcionalidade de geração de distratores com IA será implementada em breve!');
-    } catch (error) {
-      console.error('Erro ao gerar distratores:', error);
-      alert('Erro ao gerar distratores com IA');
-    } finally {
-      setAiGeneratingDistractors(false);
-    }
+    showAIDevelopmentMessage();
   };
   
   const cleanTags = useMemo(() => (
@@ -179,25 +167,25 @@ useEffect(() => {
 
     // validações básicas
     if (enunciado.trim() === '') {
-      alert('Por favor, preencha o enunciado da questão.');
+      setSnackbar({ open: true, message: 'Por favor, preencha o enunciado da questão.', severity: 'error' });
       return;
     }
     
     // Validações específicas por tipo de questão
     if (tipo === 'alternativa' || tipo === 'vf') {
       if (alternativas.some((a) => a.texto.trim() === '')) {
-        alert('Todas as alternativas devem ser preenchidas.');
+        setSnackbar({ open: true, message: 'Todas as alternativas devem ser preenchidas.', severity: 'error' });
         return;
       }
       if (!alternativas.some((a) => a.correta)) {
-        alert('Marque uma alternativa como correta.');
+        setSnackbar({ open: true, message: 'Por favor, marque uma alternativa como correta.', severity: 'error' });
         return;
       }
     }
     
     // Validação para questão numérica
     if (tipo === 'numerica' && !respostaNumerica) {
-      alert('Por favor, informe a resposta correta.');
+      setSnackbar({ open: true, message: 'Por favor, preencha a resposta correta para a questão numérica.', severity: 'error' });
       return;
     }
 
@@ -212,7 +200,7 @@ useEffect(() => {
         setUploadedFiles(recursos);
       } catch (e) {
         console.error('Erro ao enviar anexos:', e);
-        alert('Falha ao enviar arquivos. Tente novamente.');
+        setSnackbar({ open: true, message: 'Falha ao enviar arquivos. Tente novamente.', severity: 'error' });
         setLoading(false);
         return;
       }
@@ -286,13 +274,13 @@ useEffect(() => {
 
       const created = await res.json();
       console.log('Criada:', created);
-      alert('Questão salva com sucesso!');
+      setSnackbar({ open: true, message: 'Questão criada com sucesso!', severity: 'success' });
 
       // limpar formulário completo (inclui arquivos e uploads)
       handleClearForm();
     } catch (e) {
       console.error(e);
-      alert(e.message || 'Erro ao salvar questão.');
+      setSnackbar({ open: true, message: e.message || 'Erro ao salvar questão.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -807,6 +795,18 @@ useEffect(() => {
           </Button>
         </Box>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right'}}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%', fontSize: '1.1rem' }}>
+          {snackbar.message}
+        </Alert>
+        </Snackbar>
     </Box>
   );
 }

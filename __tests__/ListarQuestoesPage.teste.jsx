@@ -2,6 +2,8 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ListarQuestoesPage from '../src/app/questoes/page'; 
+import { ok } from 'assert';
+import { be } from 'zod/v4/locales';
 
 // Mock dos dados que a API retornaria
 const mockQuestoes = [
@@ -191,7 +193,7 @@ describe('ListarQuestoesPage', () => {
 
     // Verifica os resultados
     expect(fetch).toHaveBeenCalledWith('/api/questoes/1', { method: 'DELETE' });
-    expect(alert).toHaveBeenCalledWith('Questão excluída com sucesso');
+    expect(await screen.findByText('Questão excluída com sucesso')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByText('Qual é a capital do Brasil?')).not.toBeInTheDocument();
     });
@@ -270,7 +272,122 @@ describe('ListarQuestoesPage', () => {
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText('Editar Questão')).toBeInTheDocument();
     });
+    it('deve exibir um snackbar de sucesso e atualizar a questão na tela ao salvar', async () => {
+        const user = userEvent.setup();
+
+        // Mock de fetch
+        fetch.mockResolvedValueOnce({ok: true, json: async () => ({ tags: [] })  });
+        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length })  });
+
+        renderWithTheme(<ListarQuestoesPage />);
+
+        // Aguarda a questão ser renderizada
+        const questionText = 'Qual é a capital do Brasil?';
+        await screen.findByText(questionText);
+
+        const card = screen.getByText(questionText).closest('.MuiCard-root');
+        const editButton = within(card).getByRole('button', { name: /editar/i });
+        await user.click(editButton);
+
+        const dialog = await screen.findByRole('dialog');
+        const saveButton = within(dialog).getByRole('button', { name: /salvar simulado/i });
+        await user.click(saveButton);
+
+        expect(await screen.findByText('Questão atualizada com sucesso!')).toBeInTheDocument();
+
+        expect(screen.getByText('Qual é a capital do Brasil? (Editado)')).toBeInTheDocument();
+    });
+
   });
+
+  describe('Funcionalidade de Interacao da Lista', () => {
+
+    beforeEach(() => { //mock padrao
+        fetch.mockResolvedValue({ 
+          ok: true, 
+          json: async () => ({ 
+            items: mockQuestoes, 
+            total: mockQuestoes.length,
+            tags: ['geografia' , 'ciência'] }) 
+           });
+    });
+    
+    it('deve chamar a API com o parametro de busca ao digitar no campo de busca', async () => {
+        const user = userEvent.setup();
+        renderWithTheme(<ListarQuestoesPage />);
+
+        await screen.findByText('Questões Cadastradas');
+        const searchInput = screen.getByPlaceholderText(/buscar por enunciado/i);
+        await user.type(searchInput, 'Brasil');
+
+        waitFor(() => {
+          expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('/api/questoes?search=Brasil'));
+        } , { timeout: 3000 });
+    });
+    
+    it('deve chamar a API com os parâmetros de ordenação ao alterar o seletor', async () => {
+      const user = userEvent.setup();
+      renderWithTheme(<ListarQuestoesPage />);
+    
+      await screen.findByText(/Qual é a capital do Brasil\?/i);
+
+      // Altera o campo de ordenação
+      const sortSelect = screen.getByLabelText(/ordenar por/i);
+      await user.click(sortSelect);
+      await user.click(screen.getByRole('option', { name: /data de atualização/i }));
+    
+      await waitFor(() => {
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('sortBy=updatedAt'));
+      });
+
+      // Altera a ordem (asc/desc)
+      const orderButton = screen.getByTitle(/mais recentes primeiro/i);
+      await user.click(orderButton);
+    
+      await waitFor(() => {
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('sortOrder=asc'));
+      });
+    });
+    
+    it('deve chamar a API com o filtro de tag ao selecionar uma', async () => {
+      const user = userEvent.setup();
+      renderWithTheme(<ListarQuestoesPage />);
+
+      await screen.findByText(/Qual é a capital do Brasil\?/i);
+
+      // Clica no autocomplete para abrir as opções
+      const autocomplete = screen.getByLabelText(/filtrar por tags/i);
+      await user.click(autocomplete);
+
+      // Clica na opção 'geografia'
+      await user.click(await screen.findByText('geografia'));
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('tags=geografia'));
+      });
+    });
+
+    it('deve chamar a API com o parâmetro de página ao clicar na paginação', async () => {
+      const user = userEvent.setup();
+      // Mock para simular múltiplas páginas
+      fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ items: mockQuestoes, total: 20, tags: [] }), // 20 itens = 2 páginas
+      });
+    
+      renderWithTheme(<ListarQuestoesPage />);
+
+      // Procura o botão da página 2 e clica nele
+      const pageTwoButton = await screen.findAllByRole('button', { name: /go to page 2/i });
+      await user.click(pageTwoButton[0]);
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('page=2'));
+      });
+    });
+  });
+
+
 
   describe.skip('Funcionalidade de Exportação', () => {
     it('deve chamar a API de gerar prova e iniciar o download', async () => {
