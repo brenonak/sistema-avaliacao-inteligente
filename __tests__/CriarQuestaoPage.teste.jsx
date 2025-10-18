@@ -9,11 +9,9 @@ import CriarQuestaoPage from '../src/app/questoes/criar/page';
 // Mock para chamadas de API
 global.fetch = jest.fn();
 
-// Mock para a função alert
-jest.spyOn(window, 'alert').mockImplementation(() => {});
 
 const testTheme = createTheme({
-  // ... (sua configuração de tema)
+  // ... ( configuração de tema)
 });
 
 // Função de renderização customizada com os providers necessários
@@ -39,7 +37,7 @@ describe('CriarQuestaoPage', () => {
   beforeEach(() => {
     
     fetch.mockReset();
-    window.alert.mockClear();
+    
   });
 
   // --- TESTES BÁSICOS E DE MÚLTIPLA ESCOLHA ---
@@ -61,7 +59,7 @@ describe('CriarQuestaoPage', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.any(Object));
-      expect(window.alert).toHaveBeenCalledWith('Questão salva com sucesso!');
+      expect(screen.getByText('Questão criada com sucesso!')).toBeInTheDocument();
     });
   });
 
@@ -129,7 +127,8 @@ describe('CriarQuestaoPage', () => {
     await selectQuestionType(user, /Resposta Numérica/i);
     await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste numérico');
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-    expect(window.alert).toHaveBeenCalledWith('Por favor, informe a resposta correta.');
+    const expectedAlert = 'Por favor, preencha a resposta correta para a questão numérica.';
+    expect(await screen.findByText(expectedAlert)).toBeInTheDocument();
   });
   
   
@@ -149,7 +148,7 @@ describe('CriarQuestaoPage', () => {
     await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Erro interno do servidor');
+      expect(screen.getByText('Erro interno do servidor')).toBeInTheDocument();
     });
 
     consoleErrorSpy.mockRestore();
