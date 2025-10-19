@@ -245,6 +245,7 @@ const handleGenerateEnunciadoWithAI = async () => {
   };
 
 const handleGenerateDistractorsWithAI = async () => {
+    // Validação inicial (permanece a mesma)
     const alternativaCorreta = alternativas.find(a => a.correta);
     if (!enunciado.trim() || !alternativaCorreta || !alternativaCorreta.texto.trim()) {
         setSnackbar({ 
@@ -255,35 +256,45 @@ const handleGenerateDistractorsWithAI = async () => {
         return;
     }
 
+    // MODIFICAÇÃO 1: Contar quantos campos de alternativa estão vazios.
+    const quantidadeVazias = alternativas.filter(a => a.texto.trim() === '').length;
+
+    // Se não houver campos vazios, não há o que fazer.
+    if (quantidadeVazias === 0) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Não há alternativas vazias para preencher com a IA.', 
+            severity: 'info' 
+        });
+        return;
+    }
+
     setAiGeneratingDistractors(true);
     try {
+        // MODIFICAÇÃO 2: Enviar a contagem de vazias no payload.
         const payload = {
             enunciado: enunciado,
             alternativaCorreta: alternativaCorreta.texto,
-            tags: cleanTags, 
-            quantidade: 3 
+            tags: cleanTags,
+            quantidade: quantidadeVazias // Envia o número exato de distratores necessários
         };
         
+        console.log("Enviando payload para gerar distratores:", payload);
+
         const res = await fetch("/api/ai/gerar-alternativa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
-
+        
+        // Tratamento de erro robusto (com res.clone())
         if (!res.ok) {
             let errorMessage = `Erro HTTP ${res.status}`;
-            
-            // --- A SOLUÇÃO ESTÁ AQUI ---
-            // Criamos um clone da resposta. Usaremos um para tentar ler como JSON
-            // e o outro, se necessário, para ler como texto.
             const resClone = res.clone(); 
-
             try {
-                // Tentamos ler o clone 1 como JSON
                 const errorData = await res.json(); 
                 errorMessage = errorData.details || "A IA não conseguiu gerar os distratores.";
             } catch (e) {
-                // Se a leitura como JSON falhar, lemos o clone 2 como texto
                 const errorText = await resClone.text(); 
                 console.error("A resposta de erro não era JSON. Resposta do servidor:", errorText);
                 errorMessage = "Ocorreu um erro inesperado no servidor. Verifique o console.";
@@ -292,18 +303,29 @@ const handleGenerateDistractorsWithAI = async () => {
         }
 
         const data = await res.json();
+        const distratoresGerados = data.alternativasIncorretas;
 
-        if (data.alternativas && Array.isArray(data.alternativas)) {
-            const novasAlternativas = data.alternativas.map(texto => ({
-                texto: texto,
-                correta: texto === alternativaCorreta.texto 
-            }));
-            setAlternativas(novasAlternativas);
-        } else {
-             throw new Error("A resposta da IA não continha a lista de alternativas esperada.");
+        if (!distratoresGerados || !Array.isArray(distratoresGerados)) {
+            throw new Error("A resposta da IA não continha os dados esperados.");
         }
 
-        setSnackbar({ open: true, message: 'Distratores gerados com sucesso!', severity: 'success' });
+        // MODIFICAÇÃO 3: Lógica para preencher apenas os campos vazios.
+        let distractorIndex = 0;
+        const novasAlternativas = alternativas.map(alt => {
+            // Se a alternativa atual estiver vazia E ainda tivermos distratores gerados para usar...
+            if (alt.texto.trim() === '' && distractorIndex < distratoresGerados.length) {
+                // Preenche o texto com o próximo distrator da lista.
+                const textoDoDistrator = distratoresGerados[distractorIndex];
+                distractorIndex++;
+                return { ...alt, texto: textoDoDistrator };
+            }
+            // Caso contrário, mantém a alternativa como está (seja ela preenchida ou vazia, se acabaram os distratores).
+            return alt;
+        });
+        
+        setAlternativas(novasAlternativas);
+
+        setSnackbar({ open: true, message: 'Alternativas vazias preenchidas com sucesso!', severity: 'success' });
 
     } catch (err) {
         console.error("Erro ao gerar distratores:", err);
