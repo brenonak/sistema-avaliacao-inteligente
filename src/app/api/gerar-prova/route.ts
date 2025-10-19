@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
           \\begin{{center}}
               \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}} % O ARQUIVO DEVE ESTAR NA MESMA PASTA DO TEX (OU CARREGADO NO OVERLEAF)
           \\end{{center}}
+      8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
       **[JSON DA PROVA PARA CONVERSÃO]**
       \`\`\`json
       {prova_json}
