@@ -7,10 +7,12 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 
 
-export default function CardOptionsButton() {
+export default function CardOptionsButton({ cursoId, onDelete }) {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleMenu = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
   };
 
@@ -18,11 +20,42 @@ export default function CardOptionsButton() {
     setAnchorEl(null);
   };
 
+  const handleDelete = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleClose();
+    if (onDelete && cursoId) {
+      onDelete(cursoId);
+    }
+  };
+
+  const handleEdit = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleClose();
+    // Implementar edição futuramente
+    console.log('Editar curso:', cursoId);
+  };
+
+  // Se não há funções específicas, retorna apenas o ícone sem menu
+  if (!cursoId && !onDelete) {
+    return (
+      <IconButton
+        size="large"
+        aria-label="options"
+        color="inherit"
+        disabled
+      >
+        <MoreVertIcon />
+      </IconButton>
+    );
+  }
+
   return (
     <div>
       <IconButton
         size="large"
-        aria-label="account of current user"
+        aria-label="course options"
         aria-controls="menu-appbar"
         aria-haspopup="true"
         onClick={handleMenu}
@@ -46,8 +79,8 @@ export default function CardOptionsButton() {
         onClose={handleClose}
         disableScrollLock={true}
       >
-        <MenuItem onClick={handleClose}>Mover</MenuItem>
-        <MenuItem onClick={handleClose}>Excluir</MenuItem>
+        <MenuItem onClick={handleEdit}>Editar</MenuItem>
+        <MenuItem onClick={handleDelete}>Excluir</MenuItem>
       </Menu>
     </div>
   );

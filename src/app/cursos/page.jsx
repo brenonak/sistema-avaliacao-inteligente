@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ClassroomCard from '../components/ClassroomCard';
 import { 
   Box, 
   Typography, 
   Button, 
-  Card, 
-  CardContent, 
-  CardActions, 
   Grid, 
   CircularProgress, 
   IconButton,
@@ -176,196 +174,115 @@ export default function CursosPage() {
   };
 
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        p: 3,
-        backgroundColor: 'background.default'
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 1200, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-            Meus Cursos
-          </Typography>
-          
-          <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<Add />}
-              size="large"
-            >
-              Criar Novo Curso
-            </Button>
-          </Link>
-        </Box>
-
-        {/* Barra de pesquisa */}
-        <TextField
-          placeholder="Buscar cursos por nome ou descrição..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          fullWidth
-          sx={{ 
-            mb: 3,
-            maxWidth: 600,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2
-            }
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={handleClearSearch}
-                  edge="end"
-                  size="small"
-                  title="Limpar busca"
-                >
-                  <Clear />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
-
-      <Box sx={{ width: '100%', maxWidth: 1200 }}>
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
-            <CircularProgress />
-            <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
-          </Box>
-        )}
-        
-        {error && (
-          <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
-            {error}
-          </Typography>
-        )}
-        
-        {!loading && !error && cursos.length === 0 && (
-          <Box sx={{ textAlign: 'center', p: 4 }}>
-            <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-            <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-              {debouncedSearchQuery 
-                ? 'Nenhum curso encontrado com os critérios de busca.' 
-                : 'Nenhum curso cadastrado ainda.'}
+    <Grid container sx={{ backgroundColor: 'background.default' }}>
+      <Grid size={12}>
+        <Box sx={{
+              padding: 5,
+            }}>
+          {/* Header com título e botão de criar curso */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography gutterBottom variant="h4" component="div">
+              Meus Cursos
             </Typography>
             <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-              <Button variant="contained" color="primary" startIcon={<Add />}>
-                Criar Primeiro Curso
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<Add />}
+                size="large"
+              >
+                Criar Novo Curso
               </Button>
             </Link>
           </Box>
-        )}
 
-        <Grid container spacing={3}>
-          {cursos.map((curso) => (
-            <Grid item xs={12} sm={6} md={4} key={curso.id}>
-              <Card
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  backgroundColor: 'background.paper',
-                  '&:hover': {
-                    boxShadow: 6,
-                    transform: 'translateY(-4px)',
-                    transition: 'all 0.3s ease'
-                  }
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <School sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                      {curso.nome}
-                    </Typography>
-                  </Box>
-                  
-                  {curso.descricao && (
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'text.secondary', 
-                        mb: 2,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {curso.descricao}
-                    </Typography>
-                  )}
-
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                    <Chip 
-                      label={`${curso.questoes?.length || 0} questões`} 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined"
-                    />
-                    {curso.professor && (
-                      <Chip 
-                        label={curso.professor} 
-                        size="small" 
-                        color="default"
-                      />
-                    )}
-                  </Box>
-
-                  {curso.tags && curso.tags.length > 0 && (
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 1 }}>
-                      {curso.tags.slice(0, 3).map((tag, idx) => (
-                        <Chip 
-                          key={idx} 
-                          label={tag} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      ))}
-                      {curso.tags.length > 3 && (
-                        <Chip 
-                          label={`+${curso.tags.length - 3}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
-                  )}
-                </CardContent>
-
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Link href={`/cursos/${curso.id}`} passHref style={{ textDecoration: 'none', flexGrow: 1 }}>
-                    <Button size="small" variant="contained" color="primary" fullWidth>
-                      Ver Detalhes
-                    </Button>
-                  </Link>
+          {/* Barra de pesquisa */}
+          <TextField
+            placeholder="Buscar cursos por nome ou descrição..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            fullWidth
+            sx={{ 
+              mb: 3,
+              maxWidth: 600,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
                   <IconButton
+                    onClick={handleClearSearch}
+                    edge="end"
                     size="small"
-                    color="error"
-                    onClick={() => handleDelete(curso.id)}
-                    title="Excluir curso"
+                    title="Limpar busca"
                   >
-                    <Delete />
+                    <Clear />
                   </IconButton>
-                </CardActions>
-              </Card>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          {/* Estados de loading e erro */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+              <CircularProgress />
+              <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
+            </Box>
+          )}
+          
+          {error && (
+            <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+              {error}
+            </Typography>
+          )}
+          
+          {!loading && !error && cursos.length === 0 && (
+            <Box sx={{ textAlign: 'center', p: 4 }}>
+              <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                {debouncedSearchQuery 
+                  ? 'Nenhum curso encontrado com os critérios de busca.' 
+                  : 'Nenhum curso cadastrado ainda.'}
+              </Typography>
+              <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
+                <Button variant="contained" color="primary" startIcon={<Add />}>
+                  Criar Primeiro Curso
+                </Button>
+              </Link>
+            </Box>
+          )}
+
+          {/* Grid de cursos usando ClassroomCard similar à página inicial */}
+          {!loading && !error && cursos.length > 0 && (
+            <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
+                                                              backgroundColor: 'background.paper',
+                                                              padding: 3,
+                                                              borderRadius: 2
+                                                            }}>
+              {cursos.map((curso) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={curso.id}>
+                  <ClassroomCard 
+                    imgSrc="/blue_bg.jpg" 
+                    imgTitle="Course Background"
+                    classroomTitle={curso.nome}
+                    teacherName={curso.professor}
+                    cursoId={curso.id}
+                    onDelete={handleDelete}
+                  />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
-      </Box>
-    </Box>
+          )}
+        </Box>
+      </Grid>
+    </Grid>
   );
 }
