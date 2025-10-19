@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Box, 
   Typography, 
@@ -22,7 +23,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import { Delete } from '@mui/icons-material';
+import { Delete, ArrowBack } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
@@ -31,6 +32,10 @@ import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
 
 export default function CriarQuestaoPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const cursoId = searchParams.get('cursoId');
+  const cursoNome = searchParams.get('cursoNome');
   const [enunciado, setEnunciado] = useState('');
   const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([
@@ -439,9 +444,33 @@ useEffect(() => {
         backgroundColor: 'background.default'
       }}
     >
-      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
-        Criar Nova Questão
-      </Typography>
+      <Box sx={{ width: '100%', maxWidth: 600, position: 'relative', mb: 2 }}>
+        {cursoId && cursoNome && (
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={() => router.push(`/cursos/${cursoId}`)}
+            sx={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              mb: 2
+            }}
+          >
+            Voltar para {decodeURIComponent(cursoNome)}
+          </Button>
+        )}
+        
+        <Typography variant="h4" component="h1" sx={{ 
+          mb: 4, 
+          mt: cursoId && cursoNome ? 6 : 0, 
+          fontWeight: 'bold', 
+          color: 'text.primary', 
+          textAlign: 'center' 
+        }}>
+          Criar Nova Questão
+        </Typography>
+      </Box>
 
       <Paper 
         component="form" 
