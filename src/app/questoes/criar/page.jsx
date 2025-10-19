@@ -98,9 +98,53 @@ export default function CriarQuestaoPage() {
 
 
   // Handlers para funcionalidades de IA (futuramente implementar)
-  const handleGenerateEnunciadoWithAI = async () => {
-    showAIDevelopmentMessage();
-  };  
+const handleGenerateEnunciadoWithAI = async () => {
+    // 1. Validação de entrada: precisa de tags para ter contexto
+    if (cleanTags.length === 0) {
+      setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+        // 2. Montagem do payload (corpo da requisição)
+        const payload = {
+            tags: cleanTags,
+            // Envia as alternativas se o tipo for de múltipla escolha
+            alternativas: ['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) 
+                ? alternativas.map(a => a.texto).filter(Boolean) // Envia apenas as preenchidas
+                : [], // Envia array vazio para dissertativa/numérica
+            enunciadoInicial: enunciado, // O enunciado atual serve como rascunho
+        };
+        
+        console.log("Enviando payload para gerar enunciado:", payload);
+
+        // 3. Chamada à API
+        const res = await fetch("/api/ai/gerar-enunciado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.details || "A IA não conseguiu gerar um enunciado com os dados fornecidos.");
+        }
+
+        const data = await res.json();
+        
+        // 4. Atualização do estado com a resposta da IA
+        setEnunciado(data.enunciadoGerado);
+
+        setSnackbar({ open: true, message: 'Enunciado gerado com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar enunciado:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGenerating(false);
+    }
+  };
 
   const handleReviewSpellingWithAI = async () => {
     if (!enunciado.trim()) {
@@ -200,9 +244,74 @@ export default function CriarQuestaoPage() {
     }
   };
 
-  const handleGenerateDistractorsWithAI = async () => {
-    showAIDevelopmentMessage();
-  };
+const handleGenerateDistractorsWithAI = async () => {
+    const alternativaCorreta = alternativas.find(a => a.correta);
+    if (!enunciado.trim() || !alternativaCorreta || !alternativaCorreta.texto.trim()) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Para gerar distratores, preencha o enunciado e a alternativa correta.', 
+            severity: 'warning' 
+        });
+        return;
+    }
+
+    setAiGeneratingDistractors(true);
+    try {
+        const payload = {
+            enunciado: enunciado,
+            alternativaCorreta: alternativaCorreta.texto,
+            tags: cleanTags, 
+            quantidade: 3 
+        };
+        
+        const res = await fetch("/api/ai/gerar-alternativa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            let errorMessage = `Erro HTTP ${res.status}`;
+            
+            // --- A SOLUÇÃO ESTÁ AQUI ---
+            // Criamos um clone da resposta. Usaremos um para tentar ler como JSON
+            // e o outro, se necessário, para ler como texto.
+            const resClone = res.clone(); 
+
+            try {
+                // Tentamos ler o clone 1 como JSON
+                const errorData = await res.json(); 
+                errorMessage = errorData.details || "A IA não conseguiu gerar os distratores.";
+            } catch (e) {
+                // Se a leitura como JSON falhar, lemos o clone 2 como texto
+                const errorText = await resClone.text(); 
+                console.error("A resposta de erro não era JSON. Resposta do servidor:", errorText);
+                errorMessage = "Ocorreu um erro inesperado no servidor. Verifique o console.";
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await res.json();
+
+        if (data.alternativas && Array.isArray(data.alternativas)) {
+            const novasAlternativas = data.alternativas.map(texto => ({
+                texto: texto,
+                correta: texto === alternativaCorreta.texto 
+            }));
+            setAlternativas(novasAlternativas);
+        } else {
+             throw new Error("A resposta da IA não continha a lista de alternativas esperada.");
+        }
+
+        setSnackbar({ open: true, message: 'Distratores gerados com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar distratores:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGeneratingDistractors(false);
+    }
+};
   
   const cleanTags = useMemo(() => (
     tagsInput
