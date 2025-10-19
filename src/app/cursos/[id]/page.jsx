@@ -58,8 +58,6 @@ export default function CursoDetalhesPage() {
       id: '1',
       nome: 'Engenharia de Software',
       descricao: 'Curso abrangente sobre metodologias, ferramentas e práticas modernas de desenvolvimento de software.',
-      professor: 'Prof. Dr. Fabio Fagundes Silveira',
-      tags: ['software', 'programação', 'metodologia', 'engenharia'],
       questoes: [
         {
           id: 'q1',
@@ -87,8 +85,6 @@ export default function CursoDetalhesPage() {
       id: '2',
       nome: 'Estruturas de Dados',
       descricao: 'Estudo das principais estruturas de dados e algoritmos fundamentais para a ciência da computação.',
-      professor: 'Prof. Dr. Ana Maria Santos',
-      tags: ['algoritmos', 'estruturas', 'programação', 'complexidade'],
       questoes: [
         {
           id: 'q3',
@@ -129,8 +125,6 @@ export default function CursoDetalhesPage() {
       id: '3',
       nome: 'Banco de Dados',
       descricao: 'Fundamentos de sistemas de gerenciamento de banco de dados, modelagem e linguagem SQL.',
-      professor: 'Prof. Dr. Carlos Roberto Lima',
-      tags: ['sql', 'modelagem', 'banco', 'dados'],
       questoes: [
         {
           id: 'q6',
@@ -151,8 +145,6 @@ export default function CursoDetalhesPage() {
       id: '4',
       nome: 'Sistemas Operacionais',
       descricao: 'Conceitos fundamentais de sistemas operacionais, processos, threads, gerenciamento de memória e sistemas de arquivos.',
-      professor: 'Prof. Dr. Roberto Silva Mendes',
-      tags: ['so', 'processos', 'memoria', 'sistemas'],
       questoes: [],
       createdAt: new Date('2024-10-05')
     }
@@ -332,11 +324,6 @@ export default function CursoDetalhesPage() {
               <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                 {curso.nome}
               </Typography>
-              {curso.professor && (
-                <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                  Professor: {curso.professor}
-                </Typography>
-              )}
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -354,14 +341,6 @@ export default function CursoDetalhesPage() {
             <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
               {curso.descricao}
             </Typography>
-          )}
-
-          {curso.tags && curso.tags.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {curso.tags.map((tag, idx) => (
-                <Chip key={idx} label={tag} size="small" variant="outlined" />
-              ))}
-            </Box>
           )}
         </Paper>
       </Box>

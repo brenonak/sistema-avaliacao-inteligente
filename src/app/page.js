@@ -24,7 +24,7 @@ export default function Home() {
                 imgSrc="/blue_bg.jpg" 
                 imgTitle="Blue Background"
                 classroomTitle="Engenharia de Software"
-                teacherName="Fabio Fagundes Silveira"
+                teacherName=""
               />
             </Grid>
             <Grid size={4}>
@@ -32,7 +32,7 @@ export default function Home() {
                 imgSrc="/blue_bg.jpg" 
                 imgTitle="Blue Background"
                 classroomTitle="Engenharia de Software"
-                teacherName="Fabio Fagundes Silveira"
+                teacherName=""
               />
             </Grid>
             <Grid size={4}>
@@ -40,7 +40,7 @@ export default function Home() {
                 imgSrc="/blue_bg.jpg" 
                 imgTitle="Blue Background"
                 classroomTitle="Engenharia de Software"
-                teacherName="Fabio Fagundes Silveira"
+                teacherName=""
               />
             </Grid>
             <Grid size={4}>
@@ -48,7 +48,7 @@ export default function Home() {
                 imgSrc="/blue_bg.jpg" 
                 imgTitle="Blue Background"
                 classroomTitle="Engenharia de Software"
-                teacherName="Fabio Fagundes Silveira"
+                teacherName=""
               />
             </Grid>
           </Grid>

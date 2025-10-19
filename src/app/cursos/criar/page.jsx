@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Box, 
   Typography, 
   TextField, 
   Button, 
-  Paper,
-  Chip
+  Paper
 } from '@mui/material';
 import { Save, Cancel } from '@mui/icons-material';
 
@@ -16,17 +15,7 @@ export default function CriarCursoPage() {
   const router = useRouter();
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [professor, setProfessor] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const cleanTags = useMemo(() => (
-    tagsInput
-      .split(',')
-      .map(s => s.trim().toLowerCase())
-      .filter(Boolean)
-      .slice(0, 10)
-  ), [tagsInput]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -39,8 +28,6 @@ export default function CriarCursoPage() {
     const payload = {
       nome: nome.trim(),
       descricao: descricao.trim(),
-      professor: professor.trim(),
-      tags: cleanTags,
       questoes: [], // Inicialmente vazio, questões serão adicionadas depois
     };
 
@@ -64,7 +51,7 @@ export default function CriarCursoPage() {
   };
 
   const handleCancel = () => {
-    if (nome.trim() || descricao.trim() || professor.trim() || tagsInput.trim()) {
+    if (nome.trim() || descricao.trim()) {
       if (confirm('Tem certeza que deseja cancelar? As informações não serão salvas.')) {
         router.push('/cursos');
       }
@@ -122,42 +109,6 @@ export default function CriarCursoPage() {
           sx={{ mb: 3 }}
           helperText="Descrição opcional do curso"
         />
-
-        {/* Professor */}
-        <TextField
-          id="professor"
-          label="Nome do Professor"
-          value={professor}
-          onChange={(e) => setProfessor(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          helperText="Nome do professor responsável"
-        />
-
-        {/* Tags */}
-        <TextField
-          id="tags"
-          label="Tags (separadas por vírgula)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          helperText="Adicione até 10 tags separadas por vírgula"
-        />
-        
-        {cleanTags.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-            {cleanTags.map((tag, index) => (
-              <Chip 
-                key={index} 
-                label={tag} 
-                color="primary" 
-                variant="outlined" 
-                size="small"
-              />
-            ))}
-          </Box>
-        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>

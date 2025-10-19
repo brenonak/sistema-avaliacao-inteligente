@@ -11,8 +11,7 @@ import {
   CircularProgress, 
   IconButton,
   TextField,
-  InputAdornment,
-  Chip
+  InputAdornment
 } from '@mui/material';
 import { Add, Edit, Delete, Search, Clear, School } from '@mui/icons-material';
 
@@ -37,8 +36,6 @@ export default function CursosPage() {
       id: '1',
       nome: 'Engenharia de Software',
       descricao: 'Curso abrangente sobre metodologias, ferramentas e práticas modernas de desenvolvimento de software.',
-      professor: 'Prof. Dr. Fabio Fagundes Silveira',
-      tags: ['software', 'programação', 'metodologia', 'engenharia'],
       questoes: [
         {
           id: 'q1',
@@ -66,8 +63,6 @@ export default function CursosPage() {
       id: '2',
       nome: 'Estruturas de Dados',
       descricao: 'Estudo das principais estruturas de dados e algoritmos fundamentais para a ciência da computação.',
-      professor: 'Prof. Dr. Ana Maria Santos',
-      tags: ['algoritmos', 'estruturas', 'programação', 'complexidade'],
       questoes: [
         {
           id: 'q3',
@@ -108,8 +103,6 @@ export default function CursosPage() {
       id: '3',
       nome: 'Banco de Dados',
       descricao: 'Fundamentos de sistemas de gerenciamento de banco de dados, modelagem e linguagem SQL.',
-      professor: 'Prof. Dr. Carlos Roberto Lima',
-      tags: ['sql', 'modelagem', 'banco', 'dados'],
       questoes: [
         {
           id: 'q6',
@@ -130,8 +123,6 @@ export default function CursosPage() {
       id: '4',
       nome: 'Sistemas Operacionais',
       descricao: 'Conceitos fundamentais de sistemas operacionais, processos, threads, gerenciamento de memória e sistemas de arquivos.',
-      professor: 'Prof. Dr. Roberto Silva Mendes',
-      tags: ['so', 'processos', 'memoria', 'sistemas'],
       questoes: [],
       createdAt: new Date('2024-10-05')
     }
@@ -145,12 +136,7 @@ export default function CursosPage() {
       const cursosFiltrados = cursosExemplo.filter(curso => {
         if (!debouncedSearchQuery) return true;
         const searchLower = debouncedSearchQuery.toLowerCase();
-        return (
-          curso.nome.toLowerCase().includes(searchLower) ||
-          curso.descricao.toLowerCase().includes(searchLower) ||
-          curso.professor.toLowerCase().includes(searchLower) ||
-          curso.tags.some(tag => tag.toLowerCase().includes(searchLower))
-        );
+        return curso.nome.toLowerCase().includes(searchLower);
       });
       setCursos(cursosFiltrados);
       setLoading(false);
@@ -198,7 +184,7 @@ export default function CursosPage() {
 
           {/* Barra de pesquisa */}
           <TextField
-            placeholder="Buscar cursos por nome ou descrição..."
+            placeholder="Buscar cursos por nome..."
             value={searchQuery}
             onChange={handleSearchChange}
             fullWidth
@@ -273,7 +259,7 @@ export default function CursosPage() {
                     imgSrc="/blue_bg.jpg" 
                     imgTitle="Course Background"
                     classroomTitle={curso.nome}
-                    teacherName={curso.professor}
+                    teacherName=""
                     cursoId={curso.id}
                     onDelete={handleDelete}
                   />

@@ -32,9 +32,11 @@ export default function ClassroomCard(props) {
             <Typography gutterBottom variant="h5" component="div">
               {classroomTitle}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {teacherName}
-            </Typography>
+            {teacherName && (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {teacherName}
+              </Typography>
+            )}
           </CardContent>
         </CardActionArea>
       </Link>
