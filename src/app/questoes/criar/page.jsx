@@ -103,7 +103,101 @@ export default function CriarQuestaoPage() {
   };  
 
   const handleReviewSpellingWithAI = async () => {
-    showAIDevelopmentMessage();
+    if (!enunciado.trim()) {
+      setSnackbar({ open: true, message: 'Por favor, preencha o enunciado da questão.', severity: 'error' });
+      return;
+    }
+
+    setAiReviewing(true);
+
+    try {
+      // Monta o payload dependendo do tipo de questão
+      const payload = { enunciado };
+
+      // Para cada tipo de questão, envia apenas os TEXTOS
+      if (tipo === 'alternativa') {
+        payload.alternativas = alternativas.map(a => a.texto);
+      }
+      
+      if (tipo === 'afirmacoes') {
+        payload.afirmacoes = afirmacoes.map(a => a.texto);
+      }
+      
+      if (tipo === 'proposicoes') {
+        payload.proposicoes = proposicoes.map(p => p.texto);
+      }
+      
+      if (tipo === 'dissertativa') {
+        payload.gabarito = gabarito;
+      }
+
+      console.log('Enviando payload:', payload);
+
+      // Chamada ao endpoint
+      const res = await fetch("/api/ai/revisar-questao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log('Resposta recebida:', data);
+
+      // Atualiza o enunciado se foi revisado
+      if (data.enunciadoRevisado) {
+        setEnunciado(data.enunciadoRevisado);
+      }
+
+      // Atualiza alternativas (múltipla escolha)
+      if (tipo === 'alternativa' && data.alternativasRevisadas) {
+        setAlternativas(alternativas.map((a, i) => ({
+          ...a,
+          texto: data.alternativasRevisadas[i] || a.texto,
+        })));
+      }
+
+      // Atualiza afirmações (V/F)
+      if (tipo === 'afirmacoes' && data.afirmacoesRevisadas) {
+        setAfirmacoes(afirmacoes.map((a, i) => ({
+          ...a,
+          texto: data.afirmacoesRevisadas[i] || a.texto,
+        })));
+      }
+
+      // Atualiza proposições (somatório)
+      if (tipo === 'proposicoes' && data.proposicoesRevisadas) {
+        setProposicoes(proposicoes.map((p, i) => ({
+          ...p,
+          texto: data.proposicoesRevisadas[i] || p.texto,
+        })));
+      }
+
+      // Atualiza gabarito (dissertativa)
+      if (tipo === 'dissertativa' && data.gabaritoRevisado) {
+        setGabarito(data.gabaritoRevisado);
+      }
+
+      setSnackbar({ 
+        open: true, 
+        message: 'Questão revisada com sucesso pela IA!', 
+        severity: 'success' 
+      });
+
+    } catch (err) {
+      console.error('Erro na revisão:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.message || 'Erro ao revisar questão com IA.', 
+        severity: 'error' 
+      });
+    } finally {
+      setAiReviewing(false);
+    }
   };
 
   const handleGenerateDistractorsWithAI = async () => {
