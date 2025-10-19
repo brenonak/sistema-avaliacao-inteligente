@@ -9,6 +9,23 @@ import CriarQuestaoPage from '../src/app/questoes/criar/page';
 // Mock para chamadas de API
 global.fetch = jest.fn();
 
+// Mock para Next.js navigation
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn(),
+  }),
+  usePathname: () => '',
+  useServerInsertedHTML: jest.fn(),
+}));
+
 
 const testTheme = createTheme({
   // ... ( configuração de tema)
@@ -17,9 +34,7 @@ const testTheme = createTheme({
 // Função de renderização customizada com os providers necessários
 const renderWithTheme = (component) => {
   return render(
-    <AppRouterCacheProvider>
-      <ThemeProvider theme={testTheme}>{component}</ThemeProvider>
-    </AppRouterCacheProvider>
+    <ThemeProvider theme={testTheme}>{component}</ThemeProvider>
   );
 };
 
