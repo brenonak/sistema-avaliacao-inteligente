@@ -103,9 +103,53 @@ export default function CriarQuestaoPage() {
 
 
   // Handlers para funcionalidades de IA (futuramente implementar)
-  const handleGenerateEnunciadoWithAI = async () => {
-    showAIDevelopmentMessage();
-  };  
+const handleGenerateEnunciadoWithAI = async () => {
+    // 1. Validação de entrada: precisa de tags para ter contexto
+    if (cleanTags.length === 0) {
+      setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+        // 2. Montagem do payload (corpo da requisição)
+        const payload = {
+            tags: cleanTags,
+            // Envia as alternativas se o tipo for de múltipla escolha
+            alternativas: ['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) 
+                ? alternativas.map(a => a.texto).filter(Boolean) // Envia apenas as preenchidas
+                : [], // Envia array vazio para dissertativa/numérica
+            enunciadoInicial: enunciado, // O enunciado atual serve como rascunho
+        };
+        
+        console.log("Enviando payload para gerar enunciado:", payload);
+
+        // 3. Chamada à API
+        const res = await fetch("/api/ai/gerar-enunciado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.details || "A IA não conseguiu gerar um enunciado com os dados fornecidos.");
+        }
+
+        const data = await res.json();
+        
+        // 4. Atualização do estado com a resposta da IA
+        setEnunciado(data.enunciadoGerado);
+
+        setSnackbar({ open: true, message: 'Enunciado gerado com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar enunciado:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGenerating(false);
+    }
+  };
 
   const handleReviewSpellingWithAI = async () => {
     if (!enunciado.trim()) {
@@ -205,9 +249,96 @@ export default function CriarQuestaoPage() {
     }
   };
 
-  const handleGenerateDistractorsWithAI = async () => {
-    showAIDevelopmentMessage();
-  };
+const handleGenerateDistractorsWithAI = async () => {
+    // Validação inicial (permanece a mesma)
+    const alternativaCorreta = alternativas.find(a => a.correta);
+    if (!enunciado.trim() || !alternativaCorreta || !alternativaCorreta.texto.trim()) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Para gerar distratores, preencha o enunciado e a alternativa correta.', 
+            severity: 'warning' 
+        });
+        return;
+    }
+
+    // MODIFICAÇÃO 1: Contar quantos campos de alternativa estão vazios.
+    const quantidadeVazias = alternativas.filter(a => a.texto.trim() === '').length;
+
+    // Se não houver campos vazios, não há o que fazer.
+    if (quantidadeVazias === 0) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Não há alternativas vazias para preencher com a IA.', 
+            severity: 'info' 
+        });
+        return;
+    }
+
+    setAiGeneratingDistractors(true);
+    try {
+        // MODIFICAÇÃO 2: Enviar a contagem de vazias no payload.
+        const payload = {
+            enunciado: enunciado,
+            alternativaCorreta: alternativaCorreta.texto,
+            tags: cleanTags,
+            quantidade: quantidadeVazias // Envia o número exato de distratores necessários
+        };
+        
+        console.log("Enviando payload para gerar distratores:", payload);
+
+        const res = await fetch("/api/ai/gerar-alternativa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        
+        // Tratamento de erro robusto (com res.clone())
+        if (!res.ok) {
+            let errorMessage = `Erro HTTP ${res.status}`;
+            const resClone = res.clone(); 
+            try {
+                const errorData = await res.json(); 
+                errorMessage = errorData.details || "A IA não conseguiu gerar os distratores.";
+            } catch (e) {
+                const errorText = await resClone.text(); 
+                console.error("A resposta de erro não era JSON. Resposta do servidor:", errorText);
+                errorMessage = "Ocorreu um erro inesperado no servidor. Verifique o console.";
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await res.json();
+        const distratoresGerados = data.alternativasIncorretas;
+
+        if (!distratoresGerados || !Array.isArray(distratoresGerados)) {
+            throw new Error("A resposta da IA não continha os dados esperados.");
+        }
+
+        // MODIFICAÇÃO 3: Lógica para preencher apenas os campos vazios.
+        let distractorIndex = 0;
+        const novasAlternativas = alternativas.map(alt => {
+            // Se a alternativa atual estiver vazia E ainda tivermos distratores gerados para usar...
+            if (alt.texto.trim() === '' && distractorIndex < distratoresGerados.length) {
+                // Preenche o texto com o próximo distrator da lista.
+                const textoDoDistrator = distratoresGerados[distractorIndex];
+                distractorIndex++;
+                return { ...alt, texto: textoDoDistrator };
+            }
+            // Caso contrário, mantém a alternativa como está (seja ela preenchida ou vazia, se acabaram os distratores).
+            return alt;
+        });
+        
+        setAlternativas(novasAlternativas);
+
+        setSnackbar({ open: true, message: 'Alternativas vazias preenchidas com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar distratores:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGeneratingDistractors(false);
+    }
+};
   
   const cleanTags = useMemo(() => (
     tagsInput
