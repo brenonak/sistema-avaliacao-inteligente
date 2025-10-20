@@ -1,6 +1,6 @@
 
 import React from 'react';
-import Header from '../components/Header'; // Importando o Header de volta
+import Header from '../../components/Header'; // Importando o Header de volta
 import Box from '@mui/material/Box';
 
 export default function DashboardLayout({ children }) {

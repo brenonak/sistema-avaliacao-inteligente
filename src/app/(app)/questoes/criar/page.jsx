@@ -26,8 +26,8 @@ import {
 import { Delete, ArrowBack } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
-import FileItem from '../../components/FileItem';
-import AIButton from '../../components/AIButton';
+import FileItem from '../../../components/FileItem';
+import AIButton from '../../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
 

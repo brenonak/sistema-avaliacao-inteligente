@@ -3,7 +3,7 @@
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import ListarQuestoesPage from '../src/app/questoes/page';
+import ListarQuestoesPage from '../src/app/(app)/questoes/page';
 import { ok } from 'assert';
 import { be } from 'zod/v4/locales';
 

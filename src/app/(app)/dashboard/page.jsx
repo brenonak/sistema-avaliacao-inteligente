@@ -1,8 +1,8 @@
-import ClassroomCard from '../components/ClassroomCard';   
+import ClassroomCard from '../../components/ClassroomCard';   
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import Calendar from '../components/Calendar';
+import Calendar from '../../components/Calendar';
 
 export default function DashboardPage() { 
   return (
