@@ -68,8 +68,6 @@ export default function CriarQuestaoPage() {
   const [arquivos, setArquivos] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
 
-  const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
@@ -91,11 +89,6 @@ export default function CriarQuestaoPage() {
     }
     setSnackbar({ ...snackbar, open: false });
   }
-
-
-  const handleSetActiveImage = (file) => {
-    setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
-  };
 
   const showAIDevelopmentMessage = () => {
     setSnackbar({ open: true, message: 'Funcionalidade de IA em desenvolvimento.', severity: 'info' });
@@ -387,7 +380,6 @@ useEffect(() => {
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
     setProposicoes([{ texto: '', correta: false }]);
-    setActiveImage(null);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -971,7 +963,7 @@ useEffect(() => {
           </Box>
         )}
 
-        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
+        {/* BOTÃO DE 'ADICIONAR IMAGEM' */}
         <Button
           component="label"
           role={undefined}
@@ -980,9 +972,10 @@ useEffect(() => {
           startIcon={<CloudUploadIcon />}
           mb={2}
         >
-          Adicionar arquivo
+          Adicionar imagem
           <VisuallyHiddenInput
             type="file"
+            accept="image/*"
             onChange={handleFileChange}
             multiple
           />
@@ -995,10 +988,7 @@ useEffect(() => {
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
-              if (activeImage === f) setActiveImage(null);
             }}
-            isActiveImage={activeImage === file}
-            onSetActiveImage={handleSetActiveImage}
           />
         ))}
 
