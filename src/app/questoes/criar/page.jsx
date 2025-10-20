@@ -551,11 +551,23 @@ useEffect(() => {
   };
 
   // manipula seleção de arquivos (sem upload imediato)
-  const handleFileChange = (event) => {
-    const files = Array.from(event.target.files || []);
+  const handleFileChange = (eventOrFiles) => {
+    let files = [];
+
+    // Se chamado por evento de input file
+    if (eventOrFiles?.target?.files) {
+      files = Array.from(eventOrFiles.target.files);
+    } else if (Array.isArray(eventOrFiles)) {
+      // Se chamado com o banco de imagens frequentes
+      files = eventOrFiles;
+    }
+
     if (files.length === 0) return;
+
     setArquivos((prev) => [...prev, ...files]);
   };
+
+
 
   return (
     <Box 
@@ -964,25 +976,10 @@ useEffect(() => {
           </Box>
         )}
 
-        {/* BOTÃO DE 'ADICIONAR IMAGEM' */}
-        <Button
-          component="label"
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-          mb={2}
-        >
-          Adicionar imagem
-          <VisuallyHiddenInput
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            multiple
-          />
-        </Button>
-
-        <ImageUploadSection />
+        {/* BOTÕES DE UPLOAD DE ARQUIVO */}
+        <ImageUploadSection 
+          handleFileChange={handleFileChange}
+        />
 
         {/* Lista de arquivos adicionados */}
         {arquivos.map((file, index) => (
