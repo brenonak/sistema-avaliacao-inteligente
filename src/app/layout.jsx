@@ -1,7 +1,7 @@
 "use client";
 
 // Removido Geist para padronizar em Roboto
-import Header from "./components/Header";
+
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
@@ -113,7 +113,6 @@ export default function RootLayout({ children }) {
       <body className="antialiased">
         <AppRouterCacheProvider>
           <ThemeProvider theme={customTheme}>
-            <Header />
             {children}
             <Analytics /> {/* Adicionando o componente Analytics antes de fechar o body */}
           </ThemeProvider>
@@ -122,3 +121,15 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
+return (
+    <html lang="pt-br" className={roboto.variable}>
+      <body className="antialiased">
+        <AppRouterCacheProvider>
+          <ThemeProvider theme={customTheme}>
+            {children} {/* <--- Agora só o children */}
+          </ThemeProvider>
+        </AppRouterCacheProvider>
+      </body>
+    </html>
+  );
