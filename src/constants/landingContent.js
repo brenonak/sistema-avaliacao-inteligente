@@ -13,7 +13,8 @@ export const landingContent = {
     },
   },
   hero: {
-    title: "Transforme o ensino com a criação de atividades impulsionadas pela IA",
+    titlePrefix: "Transforme o ensino com a criação de atividades ",
+    titleHighlight: "impulsionadas pela IA",
     subtitle:
       "Crie, gerencie e analise atividades acadêmicas com o poder da Inteligência Artificial. Deixe o trabalho repetitivo com a gente e foque no que realmente importa: ensinar.",
     ctaButton: "Começar a usar gratuitamente",
