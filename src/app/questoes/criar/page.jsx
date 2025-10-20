@@ -30,6 +30,7 @@ import FileItem from '../../components/FileItem';
 import AIButton from '../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
+import ImageUploadSection from '../../components/ImageUploadSection';
 
 export default function CriarQuestaoPage() {
   const searchParams = useSearchParams();
@@ -980,6 +981,8 @@ useEffect(() => {
             multiple
           />
         </Button>
+
+        <ImageUploadSection />
 
         {/* Lista de arquivos adicionados */}
         {arquivos.map((file, index) => (
