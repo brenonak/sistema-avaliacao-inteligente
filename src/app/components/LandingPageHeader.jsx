@@ -1,9 +1,9 @@
-"use client"; 
+"use client";
 
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Link, Container } from '@mui/material';
-
 import { landingContent } from '../../constants/landingContent'; 
+import NextLink from 'next/link'; // Importe o Link do Next.js
 
 const LandingPageHeader = () => {
   const { logoText, links, buttons } = landingContent.header;
@@ -23,31 +23,58 @@ const LandingPageHeader = () => {
     >
       <Container maxWidth="lg">
         <Toolbar disableGutters>
-          {/* Logo e Links de Navegação (Esquerda) */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+          <Button
+            component={NextLink} 
+            href="/"
+            disableRipple
+            sx={{
+              color: 'text.primary',
+              display: 'flex',
+              alignItems: 'center',
+              textTransform: 'none', 
+              '&:hover': { backgroundColor: 'transparent' }, 
+            }}
+          >
+            {/* O ÍCONE DO LOGO */}
+            <Box
+              component="img"
+              src="/professor.svg" 
+              alt="Professor Icon"
+              sx={{
+                height: 64,
+                width: 64,
+                mr: 1.5,
+              }}
+            />
+            {/* O TEXTO DO LOGO */}
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ fontWeight: 'bold' }}
+            >
               {logoText}
             </Typography>
-            
-            <Box sx={{ ml: 4, display: { xs: 'none', md: 'flex' }, gap: 3 }}>
-              {links.map((link) => (
-                <Link
-                  key={link.title}
-                  href={link.href}
-                  variant="body1"
-                  underline="none"
-                  color="text.primary"
-                  sx={{
-                    fontWeight: 500,
-                    '&:hover': {
-                      color: 'primary.main',
-                    },
-                  }}
-                >
-                  {link.title}
-                </Link>
-              ))}
-            </Box>
+          </Button>
+
+          {/* Links de Navegação (Escondidos em telas pequenas) */}
+          <Box sx={{ ml: 4, display: { xs: 'none', md: 'flex' }, gap: 3 }}>
+            {links.map((link) => (
+              <Link
+                key={link.title}
+                href={link.href}
+                variant="body1"
+                underline="none"
+                color="text.primary"
+                sx={{
+                  fontWeight: 500,
+                  '&:hover': {
+                    color: 'primary.main',
+                  },
+                }}
+              >
+                {link.title}
+              </Link>
+            ))}
           </Box>
 
           {/* Espaçador */}

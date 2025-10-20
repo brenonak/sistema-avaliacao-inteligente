@@ -1,5 +1,6 @@
 import React from 'react';
 import Box from '@mui/material/Box';
+import { Container } from '@mui/material';
 
 import LandingPageHeader from './components/LandingPageHeader'; 
 // import Footer from './components/Footer'; // Ainda não criado
@@ -20,10 +21,12 @@ export default function LandingPage() {
     <Box component="main" sx={{ display: 'flex', flexDirection: 'column' }}>
       <LandingPageHeader />
 
-      <HeroSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <FinalCtaSection />
+      <Container maxWidth="lg">
+        <HeroSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <FinalCtaSection />
+      </Container>
 
       {/* <Footer /> */}
     </Box>
