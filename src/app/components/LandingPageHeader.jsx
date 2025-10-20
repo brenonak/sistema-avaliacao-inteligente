@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { AppBar, Toolbar, Box, Typography, Button, Link, Container } from '@mui/material';
+import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken } from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
 import NextLink from 'next/link'; // Importe o Link do Next.js
 
@@ -91,11 +91,15 @@ const LandingPageHeader = () => {
             </Button>
             <Button
               variant="contained"
-              color="primary"
               disableElevation
               sx={{ 
                 textTransform: 'none',
                 fontWeight: 600,
+                backgroundColor: 'accent.dark',
+                color: 'white', 
+                '&:hover': {
+                  backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.35),
+                },
               }}
             >
               {buttons.signup}

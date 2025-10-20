@@ -1,5 +1,3 @@
-// ATUALIZADO (CORREÇÃO FINAL DA IMAGEM INTEIRA): src/app/components/HeroSection.jsx
-
 "use client";
 
 import React from 'react';
@@ -17,13 +15,12 @@ export default function HeroSection() {
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center', // Isso vai centralizar verticalmente o texto com a imagem (que é alta)
-          gap: { xs: 6, md: 8 }, // Aumenta o espaço entre eles
+          alignItems: 'center', 
+          gap: { xs: 6, md: 8 }, 
         }}
       >
         
         {/* === Coluna da Esquerda (Texto) === */}
-        {/* Usamos flex: 1 para ocupar metade do espaço */}
         <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
           
           <Typography
@@ -65,10 +62,10 @@ export default function HeroSection() {
               fontWeight: 600,
               px: 4,
               py: 1.5,
-              backgroundColor: (theme) => darken(theme.palette.accent.main, 0.3),
+              backgroundColor: 'accent.dark',
               color: 'white', 
               '&:hover': {
-                backgroundColor: (theme) => darken(theme.palette.accent.main, 0.45),
+                backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
               },
             }}
           >
@@ -77,35 +74,30 @@ export default function HeroSection() {
         </Box>
 
         {/* === Coluna da Direita (Imagem) === */}
-        {/* Usamos flex: 1 para ocupar a outra metade */}
         <Box sx={{ flex: 1, width: '100%' }}>
           
-          {/* 1. Este Box externo SÓ precisa de 'position: relative' */}
+
           <Box
             sx={{
               position: 'relative', 
               width: '100%',
-              // A ALTURA FIXA FOI REMOVIDA DAQUI
+
             }}
           >
-            {/* 2. O <Image> agora controla todo o estilo visual */}
             <Image
-              src="/LandingPageImage.png" // Usando o nome do arquivo que você mandou
+              src="/LandingPageImage.png" 
               alt="Dashboard da Plataforma Inteligente"
               
-              // Use a proporção real (a imagem é 900x900)
               width={900} 
               height={900}
 
               style={{
-                width: '100%',   // Fará a imagem ser responsiva
-                height: 'auto',  // ESSA É A CORREÇÃO: A altura se ajusta à largura
+                width: '100%',   
+                height: 'auto',  
                 
-                // Estilos do v0
-                borderRadius: '16px', // Um bom arredondamento
+                borderRadius: '16px',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                 
-                // Não precisamos mais de objectFit ou objectPosition
               }}
               priority
             />

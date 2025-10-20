@@ -48,6 +48,7 @@ let customTheme = createTheme({
 
     accent: {
       main: '#1e88e5', 
+      dark: '#0D47A1',
       contrastText: '#ffffff',
     },
     
