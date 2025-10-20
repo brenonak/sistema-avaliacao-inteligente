@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Box, 
   Typography, 
@@ -17,15 +18,24 @@ import {
   Paper,
   ToggleButton,
   ToggleButtonGroup,
-  Chip
+  Checkbox,
+  Chip,
+  Snackbar,
+  Alert
 } from '@mui/material';
-import { Delete } from '@mui/icons-material';
+import { Delete, ArrowBack } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../components/FileItem';
+import AIButton from '../../components/AIButton';
 import { upload } from "@vercel/blob/client";
+import { set } from 'zod';
 
 export default function CriarQuestaoPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const cursoId = searchParams.get('cursoId');
+  const cursoNome = searchParams.get('cursoNome');
   const [enunciado, setEnunciado] = useState('');
   const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([
@@ -34,6 +44,12 @@ export default function CriarQuestaoPage() {
   ]);
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFormFilled, setIsFormFilled] = useState(false);
+  
+  // Estados para ações de IA
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiReviewing, setAiReviewing] = useState(false);
+  const [aiGeneratingDistractors, setAiGeneratingDistractors] = useState(false);
 
   const [afirmacoes, setAfirmacoes] = useState([
   { texto: '', correta: true }, // Começa com uma afirmação, marcada como V por padrão
@@ -42,11 +58,287 @@ export default function CriarQuestaoPage() {
   const [respostaNumerica, setRespostaNumerica] = useState('');
   const [margemErro, setMargemErro] = useState('');
 
+  const [proposicoes, setProposicoes] = useState([
+    { texto: '', correta: false }, // Começa com uma proposição
+  ]);
+
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
   const [arquivos, setArquivos] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
+
+  const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
+
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  useEffect(() => {
+    const isAnyFieldFilled =
+      enunciado.trim() !== '' ||
+      tagsInput.trim() !== '' ||
+      (tipo === 'alternativa' && alternativas.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'afirmacoes' && afirmacoes.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'numerica' && (respostaNumerica.trim() !== '' || margemErro.trim() !== '')) ||
+      (tipo === 'proposicoes' && proposicoes.some(p => p.texto.trim() !== '')) ||
+      (tipo === 'dissertativa' && (gabarito.trim() !== '' || palavrasChave.trim() !== ''));
+
+    setIsFormFilled(isAnyFieldFilled);
+  }, [enunciado, tagsInput, tipo, alternativas, afirmacoes, respostaNumerica, margemErro, proposicoes, gabarito, palavrasChave]);
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  }
+
+
+  const handleSetActiveImage = (file) => {
+    setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
+  };
+
+  const showAIDevelopmentMessage = () => {
+    setSnackbar({ open: true, message: 'Funcionalidade de IA em desenvolvimento.', severity: 'info' });
+  }
+
+
+  // Handlers para funcionalidades de IA (futuramente implementar)
+const handleGenerateEnunciadoWithAI = async () => {
+    // 1. Validação de entrada: precisa de tags para ter contexto
+    if (cleanTags.length === 0) {
+      setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+        // 2. Montagem do payload (corpo da requisição)
+        const payload = {
+            tags: cleanTags,
+            // Envia as alternativas se o tipo for de múltipla escolha
+            alternativas: ['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) 
+                ? alternativas.map(a => a.texto).filter(Boolean) // Envia apenas as preenchidas
+                : [], // Envia array vazio para dissertativa/numérica
+            enunciadoInicial: enunciado, // O enunciado atual serve como rascunho
+        };
+        
+        console.log("Enviando payload para gerar enunciado:", payload);
+
+        // 3. Chamada à API
+        const res = await fetch("/api/ai/gerar-enunciado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.details || "A IA não conseguiu gerar um enunciado com os dados fornecidos.");
+        }
+
+        const data = await res.json();
+        
+        // 4. Atualização do estado com a resposta da IA
+        setEnunciado(data.enunciadoGerado);
+
+        setSnackbar({ open: true, message: 'Enunciado gerado com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar enunciado:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGenerating(false);
+    }
+  };
+
+  const handleReviewSpellingWithAI = async () => {
+    if (!enunciado.trim()) {
+      setSnackbar({ open: true, message: 'Por favor, preencha o enunciado da questão.', severity: 'error' });
+      return;
+    }
+
+    setAiReviewing(true);
+
+    try {
+      // Monta o payload dependendo do tipo de questão
+      const payload = { enunciado };
+
+      // Para cada tipo de questão, envia apenas os TEXTOS
+      if (tipo === 'alternativa') {
+        payload.alternativas = alternativas.map(a => a.texto);
+      }
+      
+      if (tipo === 'afirmacoes') {
+        payload.afirmacoes = afirmacoes.map(a => a.texto);
+      }
+      
+      if (tipo === 'proposicoes') {
+        payload.proposicoes = proposicoes.map(p => p.texto);
+      }
+      
+      if (tipo === 'dissertativa') {
+        payload.gabarito = gabarito;
+      }
+
+      console.log('Enviando payload:', payload);
+
+      // Chamada ao endpoint
+      const res = await fetch("/api/ai/revisar-questao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log('Resposta recebida:', data);
+
+      // Atualiza o enunciado se foi revisado
+      if (data.enunciadoRevisado) {
+        setEnunciado(data.enunciadoRevisado);
+      }
+
+      // Atualiza alternativas (múltipla escolha)
+      if (tipo === 'alternativa' && data.alternativasRevisadas) {
+        setAlternativas(alternativas.map((a, i) => ({
+          ...a,
+          texto: data.alternativasRevisadas[i] || a.texto,
+        })));
+      }
+
+      // Atualiza afirmações (V/F)
+      if (tipo === 'afirmacoes' && data.afirmacoesRevisadas) {
+        setAfirmacoes(afirmacoes.map((a, i) => ({
+          ...a,
+          texto: data.afirmacoesRevisadas[i] || a.texto,
+        })));
+      }
+
+      // Atualiza proposições (somatório)
+      if (tipo === 'proposicoes' && data.proposicoesRevisadas) {
+        setProposicoes(proposicoes.map((p, i) => ({
+          ...p,
+          texto: data.proposicoesRevisadas[i] || p.texto,
+        })));
+      }
+
+      // Atualiza gabarito (dissertativa)
+      if (tipo === 'dissertativa' && data.gabaritoRevisado) {
+        setGabarito(data.gabaritoRevisado);
+      }
+
+      setSnackbar({ 
+        open: true, 
+        message: 'Questão revisada com sucesso pela IA!', 
+        severity: 'success' 
+      });
+
+    } catch (err) {
+      console.error('Erro na revisão:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.message || 'Erro ao revisar questão com IA.', 
+        severity: 'error' 
+      });
+    } finally {
+      setAiReviewing(false);
+    }
+  };
+
+const handleGenerateDistractorsWithAI = async () => {
+    // Validação inicial (permanece a mesma)
+    const alternativaCorreta = alternativas.find(a => a.correta);
+    if (!enunciado.trim() || !alternativaCorreta || !alternativaCorreta.texto.trim()) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Para gerar distratores, preencha o enunciado e a alternativa correta.', 
+            severity: 'warning' 
+        });
+        return;
+    }
+
+    // MODIFICAÇÃO 1: Contar quantos campos de alternativa estão vazios.
+    const quantidadeVazias = alternativas.filter(a => a.texto.trim() === '').length;
+
+    // Se não houver campos vazios, não há o que fazer.
+    if (quantidadeVazias === 0) {
+        setSnackbar({ 
+            open: true, 
+            message: 'Não há alternativas vazias para preencher com a IA.', 
+            severity: 'info' 
+        });
+        return;
+    }
+
+    setAiGeneratingDistractors(true);
+    try {
+        // MODIFICAÇÃO 2: Enviar a contagem de vazias no payload.
+        const payload = {
+            enunciado: enunciado,
+            alternativaCorreta: alternativaCorreta.texto,
+            tags: cleanTags,
+            quantidade: quantidadeVazias // Envia o número exato de distratores necessários
+        };
+        
+        console.log("Enviando payload para gerar distratores:", payload);
+
+        const res = await fetch("/api/ai/gerar-alternativa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        
+        // Tratamento de erro robusto (com res.clone())
+        if (!res.ok) {
+            let errorMessage = `Erro HTTP ${res.status}`;
+            const resClone = res.clone(); 
+            try {
+                const errorData = await res.json(); 
+                errorMessage = errorData.details || "A IA não conseguiu gerar os distratores.";
+            } catch (e) {
+                const errorText = await resClone.text(); 
+                console.error("A resposta de erro não era JSON. Resposta do servidor:", errorText);
+                errorMessage = "Ocorreu um erro inesperado no servidor. Verifique o console.";
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await res.json();
+        const distratoresGerados = data.alternativasIncorretas;
+
+        if (!distratoresGerados || !Array.isArray(distratoresGerados)) {
+            throw new Error("A resposta da IA não continha os dados esperados.");
+        }
+
+        // MODIFICAÇÃO 3: Lógica para preencher apenas os campos vazios.
+        let distractorIndex = 0;
+        const novasAlternativas = alternativas.map(alt => {
+            // Se a alternativa atual estiver vazia E ainda tivermos distratores gerados para usar...
+            if (alt.texto.trim() === '' && distractorIndex < distratoresGerados.length) {
+                // Preenche o texto com o próximo distrator da lista.
+                const textoDoDistrator = distratoresGerados[distractorIndex];
+                distractorIndex++;
+                return { ...alt, texto: textoDoDistrator };
+            }
+            // Caso contrário, mantém a alternativa como está (seja ela preenchida ou vazia, se acabaram os distratores).
+            return alt;
+        });
+        
+        setAlternativas(novasAlternativas);
+
+        setSnackbar({ open: true, message: 'Alternativas vazias preenchidas com sucesso!', severity: 'success' });
+
+    } catch (err) {
+        console.error("Erro ao gerar distratores:", err);
+        setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+        setAiGeneratingDistractors(false);
+    }
+};
   
   const cleanTags = useMemo(() => (
     tagsInput
@@ -56,6 +348,18 @@ export default function CriarQuestaoPage() {
       .slice(0, 10)
   ), [tagsInput]);
 
+  const somaProposicoes = useMemo(() => {
+  // A função 'reduce' vai passar por cada proposição e acumular a soma
+  return proposicoes.reduce((soma, prop, index) => {
+    // Se a proposição estiver marcada como correta...
+    if (prop.correta) {
+      const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+      return soma + valor; // Adiciona o valor à soma
+    }
+    return soma; // Se não for correta, retorna a soma sem alteração
+  }, 0); // O '0' é o valor inicial da soma
+}, [proposicoes]); // Recalcula a soma sempre que o array 'proposicoes' mudar
+
 useEffect(() => {
     // Sempre que o tipo mudar, reseta os campos de tipos específicos
     setAlternativas([{ texto: '', correta: true }, { texto: '', correta: false }]);
@@ -64,6 +368,7 @@ useEffect(() => {
     setMargemErro('');
     setGabarito('');
     setPalavrasChave('');
+    setProposicoes([{ texto: '', correta: false }]);
   }, [tipo]);
 
   const handleClearForm = () => {
@@ -81,6 +386,8 @@ useEffect(() => {
     setRespostaNumerica('');
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
+    setProposicoes([{ texto: '', correta: false }]);
+    setActiveImage(null);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -90,18 +397,26 @@ useEffect(() => {
 
     // validações básicas
     if (enunciado.trim() === '') {
-      alert('Por favor, preencha o enunciado da questão.');
+      setSnackbar({ open: true, message: 'Por favor, preencha o enunciado da questão.', severity: 'error' });
       return;
     }
-    if (tipo !== 'dissertativa') {
+    
+    // Validações específicas por tipo de questão
+    if (tipo === 'alternativa' || tipo === 'vf') {
       if (alternativas.some((a) => a.texto.trim() === '')) {
-        alert('Todas as alternativas devem ser preenchidas.');
+        setSnackbar({ open: true, message: 'Todas as alternativas devem ser preenchidas.', severity: 'error' });
         return;
       }
       if (!alternativas.some((a) => a.correta)) {
-        alert('Marque uma alternativa como correta.');
+        setSnackbar({ open: true, message: 'Por favor, marque uma alternativa como correta.', severity: 'error' });
         return;
       }
+    }
+    
+    // Validação para questão numérica
+    if (tipo === 'numerica' && !respostaNumerica) {
+      setSnackbar({ open: true, message: 'Por favor, preencha a resposta correta para a questão numérica.', severity: 'error' });
+      return;
     }
 
     // realiza upload dos arquivos selecionados (se houver)
@@ -115,7 +430,7 @@ useEffect(() => {
         setUploadedFiles(recursos);
       } catch (e) {
         console.error('Erro ao enviar anexos:', e);
-        alert('Falha ao enviar arquivos. Tente novamente.');
+        setSnackbar({ open: true, message: 'Falha ao enviar arquivos. Tente novamente.', severity: 'error' });
         setLoading(false);
         return;
       }
@@ -150,6 +465,18 @@ useEffect(() => {
                 tags: cleanTags,
                 recursos: recursos.map((r) => r.url),
               }
+            : tipo === 'proposicoes' 
+              ? {
+                tipo,
+                enunciado,
+                proposicoes: proposicoes.map((p, index) => ({
+                  valor: Math.pow(2, index),
+                  texto: p.texto,
+                  correta: p.correta,
+                })),
+                tags: cleanTags,
+                recursos: recursos.map((r) => r.url),
+                }
             : {
             tipo, // Padrão: múltipla escolha
             enunciado,
@@ -177,13 +504,13 @@ useEffect(() => {
 
       const created = await res.json();
       console.log('Criada:', created);
-      alert('Questão salva com sucesso!');
+      setSnackbar({ open: true, message: 'Questão criada com sucesso!', severity: 'success' });
 
       // limpar formulário completo (inclui arquivos e uploads)
       handleClearForm();
     } catch (e) {
       console.error(e);
-      alert(e.message || 'Erro ao salvar questão.');
+      setSnackbar({ open: true, message: e.message || 'Erro ao salvar questão.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -248,9 +575,33 @@ useEffect(() => {
         backgroundColor: 'background.default'
       }}
     >
-      <Typography variant="h4" component="h1" sx={{ mb: 4, fontWeight: 'bold', color: 'text.primary' }}>
-        Criar Nova Questão
-      </Typography>
+      <Box sx={{ width: '100%', maxWidth: 600, position: 'relative', mb: 2 }}>
+        {cursoId && cursoNome && (
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={() => router.push(`/cursos/${cursoId}`)}
+            sx={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              mb: 2
+            }}
+          >
+            Voltar para {decodeURIComponent(cursoNome)}
+          </Button>
+        )}
+        
+        <Typography variant="h4" component="h1" sx={{ 
+          mb: 4, 
+          mt: cursoId && cursoNome ? 6 : 0, 
+          fontWeight: 'bold', 
+          color: 'text.primary', 
+          textAlign: 'center' 
+        }}>
+          Criar Nova Questão
+        </Typography>
+      </Box>
 
       <Paper 
         component="form" 
@@ -271,11 +622,15 @@ useEffect(() => {
             value={tipo}
             label="Tipo de questão"
             onChange={(e) => setTipo(e.target.value)}
+            MenuProps={{
+              disableScrollLock: true, 
+            }}
           >
             <MenuItem value="alternativa">Múltipla escolha</MenuItem>
             <MenuItem value="afirmacoes">Múltiplas Afirmações (V/F)</MenuItem>
             <MenuItem value="dissertativa">Dissertativa</MenuItem>
             <MenuItem value="numerica">Resposta Numérica</MenuItem>
+            <MenuItem value="proposicoes">Proposições Múltiplas (Somatório)</MenuItem>
           </Select>
         </FormControl>
 
@@ -315,6 +670,38 @@ useEffect(() => {
           fullWidth
           sx={{ mb: 3 }}
         />
+
+        {/* Botões de IA */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+          <AIButton 
+            onClick={handleReviewSpellingWithAI}
+            loading={aiReviewing}
+            disabled={!isFormFilled || loading}
+            variant="outlined"
+            label="Revisar"
+            tooltipText="Usar IA para revisar ortografia e gramática do que foi preenchido"
+          />
+          
+          <AIButton 
+            onClick={handleGenerateEnunciadoWithAI}
+            loading={aiGenerating}
+            disabled={!isFormFilled || loading}
+            variant="outlined"
+            label="Gerar Enunciado"
+            tooltipText="Usar IA para gerar um enunciado de questão com base nas tags"
+          />
+
+          {['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) && (
+            <AIButton 
+              onClick={handleGenerateDistractorsWithAI}
+              loading={aiGeneratingDistractors}
+              disabled={!isFormFilled || loading}
+              variant="outlined"
+              label="Gerar Distratores"
+              tooltipText="Gerar alternativas/afirmações incorretas com base no que já foi preenchido"
+            />
+          )}
+        </Box>
         
 
       {/* Alternativas */}
@@ -368,13 +755,14 @@ useEffect(() => {
 
           {/* BOTÃO 'ADICIONAR' APARECE APENAS PARA 'MÚLTIPLA ESCOLHA' */}
           {tipo === 'alternativa' && (
-            <Button
-              variant="outlined"
-              onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
-              sx={{ mt: 1 }}
-            >
-              + Adicionar alternativa
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outlined"
+                onClick={() => setAlternativas([...alternativas, { texto: '', correta: false }])}
+              >
+                + Adicionar alternativa
+              </Button>
+            </Box>
           )}
         </Box>
       )}
@@ -457,7 +845,7 @@ useEffect(() => {
           onChange={(e) => setRespostaNumerica(e.target.value)}
           variant="outlined"
           fullWidth
-          required // Indicar que é obrigatório
+          //required // Indicar que é obrigatório
         />
         <TextField
           id="margem-erro"
@@ -470,6 +858,92 @@ useEffect(() => {
         />
       </Box>
     )}
+
+      {/* PROPOSIÇÕES MÚLTIPLAS */}
+      {tipo === 'proposicoes' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" component="h2" sx={{ mb: 2, color: 'text.primary' }}>
+            Proposições:
+          </Typography>
+          {proposicoes.map((prop, index) => {
+            const valor = Math.pow(2, index); // Calcula o valor (1, 2, 4, 8...)
+            return (
+              <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                
+                {/* 1. SELETOR V/F APRIMORADO À ESQUERDA */}
+                <ToggleButtonGroup
+                  value={prop.correta}
+                  exclusive
+                  size="small"
+                  onChange={(event, novoValor) => {
+                    if (novoValor !== null) {
+                      const novasProposicoes = proposicoes.map((p, i) =>
+                        i === index ? { ...p, correta: novoValor } : p
+                      );
+                      setProposicoes(novasProposicoes);
+                    }
+                  }}
+                >
+                  <ToggleButton value={true} color="success">V</ToggleButton>
+                  <ToggleButton value={false} color="error">F</ToggleButton>
+                </ToggleButtonGroup>
+                
+                {/* 2. LABEL COM O VALOR DA PROPOSIÇÃO */}
+                <Typography sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
+                  {valor.toString().padStart(2, '0')}
+                </Typography>
+                
+                {/* 3. CAMPO DE TEXTO PARA A AFIRMAÇÃO */}
+                <TextField
+                  label={`Afirmação de valor ${valor}`}
+                  value={prop.texto}
+                  onChange={(e) => {
+                    const novoTexto = e.target.value;
+                    const novasProposicoes = proposicoes.map((p, i) =>
+                      i === index ? { ...p, texto: novoTexto } : p
+                    );
+                    setProposicoes(novasProposicoes);
+                  }}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
+                
+                {/* 4. BOTÃO DE REMOVER */}
+                <IconButton
+                  onClick={() => {
+                    const novasProposicoes = proposicoes.filter((_, i) => i !== index);
+                    setProposicoes(novasProposicoes);
+                  }}
+                  color="error"
+                  disabled={proposicoes.length <= 1}
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
+            );
+          })}
+          {/* Botão de Adicionar */}
+          <Button
+            variant="outlined"
+            onClick={() => setProposicoes([...proposicoes, { texto: '', correta: false }])}
+            sx={{ mt: 1 }}
+          >
+            + Adicionar Proposição
+          </Button>
+
+          {/* EXIBIR A SOMA */}
+          <Box sx={{ mt: 3, p: 2, border: '1px dashed', borderColor: 'grey.500', borderRadius: 1 }}>
+            <Typography variant="h6" component="p" sx={{ color: 'text.primary' }}>
+              Resposta Correta (Soma):{' '}
+              <Typography component="span" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                {somaProposicoes}
+              </Typography>
+            </Typography>
+          </Box>
+
+        </Box>
+      )}
 
       {/* BLOCO PARA CAMPOS DISSERTATIVOS */}
         {tipo === 'dissertativa' && (
@@ -521,7 +995,10 @@ useEffect(() => {
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
+              if (activeImage === f) setActiveImage(null);
             }}
+            isActiveImage={activeImage === file}
+            onSetActiveImage={handleSetActiveImage}
           />
         ))}
 
@@ -572,6 +1049,18 @@ useEffect(() => {
           </Button>
         </Box>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right'}}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%', fontSize: '1.1rem' }}>
+          {snackbar.message}
+        </Alert>
+        </Snackbar>
     </Box>
   );
 }

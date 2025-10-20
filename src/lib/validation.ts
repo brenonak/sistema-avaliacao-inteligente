@@ -1,9 +1,20 @@
 import { z } from "zod";
 
-export const TipoQuestao = z.enum(["dissertativa", "alternativa", "vf"]);
+export const TipoQuestao = z.enum(["dissertativa", "alternativa", "afirmacoes", "proposicoes", "numerica"]);
 
 export const AlternativaSchema = z.object({
   letra: z.string().min(1),
+  texto: z.string().min(1),
+  correta: z.boolean().default(false),
+});
+
+export const AfirmacaoSchema = z.object({
+  texto: z.string().min(1),
+  correta: z.boolean().default(true),
+});
+
+export const ProposicaoSchema = z.object({
+  valor: z.number().int().positive(),
   texto: z.string().min(1),
   correta: z.boolean().default(false),
 });
@@ -12,9 +23,12 @@ export const QuestaoCreateSchema = z
   .object({
     tipo: TipoQuestao,
     enunciado: z.string().min(1, "enunciado obrigatório"),
-    alternativas: z.array(AlternativaSchema).default([]),
+    alternativas: z.array(AlternativaSchema).optional().default([]),
     gabarito: z.string().optional(),
-    //palavrasChave: z.string().optional(), ARRUMAR DEPOIS
+    respostaCorreta: z.number().optional(),
+    margemErro: z.number().default(0),
+    afirmacoes: z.array(AfirmacaoSchema).optional().default([]),
+    proposicoes: z.array(ProposicaoSchema).optional().default([]),
   })
   .superRefine((data, ctx) => {
     // Validação específica por tipo
@@ -43,28 +57,62 @@ export const QuestaoCreateSchema = z
           path: ["gabarito"],
         });
       }
-      if (data.alternativas?.length) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Questões dissertativas não devem ter alternativas",
-          path: ["alternativas"],
-        });
-      }
     }
 
-    if (data.tipo === "vf") {
-      if (!data.alternativas?.length) {
+    if (data.tipo === "afirmacoes") {
+      if (!data.afirmacoes?.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Questões V/F precisam ter alternativas",
-          path: ["alternativas"],
+          message: "Questões de afirmações precisam de ao menos uma afirmação",
+          path: ["afirmacoes"],
         });
       }
       if (data.gabarito) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Questões V/F não devem ter gabarito (use alternativas)",
+          message: "Questões de afirmações não devem ter gabarito textual",
           path: ["gabarito"],
+        });
+      }
+      if (data.alternativas && data.alternativas.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões de afirmações não usam alternativas",
+          path: ["alternativas"],
+        });
+      }
+    }
+
+    if (data.tipo === "proposicoes") {
+      if (!data.proposicoes?.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões de proposições precisam de ao menos uma proposição",
+          path: ["proposicoes"],
+        });
+      }
+      if (data.gabarito) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões de proposições não devem ter gabarito textual",
+          path: ["gabarito"],
+        });
+      }
+      if (data.alternativas && data.alternativas.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões de proposições não usam alternativas",
+          path: ["alternativas"],
+        });
+      }
+    }
+
+    if (data.tipo === "numerica") {
+      if (data.respostaCorreta === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Questões numéricas precisam ter uma resposta correta",
+          path: ["respostaCorreta"],
         });
       }
     }

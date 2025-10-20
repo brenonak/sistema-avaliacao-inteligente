@@ -8,7 +8,6 @@ import {
   DialogActions,
   Button,
   Divider,
-  useTheme,
 } from '@mui/material';
 import { WarningAmber } from '@mui/icons-material';
 
@@ -18,7 +17,6 @@ export default function ConfirmDeleteDialog({
   onClose,
   onConfirm,
 }) {
-  const theme = useTheme();
 
   return (
     <Dialog
@@ -44,7 +42,7 @@ export default function ConfirmDeleteDialog({
           gap: 1,
         }}
       >
-        <WarningAmber sx={{ color: theme.palette.accent.main }} />
+        <WarningAmber color='error'/>
         Confirmar exclusão
       </DialogTitle>
 
@@ -69,6 +67,7 @@ export default function ConfirmDeleteDialog({
         <Button
           onClick={onConfirm}
           variant="contained"
+          color="error"
         >
           Excluir
         </Button>
