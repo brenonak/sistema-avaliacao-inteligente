@@ -18,11 +18,11 @@ export default function HeroSection() {
     >
 
       <Box 
-        component="section" // Mantém a semântica de seção
-        id="hero"           // ID para navegação, se necessário
-        sx={{ py: { xs: 8, md: 16 } }} // Padding volta para o sx
+        component="section" 
+        id="hero"          
+        sx={{ py: { xs: 8, md: 16 } }}
       >
-        {/* 3. O Flex Container original, inalterado */}
+
         <Box
           sx={{
             display: 'flex',
