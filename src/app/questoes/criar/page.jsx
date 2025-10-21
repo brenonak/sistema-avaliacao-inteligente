@@ -97,7 +97,7 @@ export default function CriarQuestaoPage() {
 
 
   // Handlers para funcionalidades de IA (futuramente implementar)
-const handleGenerateEnunciadoWithAI = async () => {
+  const handleGenerateEnunciadoWithAI = async () => {
     // 1. Validação de entrada: precisa de tags para ter contexto
     if (cleanTags.length === 0) {
       setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
