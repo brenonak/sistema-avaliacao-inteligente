@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, Typography, Button, darken } from '@mui/material';
+import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
@@ -10,13 +11,17 @@ export default function FinalCtaSection() {
   const { title, subtitle, ctaButton } = landingContent.finalCta;
 
   return (
-    <Box 
-      component="section" 
-      sx={{ 
-        py: { xs: 8, md: 16 }, 
-        backgroundColor: 'background.paper', 
+    <motion.section
+      // ANIMAÇÃO SIMPLES ACIONADA PELO SCROLL
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{ 
+        paddingTop: '128px', 
+        paddingBottom: '128px', 
+        backgroundColor: 'var(--mui-palette-background-paper)', 
         textAlign: 'center',
-
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -94,6 +99,6 @@ export default function FinalCtaSection() {
           {ctaButton}
         </Button>
       </Box>
-    </Box>
+    </motion.section>
   );
 }
