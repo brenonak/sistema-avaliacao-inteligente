@@ -64,7 +64,7 @@ const LandingPageHeader = () => {
             </Typography>
           </Button>
 
-          {/* Links de Navegação (Escondidos em telas pequenas) */}
+          {/* *** LINKS DE NAVEGAÇÃO *** */}
           <Box sx={{ ml: 4, display: { xs: 'none', md: 'flex' }, gap: 3 }}>
             {links.map((link) => (
               <Link
@@ -75,8 +75,10 @@ const LandingPageHeader = () => {
                 color="text.primary"
                 sx={{
                   fontWeight: 500,
+                  // 3. EFEITO HOVER NOS LINKS
+                  transition: 'color 0.2s ease', // Transição suave da cor
                   '&:hover': {
-                    color: 'primary.main',
+                    color: 'accent.main', // Muda para o azul médio no hover
                   },
                 }}
               >
@@ -88,20 +90,26 @@ const LandingPageHeader = () => {
           {/* Espaçador */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Botões de Ação (Direita) */}
+          {/* *** BOTÕES DE AÇÃO *** */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Button
-              component={NextLink}
+              component={NextLink} 
               href="/dashboard"    
               variant="text"
               color="inherit"
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 600,
+                // 4. ARREDONDAMENTO NO BOTÃO "ENTRAR"
+                borderRadius: '24px', 
+                px: 2, // Adiciona um pouco de padding lateral
+              }}
             >
               {buttons.login}
             </Button>
             <Button
               component={NextLink} 
-              href="/dashboard"   
+              href="/dashboard"    
               variant="contained"
               disableElevation
               sx={{ 
@@ -112,6 +120,8 @@ const LandingPageHeader = () => {
                 '&:hover': {
                   backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
                 },
+                // 5. ARREDONDAMENTO NO BOTÃO "CRIAR CONTA"
+                borderRadius: '24px', 
               }}
             >
               {buttons.signup}
