@@ -22,6 +22,7 @@ export default function FeaturesSection() {
   return (
     <Box 
       component="section" 
+      id="features"
       sx={{ 
         py: { xs: 8, md: 16 }, 
         backgroundColor: 'background.paper',

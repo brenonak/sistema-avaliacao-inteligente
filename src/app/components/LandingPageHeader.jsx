@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken } from '@mui/material';
+import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken, alpha} from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
 import NextLink from 'next/link'; // Importe o Link do Next.js
 
@@ -14,8 +14,7 @@ const LandingPageHeader = () => {
       color="transparent"
       elevation={0}
       sx={{
-        backgroundColor: (theme) => 
-          theme.palette.header?.main || theme.palette.background.paper,
+        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.75), 
         backdropFilter: 'blur(10px)',
         borderBottom: 1,
         borderColor: 'divider',
@@ -83,6 +82,8 @@ const LandingPageHeader = () => {
           {/* Botões de Ação (Direita) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Button
+              component={NextLink} // <-- ADICIONADO
+              href="/dashboard"    // <-- ADICIONADO
               variant="text"
               color="inherit"
               sx={{ textTransform: 'none', fontWeight: 600 }}
@@ -90,6 +91,8 @@ const LandingPageHeader = () => {
               {buttons.login}
             </Button>
             <Button
+              component={NextLink} // <-- ADICIONADO
+              href="/dashboard"    // <-- ADICIONADO
               variant="contained"
               disableElevation
               sx={{ 
@@ -98,7 +101,7 @@ const LandingPageHeader = () => {
                 backgroundColor: 'accent.dark',
                 color: 'white', 
                 '&:hover': {
-                  backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.35),
+                  backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
                 },
               }}
             >

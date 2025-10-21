@@ -10,7 +10,8 @@ export default function HowItWorksSection() {
 
   return (
     <Box 
-      component="section" 
+      component="section"
+      id="how-it-works" 
       sx={{ 
         py: { xs: 8, md: 16 }, 
 
