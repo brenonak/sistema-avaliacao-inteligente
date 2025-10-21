@@ -1,7 +1,7 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import Header from "./components/Header";
+import Overlay from "./components/Overlay";
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
@@ -122,8 +122,7 @@ export default function RootLayout({ children }) {
       >
         <AppRouterCacheProvider>
           <ThemeProvider theme={customTheme}>
-            <Header />
-            {children}
+            <Overlay content={children}/>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
