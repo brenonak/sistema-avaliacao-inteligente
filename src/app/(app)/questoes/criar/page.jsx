@@ -437,57 +437,53 @@ useEffect(() => {
     }
 
     // monta o payload no formato esperado pela API
-    const payload =
-      tipo === 'dissertativa'
-        ? {
-            tipo,
-            enunciado,
-            alternativas: [], // dissertativa não usa alternativas
-            gabarito: gabarito,
-            //palavrasChave: palavrasChave.split(',').map(s => s.trim()), // já envia como array -> ARRUMAR DEPOIS
-            tags: cleanTags,
-            recursos: recursos.map((r) => r.url),
-          }
-        : tipo === 'numerica'
-          ? {
-              tipo,
-              enunciado,
-              respostaCorreta: parseFloat(respostaNumerica || 0), 
-              margemErro: margemErro ? parseFloat(margemErro) : 0,
-              tags: cleanTags,
-              recursos: recursos.map((r) => r.url),
-            }
-          : tipo === 'afirmacoes'
-            ? {
-                tipo,
-                enunciado,
-                afirmacoes: afirmacoes, // Envia o novo array de afirmações
-                tags: cleanTags,
-                recursos: recursos.map((r) => r.url),
-              }
-            : tipo === 'proposicoes' 
-              ? {
-                tipo,
-                enunciado,
-                proposicoes: proposicoes.map((p, index) => ({
-                  valor: Math.pow(2, index),
-                  texto: p.texto,
-                  correta: p.correta,
-                })),
-                tags: cleanTags,
-                recursos: recursos.map((r) => r.url),
-                }
-            : {
-            tipo, // Padrão: múltipla escolha
-            enunciado,
-            alternativas: alternativas.map((a, i) => ({
-              letra: indexToLetter(i),
-              texto: a.texto,
-              correta: !!a.correta,
-            })),
-            tags:cleanTags,
-            recursos: recursos.map((r) => r.url),
-          };
+    const basePayload = {
+      tipo,
+      enunciado,
+      tags: cleanTags,
+      recursos: recursos.map((r) => r.url),
+      cursoIds: cursoId ? [cursoId] : [], // Adiciona o cursoId se vier de um curso
+    };
+
+    let payload;
+    
+    if (tipo === 'dissertativa') {
+      payload = {
+        ...basePayload,
+        alternativas: [],
+        gabarito: gabarito,
+      };
+    } else if (tipo === 'numerica') {
+      payload = {
+        ...basePayload,
+        respostaCorreta: parseFloat(respostaNumerica || 0), 
+        margemErro: margemErro ? parseFloat(margemErro) : 0,
+      };
+    } else if (tipo === 'afirmacoes') {
+      payload = {
+        ...basePayload,
+        afirmacoes: afirmacoes,
+      };
+    } else if (tipo === 'proposicoes') {
+      payload = {
+        ...basePayload,
+        proposicoes: proposicoes.map((p, index) => ({
+          valor: Math.pow(2, index),
+          texto: p.texto,
+          correta: p.correta,
+        })),
+      };
+    } else {
+      // Padrão: múltipla escolha
+      payload = {
+        ...basePayload,
+        alternativas: alternativas.map((a, i) => ({
+          letra: indexToLetter(i),
+          texto: a.texto,
+          correta: !!a.correta,
+        })),
+      };
+    }
 
     try {
       setLoading(true);
@@ -508,6 +504,13 @@ useEffect(() => {
 
       // limpar formulário completo (inclui arquivos e uploads)
       handleClearForm();
+      
+      // Se veio de um curso, redirecionar de volta após 1.5 segundos
+      if (cursoId) {
+        setTimeout(() => {
+          router.push(`/cursos/${cursoId}`);
+        }, 1500);
+      }
     } catch (e) {
       console.error(e);
       setSnackbar({ open: true, message: e.message || 'Erro ao salvar questão.', severity: 'error' });

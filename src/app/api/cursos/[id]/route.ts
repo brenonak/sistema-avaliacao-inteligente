@@ -7,14 +7,33 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-export async function GET(request: Request, { params }: any) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const _id = oid(params.id); if (!_id) return badRequest("id inválido");
+    const { id } = await params;
+    const _id = oid(id); 
+    if (!_id) return badRequest("id inválido");
+    
     const db = await getDb();
     const item = await db.collection("cursos").findOne({ _id });
     if (!item) return notFound("curso não encontrado");
+    
+    // Buscar questões associadas a este curso
+    const questoes = await db.collection("questoes")
+      .find({ cursoIds: id })
+      .toArray();
+    
+    // Transformar questões para incluir id ao invés de _id
+    const questoesFormatadas = questoes.map(({ _id: qId, ...rest }) => ({
+      id: qId?.toString?.() ?? qId,
+      ...rest
+    }));
+    
     const { _id: mongoId, ...rest } = item;
-    return json({ id: mongoId?.toString?.() ?? mongoId, ...rest });
+    return json({ 
+      id: mongoId?.toString?.() ?? mongoId, 
+      ...rest,
+      questoes: questoesFormatadas
+    });
   } catch (e) {
     return serverError(e);
   }
