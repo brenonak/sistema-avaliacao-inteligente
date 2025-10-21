@@ -367,7 +367,6 @@ useEffect(() => {
 
   const handleClearForm = () => {
     setEnunciado('');
-    setTipo('alternativa');
     setAlternativas([
       { texto: '', correta: true },
       { texto: '', correta: false },
