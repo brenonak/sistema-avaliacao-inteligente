@@ -127,8 +127,25 @@ export default function CursoDetalhesPage() {
     }
 
     try {
-      // TODO: Implementar endpoint para adicionar questões ao curso
-      // Por enquanto, apenas atualiza o estado local
+      // Chamar API para adicionar questões ao curso
+      const res = await fetch(`/api/cursos/${cursoId}/questoes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questaoIds: selectedQuestoes,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao adicionar questões');
+      }
+
+      const result = await res.json();
+      
+      // Atualizar lista local de questões
       const questoesParaAdicionar = questoesDisponiveis.filter(q => 
         selectedQuestoes.includes(q.id || q._id)
       );
@@ -138,12 +155,15 @@ export default function CursoDetalhesPage() {
         questoes: [...(prevCurso.questoes || []), ...questoesParaAdicionar]
       }));
       
-      alert(`${selectedQuestoes.length} questão(ões) adicionada(s) com sucesso!`);
+      alert(result.message || `${selectedQuestoes.length} questão(ões) adicionada(s) com sucesso!`);
       setOpenAddDialog(false);
       setSelectedQuestoes([]);
+      
+      // Recarregar dados do curso para garantir sincronização
+      fetchCurso();
     } catch (error) {
       console.error('Erro ao adicionar questões:', error);
-      alert('Erro ao adicionar questões ao curso');
+      alert(error.message || 'Erro ao adicionar questões ao curso');
     }
   };
 
@@ -151,17 +171,31 @@ export default function CursoDetalhesPage() {
     if (!confirm('Tem certeza que deseja remover esta questão do curso?')) return;
 
     try {
-      // TODO: Implementar endpoint para remover questão do curso
-      // Por enquanto, apenas atualiza o estado local
+      // Chamar API para remover questão do curso
+      const res = await fetch(`/api/cursos/${cursoId}/questoes?questaoId=${questaoId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao remover questão');
+      }
+
+      const result = await res.json();
+      
+      // Atualizar lista local
       setCurso(prevCurso => ({
         ...prevCurso,
         questoes: (prevCurso.questoes || []).filter(q => (q.id || q._id) !== questaoId)
       }));
       
-      alert('Questão removida com sucesso!');
+      alert(result.message || 'Questão removida com sucesso!');
+      
+      // Recarregar dados do curso para garantir sincronização
+      fetchCurso();
     } catch (error) {
       console.error('Erro ao remover questão:', error);
-      alert('Erro ao remover questão do curso');
+      alert(error.message || 'Erro ao remover questão do curso');
     }
   };
 
