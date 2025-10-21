@@ -2,20 +2,30 @@
 
 import React from 'react';
 import { Box, Typography, Paper, alpha } from '@mui/material';
+import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
 
 export default function HowItWorksSection() {
 
     const { title, steps } = landingContent.howItWorks;
 
   return (
-    <Box 
-      component="section"
-      id="how-it-works" 
-      sx={{ 
-        py: { xs: 8, md: 16 }, 
-
-        backgroundColor: 'background.default',
+    <motion.section
+      // ANIMAÇÃO ACIONADA PELO SCROLL COM STAGGER
+      initial="hidden" 
+      whileInView="visible" 
+      viewport={{ once: true, amount: 0.2 }} 
+      transition={{ staggerChildren: 0.15 }}
+      id="how-it-works"
+      style={{ 
+        paddingTop: '128px', 
+        paddingBottom: '128px', 
+        backgroundColor: 'var(--mui-palette-background-default)',
       }}
     >
 
@@ -32,7 +42,6 @@ export default function HowItWorksSection() {
         {title}
       </Typography>
 
-      {/* 4. Container Flexbox para os 3 cards */}
       <Box
         sx={{
           display: 'flex',
@@ -41,13 +50,13 @@ export default function HowItWorksSection() {
         }}
       >
         {steps.map((step) => (
-          // 5. Cada card é um <Box> flexível
-          <Box
-            key={step.id}
-            sx={{
-              flex: 1, // Faz com que cada card ocupe 1/3 do espaço
-              display: 'flex',
-            }}
+          <motion.div 
+            key={step.id} 
+            variants={cardVariants}
+            style={{ 
+              flex: 1, 
+              display: 'flex', 
+            }} 
           >
             <Paper
               variant="outlined"
@@ -69,7 +78,7 @@ export default function HowItWorksSection() {
                 },
               }}
             >
-              {/* 6. O Número ("01", "02", "03") */}
+              {/* O Número ("01", "02", "03") */}
               <Typography
                 variant="h1"
                 component="div"
@@ -83,7 +92,7 @@ export default function HowItWorksSection() {
                 {step.id}
               </Typography>
               
-              {/* 7. O Título e a Descrição do Card */}
+              {/* O Título e a Descrição do Card */}
               <Typography variant="h6" component="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
                 {step.title}
               </Typography>
@@ -91,9 +100,9 @@ export default function HowItWorksSection() {
                 {step.description}
               </Typography>
             </Paper>
-          </Box>
+          </motion.div>
         ))}
       </Box>
-    </Box>
+    </motion.section>
   );
 }
