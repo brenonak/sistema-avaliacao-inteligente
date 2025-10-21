@@ -1,9 +1,10 @@
-// ATUALIZADO (COM A CORREÇÃO DO GRID): src/app/components/FeaturesSection.jsx
+// ATUALIZADO (FINAL, COM FLEXBOX): src/app/components/FeaturesSection.jsx
 
 "use client";
 
 import React from 'react';
-import { Box, Typography, Grid, Paper, Avatar } from '@mui/material';
+// 1. Removido 'Grid' dos imports
+import { Box, Typography, Paper, Avatar } from '@mui/material';
 import { landingContent } from '../../constants/landingContent';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -19,7 +20,6 @@ const iconMap = {
 };
 
 export default function FeaturesSection() {
-  // Estamos usando o 'title' e 'cards' do SEU landingContent.js
   const { title, cards } = landingContent.features;
 
   return (
@@ -43,19 +43,32 @@ export default function FeaturesSection() {
           fontSize: { xs: '2.2rem', md: '3rem' }
         }}
       >
-        {/* O título vem do seu landingContent.js */}
         {title}
       </Typography>
 
-      <Grid container spacing={4} sx={{ justifyContent: 'center' }}>
+      {/* 2. Substituímos <Grid container> por <Box display="flex"> */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap', // Permite que os itens quebrem para a próxima linha
+          gap: 4, // Espaçamento entre os cards (vertical e horizontal)
+        }}
+      >
         {cards.map((card) => {
           const IconComponent = iconMap[card.title] || AutoAwesomeIcon; 
           
           return (
-            // ******** A CORREÇÃO ESTÁ AQUI ********
-            // Adicionando a prop "item" para a sintaxe do Grid v1
-            <Grid item xs={12} md={6} key={card.title}>
-              
+            // 3. Cada card é agora um <Box> flexível
+            <Box
+              key={card.title}
+              sx={{
+                // Em telas pequenas (xs), ocupa 100% da largura
+                flexBasis: { xs: '100%', md: 'calc(50% - 16px)' }, 
+                // Em telas médias (md), ocupa 50% menos metade do 'gap'
+                // (16px é metade de 'gap: 4', que é 32px)
+                flexGrow: 1,
+              }}
+            >
               <Paper
                 variant="outlined"
                 sx={{
@@ -77,7 +90,6 @@ export default function FeaturesSection() {
                   <IconComponent fontSize="medium" />
                 </Avatar>
                 
-                {/* O título e a descrição vêm do seu landingContent.js */}
                 <Typography variant="h6" component="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
                   {card.title}
                 </Typography>
@@ -85,10 +97,10 @@ export default function FeaturesSection() {
                   {card.description}
                 </Typography>
               </Paper>
-            </Grid>
+            </Box>
           );
         })}
-      </Grid>
+      </Box>
     </Box>
   );
 }
