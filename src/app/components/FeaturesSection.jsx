@@ -71,8 +71,18 @@ export default function FeaturesSection() {
                     borderRadius: 3,
                     height: '100%',
                     backgroundColor: 'background.default',
+                    // Adiciona transição suave para as propriedades transform e boxShadow
+                    transition: (theme) => theme.transitions.create(['transform', 'box-shadow'], {
+                      duration: theme.transitions.duration.short, // Duração padrão do MUI
+                    }),
+                    // Estilos aplicados QUANDO o mouse está sobre o Paper
+                    '&:hover': {
+                      transform: 'scale(1.03) translateY(-4px)', // Aumenta 3% e sobe 4px
+                      boxShadow: (theme) => theme.shadows[6], // Usa uma sombra mais forte do tema
+                    },
                   }}
                 >
+                  {/* 2. ADICIONANDO EFEITO AO ÍCONE (AVATAR) */}
                   <Avatar
                     sx={{
                       bgcolor: (theme) => `${theme.palette.accent.main}1A`,
@@ -80,6 +90,14 @@ export default function FeaturesSection() {
                       mb: 2,
                       width: 56,
                       height: 56,
+                      // Adiciona transição suave APENAS para transform
+                      transition: (theme) => theme.transitions.create('transform', {
+                        duration: theme.transitions.duration.short,
+                      }),
+                      // Quando o MOUSE está sobre o PAPER PAI...
+                      '.MuiPaper-root:hover &': { 
+                        transform: 'translateY(-2px) scale(1.05)', // Sobe um pouco menos que o card e aumenta levemente
+                      },
                     }}
                   >
                     <IconComponent fontSize="medium" />
