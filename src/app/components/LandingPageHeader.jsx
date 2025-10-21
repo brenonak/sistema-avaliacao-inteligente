@@ -22,16 +22,25 @@ const LandingPageHeader = () => {
     >
       <Container maxWidth="lg">
         <Toolbar disableGutters>
+          {/* *** LOGO *** */}
           <Button
             component={NextLink} 
-            href="/"
+            href="/" 
             disableRipple
             sx={{
               color: 'text.primary',
               display: 'flex',
               alignItems: 'center',
               textTransform: 'none', 
-              '&:hover': { backgroundColor: 'transparent' }, 
+              '&:hover': { 
+                backgroundColor: 'transparent',
+                // 1. EFEITO SALTAR NO LOGO
+                transform: 'scale(1.03) translateY(-1px)', 
+              },
+              // 2. TRANSIÇÃO SUAVE NO LOGO
+              transition: (theme) => theme.transitions.create('transform', {
+                duration: theme.transitions.duration.short,
+              }),
             }}
           >
             {/* O ÍCONE DO LOGO */}
@@ -82,8 +91,8 @@ const LandingPageHeader = () => {
           {/* Botões de Ação (Direita) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Button
-              component={NextLink} // <-- ADICIONADO
-              href="/dashboard"    // <-- ADICIONADO
+              component={NextLink}
+              href="/dashboard"    
               variant="text"
               color="inherit"
               sx={{ textTransform: 'none', fontWeight: 600 }}
@@ -91,8 +100,8 @@ const LandingPageHeader = () => {
               {buttons.login}
             </Button>
             <Button
-              component={NextLink} // <-- ADICIONADO
-              href="/dashboard"    // <-- ADICIONADO
+              component={NextLink} 
+              href="/dashboard"   
               variant="contained"
               disableElevation
               sx={{ 
