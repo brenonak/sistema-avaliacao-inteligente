@@ -54,10 +54,19 @@ export default function HowItWorksSection() {
               sx={{
                 p: 4,
                 borderRadius: 3,
-                height: '100%', // Garante que todos tenham a mesma altura
+                height: '100%',
                 backgroundColor: 'background.default',
                 display: 'flex',
-                flexDirection: 'column', // Empilha o conteúdo do card
+                flexDirection: 'column',
+                // Adiciona transição suave
+                transition: (theme) => theme.transitions.create(['transform', 'box-shadow'], {
+                  duration: theme.transitions.duration.short,
+                }),
+                // Estilos aplicados QUANDO o mouse está sobre o Paper
+                '&:hover': {
+                  transform: 'scale(1.03) translateY(-4px)',
+                  boxShadow: (theme) => theme.shadows[6],
+                },
               }}
             >
               {/* 6. O Número ("01", "02", "03") */}
