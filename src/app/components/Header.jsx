@@ -138,7 +138,7 @@ const Header = () => {
         </Box>
         <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
           <HeaderThemeSelector />
-          <Tooltip title="Open settings">
+          <Tooltip title="Configurações">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
             </IconButton>

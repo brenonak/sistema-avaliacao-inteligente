@@ -7,47 +7,116 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
+import HomeIcon from '@mui/icons-material/Home';
+import MessageIcon from '@mui/icons-material/Message';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import IconButton from '@mui/material/IconButton';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Header from './Header';
+import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
 
 const drawerWidth = 240;
+const collapsedWidth = 60;
 
 export default function Overlay({ content }) {
+  const [open, setOpen] = React.useState(true);
+
+  const toggleDrawer = () => {
+    setOpen(!open);
+  };
+
+  const sidebarItems = [
+    { text: 'Início', icon: <HomeIcon /> },
+    { text: 'Mensagens', icon: <MessageIcon /> },
+    { text: 'Atividades', icon: <EventNoteIcon /> },
+    { text: 'Métricas', icon: <BarChartIcon /> },
+  ];
+
+
   return (
     <Box sx={{ display: 'flex' }}>
       <Header />
       <Drawer
         variant="permanent"
         sx={{
-          width: drawerWidth,
+          width: open ? drawerWidth : collapsedWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { 
-            width: drawerWidth, 
+          whiteSpace: 'nowrap',
+          overflowX: 'hidden',
+          transition: (theme) =>
+            theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
+          [`& .MuiDrawer-paper`]: {
+            width: open ? drawerWidth : collapsedWidth,
             boxSizing: 'border-box',
-            backgroundColor: 'sidebar.main', 
+            backgroundColor: 'sidebar.main',
+            overflowX: 'hidden',
+            transition: (theme) =>
+              theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.standard,
+              }),
           },
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
-              <ListItem key={text} disablePadding>
-                <ListItemButton>
-                  <ListItemIcon>
-                    {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: open ? 'space-between' : 'center',
+          alignItems: 'center', 
+          mt: 2, 
+          mr: open ? 1 : '1px',
+          height: 48, 
+        }}>
+          {open && (
+            <Box sx={{ mr: 1, pl: '16px' }}>
+              <Typography variant="body1" noWrap>
+                Usuário
+              </Typography>
+            </Box>
+          )}
+          <IconButton onClick={toggleDrawer}>
+            {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ overflowX: 'hidden', overflowY: 'auto' }}>
+          <List sx={{padding: 0}}>
+            {sidebarItems.map(({ text, icon }) => (
+              <ListItem key={text} disablePadding sx={{ display: 'block' }}>
+                <ListItemButton
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: open ? 'initial' : 'center',
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 2 : 'auto',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {icon}
                   </ListItemIcon>
-                  <ListItemText primary={text} />
+                  {open && <ListItemText primary={text} />}
                 </ListItemButton>
               </ListItem>
             ))}
           </List>
         </Box>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, marginTop: 1 }}>
+      <Box component="main" sx={{ flexGrow: 1, marginTop: 1}}>
         <Toolbar />
-        { content }
+        {content}
       </Box>
     </Box>
   );
