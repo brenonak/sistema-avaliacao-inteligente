@@ -1,21 +1,23 @@
-// ATUALIZADO (FINAL, COM FLEXBOX): src/app/components/FeaturesSection.jsx
+// ATUALIZADO (CORREÇÃO DE ÍCONE): src/app/components/FeaturesSection.jsx
 
 "use client";
 
 import React from 'react';
-// 1. Removido 'Grid' dos imports
 import { Box, Typography, Paper, Avatar } from '@mui/material';
 import { landingContent } from '../../constants/landingContent';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DnsIcon from '@mui/icons-material/Dns';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import FileCopyIcon from '@mui/icons-material/FileCopy';
+// 1. MUDANÇA NO IMPORT: Trocamos FileCopyIcon por FileDownloadIcon
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
+// 2. MUDANÇA NO MAPA DE ÍCONES
 const iconMap = {
   "Geração de Conteúdo com IA": AutoAwesomeIcon,
   "Banco de Questões Centralizado": DnsIcon,
-  "Exportação Profissional": FileCopyIcon,
+  // Corrigimos a string e o ícone
+  "Exportação Flexível": FileDownloadIcon, 
   "Análise de Desempenho": BarChartIcon,
 };
 
@@ -46,26 +48,23 @@ export default function FeaturesSection() {
         {title}
       </Typography>
 
-      {/* 2. Substituímos <Grid container> por <Box display="flex"> */}
+      {/* O resto do seu código Flexbox (que está funcionando) não muda em nada */}
       <Box
         sx={{
           display: 'flex',
-          flexWrap: 'wrap', // Permite que os itens quebrem para a próxima linha
-          gap: 4, // Espaçamento entre os cards (vertical e horizontal)
+          flexWrap: 'wrap',
+          gap: 4,
         }}
       >
         {cards.map((card) => {
+          // Agora, esta linha vai encontrar o ícone correto
           const IconComponent = iconMap[card.title] || AutoAwesomeIcon; 
           
           return (
-            // 3. Cada card é agora um <Box> flexível
             <Box
               key={card.title}
               sx={{
-                // Em telas pequenas (xs), ocupa 100% da largura
                 flexBasis: { xs: '100%', md: 'calc(50% - 16px)' }, 
-                // Em telas médias (md), ocupa 50% menos metade do 'gap'
-                // (16px é metade de 'gap: 4', que é 32px)
                 flexGrow: 1,
               }}
             >
