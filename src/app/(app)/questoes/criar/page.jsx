@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -21,7 +21,8 @@ import {
   Checkbox,
   Chip,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { Delete, ArrowBack } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -31,7 +32,7 @@ import AIButton from '../../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
 
-export default function CriarQuestaoPage() {
+function CriarQuestaoForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const cursoId = searchParams.get('cursoId');
@@ -1065,5 +1066,23 @@ useEffect(() => {
         </Alert>
         </Snackbar>
     </Box>
+  );
+}
+
+export default function CriarQuestaoPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: 'background.default'
+      }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <CriarQuestaoForm />
+    </Suspense>
   );
 }
