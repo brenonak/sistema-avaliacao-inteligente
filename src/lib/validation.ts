@@ -29,6 +29,7 @@ export const QuestaoCreateSchema = z
     margemErro: z.number().default(0),
     afirmacoes: z.array(AfirmacaoSchema).optional().default([]),
     proposicoes: z.array(ProposicaoSchema).optional().default([]),
+    cursoIds: z.array(z.string()).optional().default([]), // Referência aos cursos
   })
   .superRefine((data, ctx) => {
     // Validação específica por tipo
@@ -122,3 +123,12 @@ export const QuestaoUpdateSchema = QuestaoCreateSchema.partial();
 
 export type QuestaoCreate = z.infer<typeof QuestaoCreateSchema>;
 export type QuestaoUpdate = z.infer<typeof QuestaoUpdateSchema>;
+
+export const CursoSchema = z.object({
+  nome: z.string().min(3, "Nome obrigatório"),
+  descricao: z.string().optional(),
+});
+export const CursoCreateSchema = CursoSchema;
+export const CursoUpdateSchema = CursoSchema.partial();
+export type CursoCreate = z.infer<typeof CursoCreateSchema>;
+export type CursoUpdate = z.infer<typeof CursoUpdateSchema>;
