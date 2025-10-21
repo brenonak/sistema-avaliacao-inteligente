@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Box, Typography, Paper, Avatar } from '@mui/material';
+import { Box, Typography, Paper, Avatar, Container } from '@mui/material';
 import { landingContent } from '../../constants/landingContent';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -30,70 +30,72 @@ export default function FeaturesSection() {
         borderColor: 'divider'
       }}
     >
-      <Typography
-        variant="h2"
-        component="h3"
-        sx={{
-          fontWeight: 'bold',
-          textAlign: 'center',
-          mb: 4,
-          fontSize: { xs: '2.2rem', md: '3rem' }
-        }}
-      >
-        {title}
-      </Typography>
+      <Container maxWidth="lg">
+        <Typography
+          variant="h2"
+          component="h3"
+          sx={{
+            fontWeight: 'bold',
+            textAlign: 'center',
+            mb: 4,
+            fontSize: { xs: '2.2rem', md: '3rem' }
+          }}
+        >
+          {title}
+        </Typography>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 4,
-        }}
-      >
-        {cards.map((card) => {
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+          }}
+        >
+          {cards.map((card) => {
 
-          const IconComponent = iconMap[card.title] || AutoAwesomeIcon; 
-          
-          return (
-            <Box
-              key={card.title}
-              sx={{
-                flexBasis: { xs: '100%', md: 'calc(50% - 16px)' }, 
-                flexGrow: 1,
-              }}
-            >
-              <Paper
-                variant="outlined"
+            const IconComponent = iconMap[card.title] || AutoAwesomeIcon; 
+            
+            return (
+              <Box
+                key={card.title}
                 sx={{
-                  p: 4,
-                  borderRadius: 3,
-                  height: '100%',
-                  backgroundColor: 'background.default',
+                  flexBasis: { xs: '100%', md: 'calc(50% - 16px)' }, 
+                  flexGrow: 1,
                 }}
               >
-                <Avatar
+                <Paper
+                  variant="outlined"
                   sx={{
-                    bgcolor: (theme) => `${theme.palette.accent.main}1A`,
-                    color: 'accent.main', 
-                    mb: 2,
-                    width: 56,
-                    height: 56,
+                    p: 4,
+                    borderRadius: 3,
+                    height: '100%',
+                    backgroundColor: 'background.default',
                   }}
                 >
-                  <IconComponent fontSize="medium" />
-                </Avatar>
-                
-                <Typography variant="h6" component="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {card.title}
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  {card.description}
-                </Typography>
-              </Paper>
-            </Box>
-          );
-        })}
-      </Box>
+                  <Avatar
+                    sx={{
+                      bgcolor: (theme) => `${theme.palette.accent.main}1A`,
+                      color: 'accent.main', 
+                      mb: 2,
+                      width: 56,
+                      height: 56,
+                    }}
+                  >
+                    <IconComponent fontSize="medium" />
+                  </Avatar>
+                  
+                  <Typography variant="h6" component="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {card.title}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {card.description}
+                  </Typography>
+                </Paper>
+              </Box>
+            );
+          })}
+        </Box>
+      </Container>
     </Box>
   );
 }

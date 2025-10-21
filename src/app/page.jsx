@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import { Container } from '@mui/material';
 
 import LandingPageHeader from './components/LandingPageHeader'; 
-// import Footer from './components/Footer'; // Ainda não criado
+import Footer from './components/Footer'; 
 
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
@@ -19,16 +19,28 @@ export const metadata = {
 export default function LandingPage() {
   return (
     <Box component="main" sx={{ display: 'flex', flexDirection: 'column' }}>
+      
       <LandingPageHeader />
 
+      {/* Hero (fundo branco) */}
       <Container maxWidth="lg">
-        <HeroSection />
-        <FeaturesSection />
-        <HowItWorksSection />
-        <FinalCtaSection />
+        <HeroSection /> 
       </Container>
+      
+      {/* Features (fundo cinza) */}
+      <FeaturesSection />
 
-      {/* <Footer /> */}
+      {/* How It Works (fundo branco) */}
+      <Container maxWidth="lg">
+        <HowItWorksSection />
+      </Container>
+      
+      {/* CTA Final (fundo cinza) */}
+      <FinalCtaSection /> 
+      
+      {/* Footer (fundo branco) */}
+      <Footer />
+      
     </Box>
   );
 }
