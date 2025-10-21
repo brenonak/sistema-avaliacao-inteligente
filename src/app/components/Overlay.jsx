@@ -22,7 +22,11 @@ export default function Overlay({ content }) {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          [`& .MuiDrawer-paper`]: { 
+            width: drawerWidth, 
+            boxSizing: 'border-box',
+            backgroundColor: 'sidebar.main', 
+          },
         }}
       >
         <Toolbar />
@@ -41,7 +45,7 @@ export default function Overlay({ content }) {
           </List>
         </Box>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, padding: 1, backgroundColor: 'background.default' }}>
+      <Box component="main" sx={{ flexGrow: 1, marginTop: 1 }}>
         <Toolbar />
         { content }
       </Box>

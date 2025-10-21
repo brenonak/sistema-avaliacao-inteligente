@@ -63,6 +63,10 @@ let customTheme = createTheme({
     header: {
       main: alpha('#ffffff', 0.95),
     },
+
+    sidebar: {
+      main: '#ffffff',
+    }
   },
   colorSchemes: {
     dark: {
@@ -100,6 +104,9 @@ let customTheme = createTheme({
         header: {
           main: alpha('#000000', 0.80),
         },
+        sidebar: {
+          main: '#1e1e1e',
+        }
       },
     },
   },
