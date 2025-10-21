@@ -53,7 +53,15 @@ export default function FinalCtaSection() {
           variant="contained"
           size="large"
           disableElevation
-          endIcon={<ArrowForwardIcon />}
+          endIcon={
+            <Box component="span" sx={{ 
+                display: 'inline-flex', // Garante alinhamento vertical
+                alignItems: 'center',  // Centraliza o ícone
+                transition: 'transform 0.2s ease' // Mantém a animação
+            }}>
+              <ArrowForwardIcon fontSize="inherit" /> {/* Adapta o tamanho do ícone */}
+            </Box>
+          }
           sx={{ 
             textTransform: 'none',
             fontWeight: 600,
@@ -61,8 +69,25 @@ export default function FinalCtaSection() {
             py: 1.5,
             backgroundColor: 'accent.dark',
             color: 'white', 
+            
+            // 2. MAIS ARREDONDADO
+            borderRadius: '24px', 
+            
+            // 3. TRANSIÇÃO SUAVE (incluindo a transição do ícone)
+            transition: (theme) => theme.transitions.create(['transform', 'box-shadow', 'background-color'], {
+              duration: theme.transitions.duration.short,
+            }),
+            
             '&:hover': {
               backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
+              // 4. EFEITO "SALTAR"
+              transform: 'scale(1.05) translateY(-2px)',
+              boxShadow: (theme) => theme.shadows[4],
+              
+              // 5. ANIMAÇÃO DA SETA (move o span que contém o ícone)
+              '& .MuiButton-endIcon > span': { // Seleciona o <span> dentro do endIcon
+                transform: 'translateX(4px)', // Move 4px para a direita
+              },
             },
           }}
         >
