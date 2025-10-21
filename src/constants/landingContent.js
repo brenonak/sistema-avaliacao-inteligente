@@ -69,6 +69,7 @@ export const landingContent = {
   },
   finalCta: {
     title: "Pronto para transformar a maneira como você cria atividades?",
+    subtitle: "Junte-se aos educadores que já estão economizando tempo e criando atividades de alta qualidade com o poder da IA.",
     ctaButton: "Crie sua conta gratuita agora",
   },
   footer: {

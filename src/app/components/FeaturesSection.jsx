@@ -1,5 +1,3 @@
-// ATUALIZADO (CORREÇÃO DE ÍCONE): src/app/components/FeaturesSection.jsx
-
 "use client";
 
 import React from 'react';
@@ -9,14 +7,11 @@ import { landingContent } from '../../constants/landingContent';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DnsIcon from '@mui/icons-material/Dns';
 import BarChartIcon from '@mui/icons-material/BarChart';
-// 1. MUDANÇA NO IMPORT: Trocamos FileCopyIcon por FileDownloadIcon
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
-// 2. MUDANÇA NO MAPA DE ÍCONES
 const iconMap = {
   "Geração de Conteúdo com IA": AutoAwesomeIcon,
   "Banco de Questões Centralizado": DnsIcon,
-  // Corrigimos a string e o ícone
   "Exportação Flexível": FileDownloadIcon, 
   "Análise de Desempenho": BarChartIcon,
 };
@@ -48,7 +43,6 @@ export default function FeaturesSection() {
         {title}
       </Typography>
 
-      {/* O resto do seu código Flexbox (que está funcionando) não muda em nada */}
       <Box
         sx={{
           display: 'flex',
@@ -57,7 +51,7 @@ export default function FeaturesSection() {
         }}
       >
         {cards.map((card) => {
-          // Agora, esta linha vai encontrar o ícone correto
+
           const IconComponent = iconMap[card.title] || AutoAwesomeIcon; 
           
           return (
