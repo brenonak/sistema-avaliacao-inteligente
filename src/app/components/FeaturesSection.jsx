@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, Typography, Paper, Avatar, Container } from '@mui/material';
+import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -16,19 +17,28 @@ const iconMap = {
   "Análise de Desempenho": BarChartIcon,
 };
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
 export default function FeaturesSection() {
   const { title, cards } = landingContent.features;
 
   return (
-    <Box 
-      component="section" 
-      id="features"
-      sx={{ 
-        py: { xs: 8, md: 16 }, 
-        backgroundColor: 'background.paper',
-        borderTop: 1, 
-        borderBottom: 1,
-        borderColor: 'divider'
+    <motion.section
+      // ANIMAÇÃO ACIONADA PELO SCROLL
+      initial="hidden" 
+      whileInView="visible" 
+      viewport={{ once: true, amount: 0.2 }} 
+      transition={{ staggerChildren: 0.15 }} 
+      id="FeaturesSection"
+      style={{ 
+        paddingTop: '128px', 
+        paddingBottom: '128px', 
+        backgroundColor: 'var(--mui-palette-background-paper)',
+        borderTop: '1px solid var(--mui-palette-divider)',
+        borderBottom: '1px solid var(--mui-palette-divider)',
       }}
     >
       <Container maxWidth="lg">
@@ -62,8 +72,14 @@ export default function FeaturesSection() {
                 sx={{
                   flexBasis: { xs: '100%', md: 'calc(50% - 16px)' }, 
                   flexGrow: 1,
+                  // Adicionamos display: flex aqui para o Paper preencher
+                  display: 'flex', 
                 }}
               >
+                <motion.div 
+                  variants={cardVariants} 
+                  style={{ width: '100%', display: 'flex' }} // Garante que preencha o Box pai
+                >
                 <Paper
                   variant="outlined"
                   sx={{
@@ -73,7 +89,7 @@ export default function FeaturesSection() {
                     backgroundColor: 'background.default',
                     // Adiciona transição suave para as propriedades transform e boxShadow
                     transition: (theme) => theme.transitions.create(['transform', 'box-shadow'], {
-                      duration: theme.transitions.duration.short, // Duração padrão do MUI
+                      duration: theme.transitions.duration.short, 
                     }),
                     // Estilos aplicados QUANDO o mouse está sobre o Paper
                     '&:hover': {
@@ -82,7 +98,7 @@ export default function FeaturesSection() {
                     },
                   }}
                 >
-                  {/* 2. ADICIONANDO EFEITO AO ÍCONE (AVATAR) */}
+                  {/* ADICIONANDO EFEITO AO ÍCONE (AVATAR) */}
                   <Avatar
                     sx={{
                       bgcolor: (theme) => `${theme.palette.accent.main}1A`,
@@ -110,11 +126,12 @@ export default function FeaturesSection() {
                     {card.description}
                   </Typography>
                 </Paper>
+                </motion.div> 
               </Box>
             );
           })}
         </Box>
-      </Container>
-    </Box>
+      </Container> 
+    </motion.section>
   );
 }
