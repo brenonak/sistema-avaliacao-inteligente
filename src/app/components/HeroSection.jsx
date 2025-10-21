@@ -56,7 +56,15 @@ export default function HeroSection() {
             variant="contained"
             size="large"
             disableElevation
-            endIcon={<ArrowForwardIcon />}
+            endIcon={
+              <Box component="span" sx={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center',  
+                  transition: 'transform 0.2s ease' 
+              }}>
+                <ArrowForwardIcon fontSize="inherit" />
+              </Box>
+            }
             sx={{ 
               textTransform: 'none',
               fontWeight: 600,
@@ -64,8 +72,24 @@ export default function HeroSection() {
               py: 1.5,
               backgroundColor: 'accent.dark',
               color: 'white', 
+              
+              // 1. MAIS ARREDONDADO
+              borderRadius: '24px', 
+              
+              // 2. TRANSIÇÃO SUAVE
+              transition: (theme) => theme.transitions.create(['transform', 'box-shadow', 'background-color'], {
+                duration: theme.transitions.duration.short,
+              }),
+              
               '&:hover': {
                 backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
+                // 3. EFEITO "SALTAR"
+                transform: 'scale(1.05) translateY(-2px)', 
+                boxShadow: (theme) => theme.shadows[4], 
+                
+                '& .MuiButton-endIcon > span': { 
+                  transform: 'translateX(4px)',
+                },
               },
             }}
           >
