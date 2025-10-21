@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const finalSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
     const finalSortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "desc";
     
-    const sortObject = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
+    const sortObject: Record<string, 1 | -1> = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
 
     // Parâmetro de busca
     const searchQuery = url.searchParams.get("search") || "";

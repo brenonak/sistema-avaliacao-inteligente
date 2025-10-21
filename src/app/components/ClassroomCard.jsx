@@ -16,6 +16,8 @@ export default function ClassroomCard(props) {
     teacherName, 
     cursoId, 
     onDelete,
+    cursoDescricao = '',
+    questoesCount,
     href = cursoId ? `/cursos/${cursoId}` : '#'
   } = props;
 
@@ -37,11 +39,21 @@ export default function ClassroomCard(props) {
                 {teacherName}
               </Typography>
             )}
+            {questoesCount !== undefined && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                {questoesCount} {questoesCount === 1 ? 'questão' : 'questões'}
+              </Typography>
+            )}
           </CardContent>
         </CardActionArea>
       </Link>
       <CardActions sx={{ justifyContent: 'flex-end' }}>
-        <CardOptionsButton cursoId={cursoId} onDelete={onDelete} />
+        <CardOptionsButton 
+          cursoId={cursoId} 
+          onDelete={onDelete}
+          cursoNome={classroomTitle}
+          cursoDescricao={cursoDescricao}
+        />
       </CardActions>
     </Card>
   );

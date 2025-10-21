@@ -28,22 +28,22 @@ export default function CriarCursoPage() {
     const payload = {
       nome: nome.trim(),
       descricao: descricao.trim(),
-      questoes: [], // Inicialmente vazio, questões serão adicionadas depois
     };
 
     try {
       setLoading(true);
-      
-      // Simular criação do curso
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Curso criado:', payload);
+      const res = await fetch('/api/cursos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || 'Erro ao criar curso!');
+      }
       alert('Curso criado com sucesso!');
-      
-      // Redirecionar para a página de cursos (como exemplo, já que não temos API)
       router.push('/cursos');
     } catch (e) {
-      console.error(e);
       alert(e.message || 'Erro ao criar curso.');
     } finally {
       setLoading(false);
