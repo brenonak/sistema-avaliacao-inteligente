@@ -103,12 +103,12 @@ function ImageUploadSection({ handleFileChange }) {
         </Typography>
 
         <Box sx={{ overflowY: "auto", maxHeight: 220 }}>
-          <Grid container spacing={1}>
+          <Grid container>
             {frequentImages.map((img) => {
               const isSelected = selectedImages.includes(img.id);
 
               return (
-                <Grid item xs={6} key={img.id}>
+                <Grid item size={6} pr={1} pb={1} key={img.id}>
                   <img
                     src={img.src}
                     alt={`imagem-${img.id}`}
