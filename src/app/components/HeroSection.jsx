@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, Typography, Button, darken } from '@mui/material';
+import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
 import Image from 'next/image';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -10,15 +11,26 @@ export default function HeroSection() {
   const { titlePrefix, titleHighlight, subtitle, ctaButton } = landingContent.hero;
 
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 16 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center', 
-          gap: { xs: 6, md: 8 }, 
-        }}
+    <motion.section 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }}   
+      transition={{ duration: 0.6, ease: "easeOut" }} 
+    >
+
+      <Box 
+        component="section" // Mantém a semântica de seção
+        id="hero"           // ID para navegação, se necessário
+        sx={{ py: { xs: 8, md: 16 } }} // Padding volta para o sx
       >
+        {/* 3. O Flex Container original, inalterado */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' }, 
+            alignItems: 'center', 
+            gap: { xs: 6, md: 8 }, 
+          }}
+        >
         
         {/* === Coluna da Esquerda (Texto) === */}
         <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
@@ -126,9 +138,9 @@ export default function HeroSection() {
               priority
             />
           </Box>
-        </Box>
-
+          </Box>
+        </Box> 
       </Box>
-    </Box>
+    </motion.section>
   );
 }
