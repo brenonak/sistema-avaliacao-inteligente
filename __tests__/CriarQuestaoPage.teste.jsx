@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import CriarQuestaoPage from '../src/app/questoes/criar/page';
+import CriarQuestaoPage from '../src/app/(app)/questoes/criar/page';
 
 // Mock para chamadas de API
 global.fetch = jest.fn();

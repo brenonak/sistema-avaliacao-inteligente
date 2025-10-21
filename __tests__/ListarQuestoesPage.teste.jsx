@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import ListarQuestoesPage from '../src/app/questoes/page'; 
+import ListarQuestoesPage from '../src/app/(app)/questoes/page'; 
 
 // Mock dos dados que a API retornaria
 const mockQuestoes = [
