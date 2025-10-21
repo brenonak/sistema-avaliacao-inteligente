@@ -32,7 +32,7 @@ export default function FeaturesSection() {
       whileInView="visible" 
       viewport={{ once: false, amount: 0.2 }} 
       transition={{ staggerChildren: 0.15 }} 
-      id="FeaturesSection"
+      id="features"
       style={{ 
         paddingTop: '128px', 
         paddingBottom: '128px', 
