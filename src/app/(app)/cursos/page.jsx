@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import ClassroomCard from '../components/ClassroomCard';
+import ClassroomCard from '../../components/ClassroomCard';
 import { 
   Box, 
   Typography, 
