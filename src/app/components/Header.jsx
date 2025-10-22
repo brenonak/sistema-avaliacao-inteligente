@@ -43,7 +43,7 @@ const Header = () => {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <Button
             component={Link}
-            href="/"
+            href="/dashboard"
             disableRipple
             sx={{
               color: 'text.primary',
@@ -162,11 +162,30 @@ const Header = () => {
             onClose={handleCloseUserMenu}
             disableScrollLock={true}
           >
-            {settings.map((setting) => (
-              <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
-              </MenuItem>
-            ))}
+            {settings.map((setting) => {
+              // Verifica se o item atual é "Sair"
+              if (setting === 'Sair') {
+                return (
+                  // Se for "Sair", renderiza como um Link
+                  <MenuItem 
+                    key={setting} 
+                    onClick={handleCloseUserMenu} // Fecha o menu ao clicar
+                    component={Link} // Usa o componente Link do Next.js
+                    href="/"         // Define o destino como a Landing Page
+                    sx={{ width: '100%' }}
+                  >
+                    <Typography sx={{ textAlign: 'center', width: '100%' }}>{setting}</Typography>
+                  </MenuItem>
+                );
+              } else {
+                // Para os outros itens, mantém o comportamento ainda não implementado
+                return (
+                  <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                    <Typography sx={{ textAlign: 'center', width: '100%' }}>{setting}</Typography>
+                  </MenuItem>
+                );
+              }
+            })}
           </Menu>
         </Box>
       </Toolbar>
