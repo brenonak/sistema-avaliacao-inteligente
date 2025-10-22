@@ -1,5 +1,6 @@
 "use client";
 
+import { Geist, Geist_Mono } from "next/font/google";
 // Removido Geist para padronizar em Roboto
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
@@ -55,6 +56,10 @@ let customTheme = createTheme({
     header: {
       main: alpha('#ffffff', 0.95),
     },
+
+    sidebar: {
+      main: '#ffffff',
+    }
   },
   colorSchemes: {
     dark: {
@@ -92,6 +97,9 @@ let customTheme = createTheme({
         header: {
           main: alpha('#000000', 0.80),
         },
+        sidebar: {
+          main: '#1e1e1e',
+        }
       },
     },
   },

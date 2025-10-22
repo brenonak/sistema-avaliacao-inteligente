@@ -11,7 +11,8 @@ import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import { useState } from 'react';
-import HeaderThemeSelector from './HeaderThemeSelector'; 
+import HeaderThemeSelector from './HeaderThemeSelector';
+import Divider from '@mui/material/Divider'; 
 
 const Header = () => {
   const settings = ['Perfil', 'Mudar de conta', 'Configurações', 'Sair'];
@@ -30,13 +31,13 @@ const Header = () => {
 
   return (
     <AppBar 
-      position='sticky' 
+      position='fixed' 
       elevation={0}
       sx={{
         backgroundColor: theme.palette.header.main,
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)', // Suporte para Safari
-        borderBottom: '1px solid divider',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
@@ -140,7 +141,7 @@ const Header = () => {
         </Box>
         <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
           <HeaderThemeSelector />
-          <Tooltip title="Open settings">
+          <Tooltip title="Configurações">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
             </IconButton>
@@ -189,6 +190,7 @@ const Header = () => {
           </Menu>
         </Box>
       </Toolbar>
+      <Divider />
     </AppBar>
   )
 }

@@ -31,6 +31,7 @@ import FileItem from '../../../components/FileItem';
 import AIButton from '../../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
+import ImageUploadSection from '../../../components/ImageUploadSection';
 
 function CriarQuestaoForm() {
   const searchParams = useSearchParams();
@@ -69,8 +70,6 @@ function CriarQuestaoForm() {
   const [arquivos, setArquivos] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
 
-  const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
@@ -93,18 +92,13 @@ function CriarQuestaoForm() {
     setSnackbar({ ...snackbar, open: false });
   }
 
-
-  const handleSetActiveImage = (file) => {
-    setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
-  };
-
   const showAIDevelopmentMessage = () => {
     setSnackbar({ open: true, message: 'Funcionalidade de IA em desenvolvimento.', severity: 'info' });
   }
 
 
   // Handlers para funcionalidades de IA (futuramente implementar)
-const handleGenerateEnunciadoWithAI = async () => {
+  const handleGenerateEnunciadoWithAI = async () => {
     // 1. Validação de entrada: precisa de tags para ter contexto
     if (cleanTags.length === 0) {
       setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
@@ -374,7 +368,6 @@ useEffect(() => {
 
   const handleClearForm = () => {
     setEnunciado('');
-    setTipo('alternativa');
     setAlternativas([
       { texto: '', correta: true },
       { texto: '', correta: false },
@@ -388,7 +381,6 @@ useEffect(() => {
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
     setProposicoes([{ texto: '', correta: false }]);
-    setActiveImage(null);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -562,11 +554,23 @@ useEffect(() => {
   };
 
   // manipula seleção de arquivos (sem upload imediato)
-  const handleFileChange = (event) => {
-    const files = Array.from(event.target.files || []);
+  const handleFileChange = (eventOrFiles) => {
+    let files = [];
+
+    // Se chamado por evento de input file
+    if (eventOrFiles?.target?.files) {
+      files = Array.from(eventOrFiles.target.files);
+    } else if (Array.isArray(eventOrFiles)) {
+      // Se chamado com o banco de imagens frequentes
+      files = eventOrFiles;
+    }
+
     if (files.length === 0) return;
+
     setArquivos((prev) => [...prev, ...files]);
   };
+
+
 
   return (
     <Box 
@@ -975,22 +979,10 @@ useEffect(() => {
           </Box>
         )}
 
-        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
-        <Button
-          component="label"
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-          mb={2}
-        >
-          Adicionar arquivo
-          <VisuallyHiddenInput
-            type="file"
-            onChange={handleFileChange}
-            multiple
-          />
-        </Button>
+        {/* BOTÕES DE UPLOAD DE ARQUIVO */}
+        <ImageUploadSection 
+          handleFileChange={handleFileChange}
+        />
 
         {/* Lista de arquivos adicionados */}
         {arquivos.map((file, index) => (
@@ -999,10 +991,7 @@ useEffect(() => {
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
-              if (activeImage === f) setActiveImage(null);
             }}
-            isActiveImage={activeImage === file}
-            onSetActiveImage={handleSetActiveImage}
           />
         ))}
 

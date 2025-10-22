@@ -7,9 +7,17 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Paper
+  Paper,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import { Save, Cancel } from '@mui/icons-material';
+import { set } from 'zod';
 
 export default function CriarCursoPage() {
   const router = useRouter();
@@ -17,11 +25,15 @@ export default function CriarCursoPage() {
   const [descricao, setDescricao] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (nome.trim() === '') {
-      alert('Por favor, preencha o nome do curso.');
+      setSnackbar({ open: true, message: 'Por favor, preencha o nome do curso.', severity: 'error' });
       return;
     }
 
@@ -41,24 +53,35 @@ export default function CriarCursoPage() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || 'Erro ao criar curso!');
       }
-      alert('Curso criado com sucesso!');
-      router.push('/cursos');
+      setSnackbar({ open: true, message: 'Curso criado com sucesso!', severity: 'success' });
+      setTimeout(() => {
+        router.push('/cursos');
+      }, 1500);
+
     } catch (e) {
-      alert(e.message || 'Erro ao criar curso.');
-    } finally {
+      setSnackbar({ open: true, message: e.message || 'Erro ao criar curso' ,severity: 'error' });
       setLoading(false);
-    }
+    } 
   };
 
   const handleCancel = () => {
     if (nome.trim() || descricao.trim()) {
-      if (confirm('Tem certeza que deseja cancelar? As informações não serão salvas.')) {
-        router.push('/cursos');
-      }
+      setDialogOpen(true);
     } else {
       router.push('/cursos');
     }
   };
+
+  const handleDialogClose = (confirm) => {
+    setDialogOpen(false);
+    if (confirm) {
+      router.push('/cursos');
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  }
 
   return (
     <Box 
@@ -143,6 +166,37 @@ export default function CriarCursoPage() {
           </Button>
         </Box>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => handleDialogClose(false)}
+      >
+        <DialogTitle>Descartar alterações?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Você tem alterações não salvas. Tem certeza que deseja descartar essas alterações e sair?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDialogClose(false)} color="primary">
+            Continuar Editando
+          </Button>
+          <Button onClick={() => handleDialogClose(true)} color="error" autoFocus>
+            Descartar e Sair
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 }
