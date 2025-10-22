@@ -31,7 +31,7 @@ import FileItem from '../../../components/FileItem';
 import AIButton from '../../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
-import ImageUploadSection from '../../components/ImageUploadSection';
+import ImageUploadSection from '../../../components/ImageUploadSection';
 
 function CriarQuestaoForm() {
   const searchParams = useSearchParams();
