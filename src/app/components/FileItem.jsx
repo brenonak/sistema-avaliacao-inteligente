@@ -70,7 +70,7 @@ const FileItem = ({ file, onExclude, isActiveImage, onSetActiveImage }) => {
         variant="outlined"
         size="small"
       />
-        <Tooltip title="Definir como imagem do enunciado">
+        <Tooltip title="Definir como imagem da questão">
           <span>
             <IconButton
               onClick={() => onSetActiveImage(file)}

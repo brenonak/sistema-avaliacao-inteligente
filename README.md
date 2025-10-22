@@ -9,12 +9,12 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 ## Status do Projeto
 
-- **Fase Atual:** Sprint 2 
+- **Fase Atual:** Sprint 3 
 - **Tasks:**
-    - Banco de questões
-    - Geração de Documento
-    - Banco de Recursos Frequentes
-
+    - Enunciados
+    - Landing Page
+    - Ortografia
+    - Sugestão de Alternativas Incorretas
 ---
 
 ## Funcionalidades

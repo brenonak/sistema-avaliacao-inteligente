@@ -15,26 +15,63 @@ export async function POST(request: NextRequest) {
 
     const client = new MongoClient(process.env.MONGODB_URI!); 
     let provaJson;
+    
     try {
       await client.connect();
       const database = client.db(process.env.MONGODB_DB); 
       const questoesCollection = database.collection("questoes");
+      const recursosCollection = database.collection("recursos");
 
-      // Por hora, é selecionada as 5 questões do topo. Futuramente, o usuário deve ser capaz de selecionar as questões manualmente.
+      // Buscar as 5 questões mais recentes
       const questoesDaProva = await questoesCollection
         .find()
-        .sort({ _id: -1 }) // Ordena por _id decrescente (mais recentes primeiro)
+        .sort({ _id: -1 })
         .limit(5)
         .toArray();
 
       if (questoesDaProva.length === 0) {
         throw new Error("Nenhuma questão foi encontrada no banco de dados.");
       }
+
+      // Buscar URLs dos recursos (imagens) para cada questão
+      const questoesComRecursos = await Promise.all(
+        questoesDaProva.map(async (questao) => {
+          // Se não há recursos, retorna a questão sem modificações
+          if (!questao.recursos || questao.recursos.length === 0) {
+            return questao;
+          }
+
+          try {
+            // Buscar os recursos no banco
+            const recursos = await recursosCollection
+              .find({ url: { $exists: true } })
+              .toArray();
+
+            // Filtrar apenas os recursos que pertencem a esta questão
+            const recursosFileNames = recursos
+              .filter(r => questao.recursos.includes(r._id.toString()) || questao.recursos.includes(r.url))
+              .map(r => r.file_name || r.filename || 'imagem.jpg'); // Usa file_name do MongoDB
+
+            return {
+              ...questao,
+              recursosFileNames // Adiciona array com nomes de arquivos do MongoDB
+            };
+          } catch (err) {
+            console.error(`Erro ao buscar recursos da questão ${questao._id}:`, err);
+            return questao; // Retorna questão sem recursos em caso de erro
+          }
+        })
+      );
+
       provaJson = {
-        titulo: "Prova de Conhecimentos Gerais (Gerada com Gemini)", // Deve ser incluido externamente quando houver a página dedicada de gerar provas
-        instrucoes: "Leia atentamente cada questão antes de responder.", // Deve ser incluido externamente quando houver a página dedicada de gerar provas
-        questoes: questoesDaProva,
+        titulo: "Prova de Conhecimentos Gerais (Gerada com Gemini)", // Futuramente, esses campos devem ser definidos na página de geração de provas
+        instrucoes: "Leia atentamente cada questão antes de responder.",
+        questoes: questoesComRecursos,
       };
+      
+      console.log(`Total de questões: ${questoesComRecursos.length}`);
+      console.log(`Questões com imagens: ${questoesComRecursos.filter(q => q.recursosFileNames && q.recursosFileNames.length > 0).length}`);
+      
     } finally {
       await client.close();
     }
@@ -46,6 +83,7 @@ export async function POST(request: NextRequest) {
       maxOutputTokens: 8192,
     });
 
+
     // Esqueleto do LaTeX fixo (início)
     const latexSkeletonStart = `
     \\documentclass[12pt, a4paper, addpoints]{exam}
@@ -56,6 +94,8 @@ export async function POST(request: NextRequest) {
     \\geometry{a4paper, left=30mm, right=20mm, top=30mm, bottom=20mm}
     \\usepackage{xcolor}
     \\usepackage{tikz}
+    \\usepackage{adjustbox}
+    \\usepackage{graphicx}
 
     % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
     \\renewcommand{\\thechoice}{\\Alph{choice}} % Usa A, B, C...
@@ -139,7 +179,11 @@ export async function POST(request: NextRequest) {
           * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{choices}}\` insira \`\\answerline\`.
           * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\`\\answerline\`** para o espaço de resposta.
       6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
-
+      7.  **Recursos (Imagens):** Se uma questão tiver imagens (nomes de arquivo em \`recursosFileNames\`), insira o seguinte código LaTeX **imediatamente após o enunciado da questão** para cada imagem:
+          \\begin{{center}}
+              \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}} % O ARQUIVO DEVE ESTAR NA MESMA PASTA DO TEX (OU CARREGADO NO OVERLEAF)
+          \\end{{center}}
+      8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
       **[JSON DA PROVA PARA CONVERSÃO]**
       \`\`\`json
       {prova_json}

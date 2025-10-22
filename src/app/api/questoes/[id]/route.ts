@@ -36,7 +36,7 @@ export async function PUT(
     const db = await getDb();
     const res = await db.collection("questoes").findOneAndUpdate(
       { _id },
-      { $set: { ...parsed.data, updatedAt: new Date() } },
+      { $set: { ...parsed.data, updatedAt: new Date(), ...(body.cursoIds ? { cursoIds: body.cursoIds } : {}) } },
       { returnDocument: "after" }
     );
     

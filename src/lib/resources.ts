@@ -32,39 +32,39 @@ export async function getRecursosCollection(): Promise<Collection<Recurso>> {
 
 async function createIndexes(collection: Collection<Recurso>): Promise<void> {
   try {
-    // Index for top resources query (usage.refCount DESC, updatedAt DESC)
-    await collection.createIndex(
-      { "usage.refCount": -1, "updatedAt": -1 },
-      { name: "usage_refCount_updatedAt" }
-    );
-    
-    // Index for chronological listing (createdAt DESC)
-    await collection.createIndex(
-      { "createdAt": -1 },
-      { name: "createdAt_desc" }
-    );
-    
-    // Unique index to prevent duplicate URLs
-    await collection.createIndex(
-      { "url": 1 },
-      { unique: true, name: "url_unique" }
-    );
-    
-    // Index for provider + key (alternative unique constraint)
-    await collection.createIndex(
-      { "provider": 1, "key": 1 },
-      { name: "provider_key" }
-    );
-    
-    console.log("✅ Recursos collection indexes created successfully");
-  } catch (error) {
-    // Index creation is idempotent, so we can safely ignore duplicate key errors
-    if (error instanceof Error && error.message.includes("already exists")) {
-      console.log("ℹRecursos collection indexes already exist");
-    } else {
-      console.error("Error creating recursos collection indexes:", error);
-      throw error;
+    // Garante que temos o índice básico por URL que é o mais importante
+    try {
+      await collection.createIndex(
+        { "url": 1 },
+        { unique: true, name: "url_unique" }
+      );
+    } catch (e) {
+      console.warn("Warning: Could not create/verify URL index:", e);
     }
+
+    // Tenta criar outros índices, mas não falha se der erro
+    try {
+      await collection.createIndex(
+        { "usage.refCount": -1, "updatedAt": -1 },
+        { name: "usage_refCount_updatedAt" }
+      );
+    } catch (e) {
+      console.warn("Warning: Could not create usage index:", e);
+    }
+
+    try {
+      await collection.createIndex(
+        { "createdAt": -1 },
+        { name: "createdAt_desc" }
+      );
+    } catch (e) {
+      console.warn("Warning: Could not create createdAt index:", e);
+    }
+    
+    console.log("✅ Essential indexes verified");
+  } catch (error) {
+    // Log error but don't throw to allow application to continue
+    console.error("Warning: Error verifying indexes:", error);
   }
 }
 
