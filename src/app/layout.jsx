@@ -1,21 +1,13 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import Overlay from "./components/Overlay";
+// Removido Geist para padronizar em Roboto
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, responsiveFontSizes, ThemeProvider, alpha } from '@mui/material/styles';
+import { Analytics } from "@vercel/analytics/next"; // Adicionando a importação do Analytics
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 let customTheme = createTheme({
   cssVariables: {
@@ -57,6 +49,7 @@ let customTheme = createTheme({
 
     accent: {
       main: '#1e88e5', 
+      dark: '#0D47A1',
       contrastText: '#ffffff',
     },
     
@@ -124,12 +117,12 @@ const roboto = Roboto({
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-br" className={roboto.variable}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      {/* Removido as classes do Geist do body */}
+      <body className="antialiased">
         <AppRouterCacheProvider>
           <ThemeProvider theme={customTheme}>
-            <Overlay content={children}/>
+            {children}
+            <Analytics /> {/* Adicionando o componente Analytics antes de fechar o body */}
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

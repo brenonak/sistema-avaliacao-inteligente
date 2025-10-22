@@ -1,5 +1,5 @@
-import { GalleryGrid } from "../components/gallery-grid"
-import { UploadButton } from "../components/upload-button"
+import { GalleryGrid } from "../../components/gallery-grid"
+import { UploadButton } from "../../components/upload-button"
 import { Container, Box, Typography, Paper, Divider } from "@mui/material"
 import { Collections as GalleryIcon } from "@mui/icons-material"
 
