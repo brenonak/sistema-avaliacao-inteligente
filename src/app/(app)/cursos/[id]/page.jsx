@@ -51,6 +51,12 @@ export default function CursoDetalhesPage() {
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para o diálogo de edição do curso
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editDescricao, setEditDescricao] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     fetchCurso();
@@ -217,6 +223,55 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const handleOpenEditDialog = () => {
+    setEditNome(curso.nome || '');
+    setEditDescricao(curso.descricao || '');
+    setOpenEditDialog(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editNome.trim()) {
+      alert('O nome do curso é obrigatório');
+      return;
+    }
+
+    setLoadingEdit(true);
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: editNome.trim(),
+          descricao: editDescricao.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao atualizar curso');
+      }
+
+      const updatedCurso = await res.json();
+      
+      // Atualizar o estado local com os novos dados
+      setCurso(prevCurso => ({
+        ...prevCurso,
+        nome: updatedCurso.nome,
+        descricao: updatedCurso.descricao,
+      }));
+      
+      setOpenEditDialog(false);
+      alert('Curso atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar curso:', error);
+      alert(error.message || 'Erro ao atualizar curso. Tente novamente.');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
   const filteredQuestoes = questoesDisponiveis.filter(q => 
     q.enunciado?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     q.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -271,6 +326,14 @@ export default function CursoDetalhesPage() {
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<Edit />}
+                onClick={handleOpenEditDialog}
+              >
+                Editar Curso
+              </Button>
               <Button
                 variant="outlined"
                 color="error"
@@ -484,6 +547,49 @@ export default function CursoDetalhesPage() {
             disabled={selectedQuestoes.length === 0}
           >
             Adicionar Selecionadas
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Edição do Curso */}
+      <Dialog
+        open={openEditDialog}
+        onClose={() => !loadingEdit && setOpenEditDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Editar Curso</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Nome do Curso"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={editNome}
+            onChange={(e) => setEditNome(e.target.value)}
+            sx={{ mb: 2, mt: 1 }}
+            required
+          />
+          <TextField
+            margin="dense"
+            label="Descrição"
+            type="text"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={3}
+            value={editDescricao}
+            onChange={(e) => setEditDescricao(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)} disabled={loadingEdit}>
+            Cancelar
+          </Button>
+          <Button onClick={handleEditSave} variant="contained" disabled={loadingEdit}>
+            {loadingEdit ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
