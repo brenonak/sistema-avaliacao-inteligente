@@ -80,6 +80,28 @@ export default function CursoDetalhesPage() {
       }
       
       const data = await res.json();
+      
+      // Para cada questão, se houver recurso por ID, buscar a URL
+      if (data.questoes && data.questoes.length > 0) {
+        const questoesWithResourceUrl = await Promise.all(
+          data.questoes.map(async (q) => {
+            try {
+              const firstResourceId = Array.isArray(q.recursos) && q.recursos.length > 0 ? q.recursos[0] : null;
+              if (!firstResourceId) return q;
+              const r = await fetch(`/api/resources/${firstResourceId}`);
+              if (!r.ok) return q;
+              const rjson = await r.json();
+              const url = rjson?.resource?.url;
+              if (!url) return q;
+              return { ...q, recursoUrl: url };
+            } catch (_) {
+              return q;
+            }
+          })
+        );
+        data.questoes = questoesWithResourceUrl;
+      }
+      
       setCurso(data);
       setLoading(false);
     } catch (err) {
@@ -397,17 +419,34 @@ export default function CursoDetalhesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
                         {index + 1}. {questao.enunciado}
                       </Typography>
+                      
+                      {/* Exibir recurso associado (imagem) se houver */}
+                      {questao.recursoUrl && (
+                        <Box
+                          component="img"
+                          src={questao.recursoUrl}
+                          alt="Recurso da questão"
+                          sx={{
+                            width: '100%',
+                            maxHeight: 300,
+                            objectFit: 'contain',
+                            borderRadius: 1,
+                            mb: 2,
+                            backgroundColor: 'background.default'
+                          }}
+                        />
+                      )}
                       
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <Chip 
                           label={questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
                                  questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
-                                 questao.tipo === 'proposicoes' ? 'Somatório' : 
+                                 questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
                                  questao.tipo === 'dissertativa' ? 'Dissertativa' : 
-                                 questao.tipo === 'numerica' ? 'Numérica' : questao.tipo}
+                                 questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
                           size="small"
                           color="primary"
                         />
@@ -416,20 +455,86 @@ export default function CursoDetalhesPage() {
                         ))}
                       </Box>
 
-                      {/* Preview das alternativas/afirmações */}
-                      {questao.alternativas && questao.alternativas.length > 0 && (
-                        <Box sx={{ pl: 2 }}>
-                          {questao.alternativas.slice(0, 2).map((alt, idx) => (
-                            <Typography key={idx} variant="body2" sx={{ color: 'text.secondary' }}>
-                              {alt.letra}) {alt.texto.substring(0, 50)}{alt.texto.length > 50 ? '...' : ''}
-                            </Typography>
-                          ))}
-                          {questao.alternativas.length > 2 && (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                              +{questao.alternativas.length - 2} alternativas
-                            </Typography>
-                          )}
+                      {/* Exibir resposta numérica se for questão numérica */}
+                      {questao.tipo === 'numerica' && (
+                        <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                            Resposta correta: {questao.respostaCorreta}
+                            {questao.margemErro > 0 && ` (± ${questao.margemErro})`}
+                          </Typography>
                         </Box>
+                      )}
+                      
+                      {/* Exibir gabarito para questões dissertativas */}
+                      {questao.tipo === 'dissertativa' && questao.gabarito && (
+                        <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                            Gabarito: {questao.gabarito}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {/* Exibir alternativas completas para questões de múltipla escolha */}
+                      {questao.tipo === 'alternativa' && questao.alternativas && questao.alternativas.length > 0 && (
+                        <List dense>
+                          {questao.alternativas.map((alt, idx) => (
+                            <ListItem key={idx} sx={{ pl: 2 }}>
+                              <ListItemText
+                                primary={`${alt.letra || String.fromCharCode(65 + idx)}) ${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                                sx={{
+                                  '& .MuiListItemText-primary': {
+                                    fontWeight: alt.correta ? 'bold' : 'normal',
+                                    color: alt.correta ? 'success.main' : 'text.secondary'
+                                  }
+                                }}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+
+                      {/* Exibir afirmações (V ou F) com gabarito */}
+                      {questao.tipo === 'afirmacoes' && Array.isArray(questao.afirmacoes) && (
+                        <List dense>
+                          {questao.afirmacoes.map((af, idx) => (
+                            <ListItem key={idx} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                              <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary' }}>
+                                {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][idx] || (idx + 1)}.
+                              </Typography>
+                              <Typography sx={{ mr: 1, fontWeight: 'bold', color: af.correta ? 'success.main' : 'error.main' }}>
+                                ({af.correta ? 'V' : 'F'})
+                              </Typography>
+                              <ListItemText primary={af.texto} />
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+
+                      {/* Exibir proposições (somatório) com valor e gabarito */}
+                      {questao.tipo === 'proposicoes' && Array.isArray(questao.proposicoes) && (
+                        <>
+                          <List dense>
+                            {questao.proposicoes.map((p, idx) => (
+                              <ListItem key={idx} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                                <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'monospace' }}>
+                                  {String(p.valor).padStart(2, '0')}
+                                </Typography>
+                                <Typography sx={{ mr: 1, fontWeight: 'bold', color: p.correta ? 'success.main' : 'error.main' }}>
+                                  ({p.correta ? 'V' : 'F'})
+                                </Typography>
+                                <ListItemText primary={p.texto} />
+                              </ListItem>
+                            ))}
+                          </List>
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Gabarito (Soma):{' '}
+                              <Typography component="span" sx={{ color: 'success.main' }}>
+                                {questao.proposicoes.reduce((acc, p) => acc + (p.correta ? (Number(p.valor) || 0) : 0), 0)}
+                              </Typography>
+                            </Typography>
+                          </Box>
+                        </>
                       )}
                     </Box>
 
@@ -437,6 +542,7 @@ export default function CursoDetalhesPage() {
                       color="error"
                       onClick={() => handleRemoveQuestao(questao.id)}
                       title="Remover do curso"
+                      sx={{ ml: 2 }}
                     >
                       <Delete />
                     </IconButton>
