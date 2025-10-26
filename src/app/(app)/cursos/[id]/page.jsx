@@ -604,13 +604,14 @@ export default function CursoDetalhesPage() {
                 <ListItem
                   key={questao.id}
                   dense
-                  button
+                  component="div"
                   onClick={() => handleToggleQuestao(questao.id)}
                   sx={{
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 1,
                     mb: 1,
+                    cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'action.hover',
                     },
@@ -623,6 +624,7 @@ export default function CursoDetalhesPage() {
                   />
                   <ListItemText
                     primary={questao.enunciado}
+                    secondaryTypographyProps={{ component: 'div' }}
                     secondary={
                       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
                         <Chip label={questao.tipo} size="small" />
