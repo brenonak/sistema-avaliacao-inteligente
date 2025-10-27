@@ -20,12 +20,14 @@ import {
   useTheme,
   useMediaQuery
 } from "@mui/material"
-import { Delete as DeleteIcon } from "@mui/icons-material"
+import { Delete as DeleteIcon, Edit as EditIcon } from "@mui/icons-material"
 
 export function GalleryGrid() {
   const [images, setImages] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingUrl, setDeletingUrl] = useState(null)
+  const [editingImage, setEditingImage] = useState(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchImages()
@@ -85,6 +87,42 @@ export function GalleryGrid() {
       setIsLoading(false);
     }
   }
+
+  const handleUpdateFilename = async () => {
+    if (!editingImage) return;
+
+    try {
+      const response = await fetch("/api/recursos/rename", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: editingImage.url,
+          newFilename: editingImage.pathname
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update filename");
+      }
+
+      // Update the image in the state
+      setImages((prev) =>
+        prev.map((img) =>
+          img.url === editingImage.url
+            ? { ...img, pathname: editingImage.pathname }
+            : img
+        )
+      );
+
+      setIsEditDialogOpen(false);
+      setEditingImage(null);
+    } catch (error) {
+      console.error("Error updating filename:", error);
+      alert("Erro ao atualizar o nome do arquivo. Tente novamente.");
+    }
+  };
 
   const handleDelete = async (url) => {
     if (!confirm("Tem certeza que deseja excluir esta foto?")) return
@@ -157,94 +195,157 @@ export function GalleryGrid() {
   };
 
   return (
-    <ImageList 
-      variant="standard" 
-      cols={getCols()} 
-      gap={24}
-      sx={{
-        // Remove o espaçamento padrão do ImageList
-        m: 0,
-        // Adiciona animação suave na transição do layout
-        '& .MuiImageListItem-root': {
-          transition: 'all 0.3s ease-in-out'
-        }
-      }}
-    >
-      {images.map((image) => (
-        <ImageListItem 
-          key={image.url}
-          sx={{
-            borderRadius: 1,
-            overflow: 'hidden',
-            boxShadow: 1,
-            '&:hover': {
-              boxShadow: 3,
-              '& .overlay': {
-                opacity: 1
-              }
-            }
-          }}
-        >
-          <Image
-            src={image.url}
-            alt={image.pathname}
-            width={500}
-            height={500}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transform: 'scale(1)',
-              transition: 'transform 0.3s ease-in-out'
-            }}
-          />
-          
-          {/* Overlay com botão de delete e data */}
-          <Box
-            className="overlay"
+    <>
+      <ImageList 
+        variant="standard" 
+        cols={getCols()} 
+        gap={24}
+        sx={{
+          // Remove o espaçamento padrão do ImageList
+          m: 0,
+          // Adiciona animação suave na transição do layout
+          '& .MuiImageListItem-root': {
+            transition: 'all 0.3s ease-in-out'
+          }
+        }}
+      >
+        {images.map((image) => (
+          <ImageListItem 
+            key={image.url}
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bgcolor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              opacity: 0,
-              transition: 'opacity 0.3s ease-in-out',
-              p: 2
+              borderRadius: 1,
+              overflow: 'hidden',
+              boxShadow: 1,
+              '&:hover': {
+                boxShadow: 3,
+                '& .overlay': {
+                  opacity: 1
+                }
+              }
             }}
           >
-            <IconButton
-              onClick={() => handleDelete(image.url)}
-              disabled={deletingUrl === image.url}
-              sx={{
-                bgcolor: 'background.paper',
-                '&:hover': {
-                  bgcolor: 'background.default'
-                }
-              }}
-            >
-              <DeleteIcon />
-            </IconButton>
-
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'white',
+            <Image
+              src={image.url}
+              alt={image.pathname}
+              width={500}
+              height={500}
+              style={{
                 width: '100%',
-                textAlign: 'center',
-                mt: 1
+                height: '100%',
+                objectFit: 'cover',
+                transform: 'scale(1)',
+                transition: 'transform 0.3s ease-in-out'
+              }}
+            />
+            
+            {/* Overlay com botão de delete e data */}
+            <Box
+              className="overlay"
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bgcolor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                opacity: 0,
+                transition: 'opacity 0.3s ease-in-out',
+                p: 2
               }}
             >
-              {new Date(image.uploadedAt).toLocaleDateString("pt-BR")}
-            </Typography>
-          </Box>
-        </ImageListItem>
-      ))}
-    </ImageList>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <IconButton
+                  onClick={() => handleDelete(image.url)}
+                  disabled={deletingUrl === image.url}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'background.default'
+                    }
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+                <IconButton
+                  onClick={() => {
+                    setEditingImage(image);
+                    setIsEditDialogOpen(true);
+                  }}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'background.default'
+                    }
+                  }}
+                >
+                  <EditIcon />
+                </IconButton>
+              </Box>
+
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'white',
+                  width: '100%',
+                  textAlign: 'center',
+                  mt: 1
+                }}
+              >
+                {new Date(image.uploadedAt).toLocaleDateString("pt-BR")}
+              </Typography>
+            </Box>
+          </ImageListItem>
+        ))}
+      </ImageList>
+
+      <Dialog 
+        open={isEditDialogOpen} 
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingImage(null);
+        }}
+      >
+        <DialogTitle>Editar nome do arquivo</DialogTitle>
+        <DialogContent>
+          <input
+            type="text"
+            value={editingImage?.pathname || ''}
+            onChange={(e) => {
+              setEditingImage({
+                ...editingImage,
+                pathname: e.target.value
+              });
+            }}
+            style={{
+              width: '100%',
+              padding: '8px',
+              marginTop: '8px',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setIsEditDialogOpen(false);
+              setEditingImage(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={() => handleUpdateFilename()} 
+            variant="contained"
+          >
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
