@@ -192,182 +192,166 @@ export default function CriarProvaPage() {
 
       {/* Formulário */}
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          {/* Informações Básicas */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Info sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Informações Básicas
-                  </Typography>
-                </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Informações da Prova */}
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Info sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Informações
+                </Typography>
+              </Box>
 
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      required
-                      label="Título da Prova"
-                      placeholder="Ex: Prova Bimestral - Matemática"
-                      value={formData.titulo}
-                      onChange={handleChange('titulo')}
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      required
-                      label="Instruções"
-                      placeholder="Ex: Leia atentamente cada questão antes de responder. Use caneta azul ou preta..."
-                      value={formData.instrucoes}
-                      onChange={handleChange('instrucoes')}
-                      variant="outlined"
-                      multiline
-                      rows={4}
-                    />
-                  </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Título da Prova"
+                    placeholder="Ex: Prova Bimestral - Matemática"
+                    value={formData.titulo}
+                    onChange={handleChange('titulo')}
+                    variant="outlined"
+                    multiline
+                    rows={4}
+                  />
                 </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Instruções"
+                    placeholder="Ex: Leia atentamente cada questão antes de responder. Use caneta azul ou preta..."
+                    value={formData.instrucoes}
+                    onChange={handleChange('instrucoes')}
+                    variant="outlined"
+                    multiline
+                    rows={4}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Observações"
+                    placeholder="Ex: Prova sem consulta. Calculadora permitida..."
+                    value={formData.observacoes}
+                    onChange={handleChange('observacoes')}
+                    variant="outlined"
+                    multiline
+                    rows={4}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
           {/* Cabeçalho da Prova */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <School sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Dados do Cabeçalho
-                  </Typography>
-                </Box>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <School sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Dados do Cabeçalho
+                </Typography>
+              </Box>
 
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Nome da Escola/Instituição"
-                      placeholder="Ex: Universidade Federal de São Paulo"
-                      value={formData.nomeEscola}
-                      onChange={handleChange('nomeEscola')}
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Disciplina"
-                      placeholder="Ex: Cálculo I"
-                      value={formData.disciplina}
-                      onChange={handleChange('disciplina')}
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Nome do Professor"
-                      placeholder="Ex: Prof. Dr. João Silva"
-                      value={formData.professor}
-                      onChange={handleChange('professor')}
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Data"
-                      type="date"
-                      value={formData.data}
-                      onChange={handleChange('data')}
-                      variant="outlined"
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Duração"
-                      placeholder="Ex: 2 horas"
-                      value={formData.duracao}
-                      onChange={handleChange('duracao')}
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Valor Total"
-                      placeholder="Ex: 10,0 pontos"
-                      value={formData.valorTotal}
-                      onChange={handleChange('valorTotal')}
-                      variant="outlined"
-                    />
-                  </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nome da Escola/Instituição"
+                    placeholder="Ex: Universidade Federal de São Paulo"
+                    value={formData.nomeEscola}
+                    onChange={handleChange('nomeEscola')}
+                    variant="outlined"
+                  />
                 </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
 
-          {/* Observações Adicionais */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Description sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Informações Adicionais
-                  </Typography>
-                </Box>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Disciplina"
+                    placeholder="Ex: Cálculo I"
+                    value={formData.disciplina}
+                    onChange={handleChange('disciplina')}
+                    variant="outlined"
+                  />
+                </Grid>
 
-                <TextField
-                  fullWidth
-                  label="Observações"
-                  placeholder="Ex: Prova sem consulta. Calculadora permitida..."
-                  value={formData.observacoes}
-                  onChange={handleChange('observacoes')}
-                  variant="outlined"
-                  multiline
-                  rows={3}
-                />
-              </CardContent>
-            </Card>
-          </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nome do Professor"
+                    placeholder="Ex: Prof. Dr. João Silva"
+                    value={formData.professor}
+                    onChange={handleChange('professor')}
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Data"
+                    type="date"
+                    value={formData.data}
+                    onChange={handleChange('data')}
+                    variant="outlined"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Duração"
+                    placeholder="Ex: 2 horas"
+                    value={formData.duracao}
+                    onChange={handleChange('duracao')}
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Valor Total"
+                    placeholder="Ex: 10,0 pontos"
+                    value={formData.valorTotal}
+                    onChange={handleChange('valorTotal')}
+                    variant="outlined"
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
           {/* Botões de Ação */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={handleVoltar}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-                disabled={loading}
-              >
-                {loading ? 'Gerando Prova...' : 'Gerar Prova'}
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={handleVoltar}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+              disabled={loading}
+            >
+              {loading ? 'Gerando Prova...' : 'Gerar Prova'}
+            </Button>
+          </Box>
+        </Box>
       </form>
     </Box>
   );
