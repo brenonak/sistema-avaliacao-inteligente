@@ -391,7 +391,7 @@ export default function CursoDetalhesPage() {
             >
               Adicionar Questões Existentes
             </Button>
-            <Link href={`/questoes/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+            <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
               <Button
                 variant="contained"
                 color="primary"
