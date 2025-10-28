@@ -348,7 +348,7 @@ export default function CriarProvaPage() {
               startIcon={loading ? <CircularProgress size={20} /> : <Save />}
               disabled={loading}
             >
-              {loading ? 'Gerando Prova...' : 'Gerar Prova'}
+              {loading ? 'Gravando Prova...' : 'Gravar Prova'}
             </Button>
           </Box>
         </Box>
