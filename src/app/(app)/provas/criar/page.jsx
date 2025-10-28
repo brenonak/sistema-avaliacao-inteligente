@@ -83,48 +83,30 @@ export default function CriarProvaPage() {
     setError(null);
 
     try {
-      // Chamar API para gerar prova
-      const response = await fetch('/api/gerar-prova', {
+      // Salvar prova no banco de dados
+      if (!cursoId) {
+        setError('É necessário estar em um curso para criar uma prova');
+        setLoading(false);
+        return;
+      }
+
+      const saveResponse = await fetch(`/api/cursos/${cursoId}/provas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          cursoId: cursoId || null,
-        }),
+        body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao gerar prova');
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.message || 'Erro ao salvar prova');
       }
 
-      const result = await response.json();
-      
       setSuccess(true);
       
-      // Criar um blob e fazer download do arquivo LaTeX
-      if (result.latexContent) {
-        const blob = new Blob([result.latexContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = result.fileName || 'prova.tex';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-
-      // Redirecionar após 2 segundos
-      setTimeout(() => {
-        if (cursoId) {
-          router.push(`/cursos/${cursoId}`);
-        } else {
-          router.push('/cursos');
-        }
-      }, 2000);
+      // Redirecionar imediatamente
+      router.push(`/cursos/${cursoId}`);
 
     } catch (err) {
       console.error('Erro ao criar prova:', err);
@@ -186,7 +168,7 @@ export default function CriarProvaPage() {
 
       {success && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Prova gerada com sucesso! O arquivo LaTeX foi baixado. Redirecionando...
+          Prova salva com sucesso! Redirecionando...
         </Alert>
       )}
 

@@ -34,7 +34,8 @@ import {
   Clear,
   QuestionAnswer,
   School,
-  Assignment
+  Assignment,
+  Description
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -45,6 +46,10 @@ export default function CursoDetalhesPage() {
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Estados para provas
+  const [provas, setProvas] = useState([]);
+  const [loadingProvas, setLoadingProvas] = useState(false);
   
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -61,6 +66,7 @@ export default function CursoDetalhesPage() {
 
   useEffect(() => {
     fetchCurso();
+    fetchProvas();
   }, [cursoId]);
 
   const fetchCurso = async () => {
@@ -109,6 +115,42 @@ export default function CursoDetalhesPage() {
       console.error('Erro ao buscar curso:', err);
       setError(err.message || 'Erro desconhecido');
       setLoading(false);
+    }
+  };
+
+  const fetchProvas = async () => {
+    try {
+      setLoadingProvas(true);
+      const res = await fetch(`/api/cursos/${cursoId}/provas`);
+      if (!res.ok) throw new Error('Erro ao carregar provas');
+      const data = await res.json();
+      setProvas(data.items || []);
+    } catch (err) {
+      console.error('Erro ao buscar provas:', err);
+      setProvas([]);
+    } finally {
+      setLoadingProvas(false);
+    }
+  };
+
+  const handleDeleteProva = async (provaId) => {
+    if (!confirm('Tem certeza que deseja excluir esta prova?')) return;
+
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}/provas/${provaId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao excluir prova');
+      }
+
+      alert('Prova excluída com sucesso!');
+      fetchProvas();
+    } catch (error) {
+      console.error('Erro ao excluir prova:', error);
+      alert(error.message || 'Erro ao excluir prova');
     }
   };
 
@@ -374,6 +416,113 @@ export default function CursoDetalhesPage() {
             </Typography>
           )}
         </Paper>
+      </Box>
+
+      {/* Provas do Curso */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+            Provas ({provas.length})
+          </Typography>
+          <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+            >
+              Criar Nova Prova
+            </Button>
+          </Link>
+        </Box>
+
+        {loadingProvas ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : provas.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Description sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+              Nenhuma prova criada ainda.
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Crie uma prova para este curso.
+            </Typography>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {provas.map((prova, index) => (
+              <Card key={prova.id || index} sx={{ backgroundColor: 'background.paper' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                        {prova.titulo}
+                      </Typography>
+                      
+                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                        {prova.instrucoes}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+                        {prova.disciplina && (
+                          <Chip 
+                            label={`Disciplina: ${prova.disciplina}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.professor && (
+                          <Chip 
+                            label={`Professor: ${prova.professor}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.data && (
+                          <Chip 
+                            label={`Data: ${prova.data}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.duracao && (
+                          <Chip 
+                            label={`Duração: ${prova.duracao}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.valorTotal && (
+                          <Chip 
+                            label={`Valor: ${prova.valorTotal}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+
+                      {prova.observacoes && (
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', mt: 1 }}>
+                          Obs: {prova.observacoes}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDeleteProva(prova.id)}
+                      title="Excluir prova"
+                      sx={{ ml: 2 }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
       </Box>
 
       {/* Questões do Curso */}
