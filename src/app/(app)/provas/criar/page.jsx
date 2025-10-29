@@ -120,7 +120,7 @@ export default function CriarProvaPage() {
         return;
       }
 
-      // 🔥 Envia os IDs reais das questões
+      // Envia os IDs reais das questões
       const questoesSelecionadas = selectedQuestoes.map(qId => {
         const questao = questoes.find(q => (q._id || q.id) === qId);
         return questao?._id || qId;
@@ -133,7 +133,7 @@ export default function CriarProvaPage() {
         },
         body: JSON.stringify({
           ...formData,
-          questoesSelecionadas, // 🔥 agora contém os _id reais
+          questoesSelecionadas, // Contém os _id reais
         }),
       });
 
