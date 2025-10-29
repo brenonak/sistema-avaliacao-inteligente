@@ -84,7 +84,7 @@ export default function HowItWorksSection() {
                 component="div"
                 sx={{
                   fontWeight: 'bold',
-                  color: (theme) => alpha(theme.palette.accent.main, 0.2),
+                  color: (theme) => alpha(theme.palette.accent.main, 0.6),
                   lineHeight: 1,
                   mb: 2,
                 }}
