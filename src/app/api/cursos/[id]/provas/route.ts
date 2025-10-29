@@ -1,6 +1,6 @@
 import { getDb } from "../../../../../lib/mongodb";
 import { json, notFound, badRequest, serverError } from "../../../../../lib/http";
-import { ObjectId } from "mongodb";
+import { ObjectId, Document } from "mongodb";
 
 function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!_id) return badRequest("id inválido");
     
     const body = await request.json();
-    const { titulo, instrucoes, nomeEscola, disciplina, professor, data, duracao, valorTotal, observacoes } = body;
+    const { titulo, instrucoes, nomeEscola, disciplina, professor, data, duracao, valorTotal, observacoes, questoesSelecionadas } = body;
     
     if (!titulo || !instrucoes) {
       return badRequest("Título e instruções são obrigatórios");
@@ -24,6 +24,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Verificar se o curso existe
     const curso = await db.collection("cursos").findOne({ _id });
     if (!curso) return notFound("curso não encontrado");
+
+    // Buscar questões do curso que foram selecionadas
+    const questoesIds = (questoesSelecionadas || [])
+      .map(oid)
+      .filter(Boolean); // remove IDs inválidos
+
+    let questoes: Document[] = [];
+    if (questoesIds.length > 0) {
+      questoes = await db.collection("questoes")
+        .find({ _id: { $in: questoesIds }, cursoIds: id })
+        .toArray();
+    }
     
     // Criar documento da prova
     const prova = {
@@ -37,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       duracao: duracao || '',
       valorTotal: valorTotal || '',
       observacoes: observacoes || '',
+      questoes,
       criadoEm: new Date(),
     };
     
