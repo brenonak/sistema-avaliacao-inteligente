@@ -7,7 +7,6 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, responsiveFontSizes, ThemeProvider, alpha } from '@mui/material/styles';
 import { Analytics } from "@vercel/analytics/next"; // Adicionando a importação do Analytics
-import { ThemeProvider } from '@mui/material/styles';
 import AuthProvider from './components/AuthProvider';
 
 
@@ -109,6 +108,14 @@ let customTheme = createTheme({
 
 customTheme = responsiveFontSizes(customTheme);
 
+
+const roboto = Roboto({
+  weight: ['300', '400', '500', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto',
+});
+
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-br" className={roboto.variable}>
@@ -126,26 +133,3 @@ export default function RootLayout({ children }) {
   );
 }
 
-
-const roboto = Roboto({
-  weight: ['300', '400', '500', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-roboto',
-});
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="pt-br" className={roboto.variable}>
-      {/* Removido as classes do Geist do body */}
-      <body className="antialiased">
-        <AppRouterCacheProvider>
-          <ThemeProvider theme={customTheme}>
-            {children}
-            <Analytics /> {/* Adicionando o componente Analytics antes de fechar o body */}
-          </ThemeProvider>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
-  );
-}
