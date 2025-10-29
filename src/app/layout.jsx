@@ -95,7 +95,7 @@ let customTheme = createTheme({
           contrastText: '#000000',
         },
         header: {
-          main: alpha('#000000', 0.80),
+          main: alpha('#1e1e1e', 0.95),
         },
         sidebar: {
           main: '#1e1e1e',

@@ -14,7 +14,7 @@ const LandingPageHeader = () => {
       color="transparent"
       elevation={0}
       sx={{
-        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.75), 
+        backgroundColor: 'var(--mui-palette-header-main)',
         backdropFilter: 'blur(10px)',
         borderBottom: 1,
         borderColor: 'divider',
