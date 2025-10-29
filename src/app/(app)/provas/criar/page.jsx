@@ -15,6 +15,11 @@ import {
   Divider,
   Card,
   CardContent,
+  List,
+  ListItem,
+  ListItemText,
+  Checkbox,
+  Chip,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -48,6 +53,11 @@ export default function CriarProvaPage() {
     observacoes: '',
   });
 
+  // Estado para questões do curso
+  const [questoes, setQuestoes] = useState([]);
+  const [loadingQuestoes, setLoadingQuestoes] = useState(false);
+  const [selectedQuestoes, setSelectedQuestoes] = useState([]);
+
   useEffect(() => {
     // Pré-preencher o nome da disciplina com o nome do curso, se disponível
     if (cursoNome) {
@@ -58,6 +68,20 @@ export default function CriarProvaPage() {
     }
   }, [cursoNome]);
 
+  // Buscar questões do curso
+  useEffect(() => {
+    if (!cursoId) return;
+    setLoadingQuestoes(true);
+
+    fetch(`/api/cursos/${cursoId}/questoes`)
+      .then(res => res.json())
+      .then(data => {
+        setQuestoes(data.items || []);
+      })
+      .catch(() => setError('Erro ao carregar questões do curso.'))
+      .finally(() => setLoadingQuestoes(false));
+  }, [cursoId]);
+
   const handleChange = (field) => (event) => {
     setFormData({
       ...formData,
@@ -65,9 +89,16 @@ export default function CriarProvaPage() {
     });
   };
 
+  // Marcar e desmarcar questões
+  const handleToggleQuestao = (id) => {
+    setSelectedQuestoes((prev) =>
+      prev.includes(id) ? prev.filter(q => q !== id) : [...prev, id]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validação básica
     if (!formData.titulo.trim()) {
       setError('O título da prova é obrigatório');
@@ -83,19 +114,27 @@ export default function CriarProvaPage() {
     setError(null);
 
     try {
-      // Salvar prova no banco de dados
       if (!cursoId) {
         setError('É necessário estar em um curso para criar uma prova');
         setLoading(false);
         return;
       }
 
+      // Envia os IDs reais das questões
+      const questoesSelecionadas = selectedQuestoes.map(qId => {
+        const questao = questoes.find(q => (q._id || q.id) === qId);
+        return questao?._id || qId;
+      });
+
       const saveResponse = await fetch(`/api/cursos/${cursoId}/provas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          questoesSelecionadas, // Contém os _id reais
+        }),
       });
 
       if (!saveResponse.ok) {
@@ -104,10 +143,8 @@ export default function CriarProvaPage() {
       }
 
       setSuccess(true);
-      
-      // Redirecionar imediatamente
-      router.push(`/cursos/${cursoId}`);
 
+      router.push(`/cursos/${cursoId}`);
     } catch (err) {
       console.error('Erro ao criar prova:', err);
       setError(err.message || 'Erro ao criar prova. Tente novamente.');
@@ -310,6 +347,88 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Questões da Prova */}
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Description sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Questões da Prova
+                </Typography>
+              </Box>
+
+              {loadingQuestoes ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress />
+                </Box>
+              ) : questoes.length === 0 ? (
+                <Typography color="text.secondary">
+                  Nenhuma questão cadastrada neste curso.
+                </Typography>
+              ) : (
+                <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+                  {questoes.map((questao) => {
+                    const questaoId = questao._id || questao.id;
+                    const isSelected = selectedQuestoes.includes(questaoId);
+
+                    return (
+                      <ListItem
+                        key={questaoId}
+                        dense
+                        component="div"
+                        onClick={() => handleToggleQuestao(questaoId)}
+                        sx={{
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          mb: 1,
+                          cursor: 'pointer',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 2,
+                          flexWrap: 'wrap',
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                          },
+                        }}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          tabIndex={-1}
+                          disableRipple
+                        />
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            {questao.enunciado || 'Sem enunciado'}
+                          </Typography>
+
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {questao.tipo && (
+                              <Chip
+                                key={`tipo-${questaoId}`}
+                                label={questao.tipo}
+                                size="small"
+                              />
+                            )}
+                            {questao.tags?.map((tag) => (
+                              <Chip
+                                key={`tag-${questaoId}-${tag}`}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              )}
             </CardContent>
           </Card>
 

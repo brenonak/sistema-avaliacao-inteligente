@@ -48,6 +48,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 }
 
+// Buscar todas as questões de um curso
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: cursoId } = await params;
+    const db = await getDb();
+
+    const _id = oid(cursoId);
+    if (!_id) return badRequest("id do curso inválido");
+
+    const curso = await db.collection("cursos").findOne({ _id });
+    if (!curso) return notFound("Curso não encontrado");
+
+    // Buscar todas as questões que têm o cursoId no array cursoIds
+    const questoes = await db.collection("questoes")
+      .find({ cursoIds: cursoId })
+      .toArray();
+
+    return json({ items: questoes });
+  } catch (e) {
+    console.error("Erro ao buscar questões do curso:", e);
+    return serverError(e);
+  }
+}
+
 // Remover questão de um curso
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
