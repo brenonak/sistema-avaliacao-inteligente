@@ -7,6 +7,8 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, responsiveFontSizes, ThemeProvider, alpha } from '@mui/material/styles';
 import { Analytics } from "@vercel/analytics/next"; // Adicionando a importação do Analytics
+import { ThemeProvider } from '@mui/material/styles';
+import AuthProvider from './components/AuthProvider';
 
 
 let customTheme = createTheme({
@@ -106,6 +108,24 @@ let customTheme = createTheme({
 });
 
 customTheme = responsiveFontSizes(customTheme);
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="pt-br" className={roboto.variable}>
+      <body className="antialiased">
+        <AppRouterCacheProvider>
+          <ThemeProvider theme={customTheme}>
+            <AuthProvider> 
+              {children}
+              <Analytics />
+            </AuthProvider> 
+          </ThemeProvider>
+        </AppRouterCacheProvider>
+      </body>
+    </html>
+  );
+}
+
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
