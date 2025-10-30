@@ -3,8 +3,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken, alpha} from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
-import NextLink from 'next/link'; 
-import { signIn } from 'next-auth/react';
+import NextLink from 'next/link';
 
 const LandingPageHeader = () => {
   const { logoText, links, buttons } = landingContent.header;
@@ -93,10 +92,11 @@ const LandingPageHeader = () => {
 
           {/* *** BOTÕES DE AÇÃO *** */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Button    
+            <Button
+              component={NextLink}
+              href="/login"
               variant="text"
               color="inherit"
-              onClick={() => signIn('google')}
               sx={{ 
                 textTransform: 'none', 
                 fontWeight: 600,
