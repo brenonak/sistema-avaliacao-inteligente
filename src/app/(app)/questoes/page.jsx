@@ -6,7 +6,6 @@ import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemTex
 import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
 import EditQuestionModal from '../../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
-import { set } from 'zod';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);

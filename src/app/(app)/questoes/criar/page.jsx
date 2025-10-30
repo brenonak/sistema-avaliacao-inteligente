@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -21,7 +21,8 @@ import {
   Checkbox,
   Chip,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { Delete, ArrowBack } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -30,8 +31,9 @@ import FileItem from '../../../components/FileItem';
 import AIButton from '../../../components/AIButton';
 import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
+import ImageUploadSection from '../../../components/ImageUploadSection';
 
-export default function CriarQuestaoPage() {
+function CriarQuestaoForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const cursoId = searchParams.get('cursoId');
@@ -65,10 +67,9 @@ export default function CriarQuestaoPage() {
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
-  const [arquivos, setArquivos] = useState([]);
+  const [arquivos, setArquivos] = useState([]); // Novos arquivos para upload
+  const [recursosExistentes, setRecursosExistentes] = useState([]); // Recursos já no blob { id, url, name }
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
-
-  const [activeImage, setActiveImage] = useState(null); // para usar uma imagem no enunciado
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
@@ -92,18 +93,13 @@ export default function CriarQuestaoPage() {
     setSnackbar({ ...snackbar, open: false });
   }
 
-
-  const handleSetActiveImage = (file) => {
-    setActiveImage((prev) => (prev === file ? null : file)); // ativar imagem ativa do enunciado
-  };
-
   const showAIDevelopmentMessage = () => {
     setSnackbar({ open: true, message: 'Funcionalidade de IA em desenvolvimento.', severity: 'info' });
   }
 
 
   // Handlers para funcionalidades de IA (futuramente implementar)
-const handleGenerateEnunciadoWithAI = async () => {
+  const handleGenerateEnunciadoWithAI = async () => {
     // 1. Validação de entrada: precisa de tags para ter contexto
     if (cleanTags.length === 0) {
       setSnackbar({ open: true, message: 'Adicione pelo menos uma tag para gerar um enunciado.', severity: 'warning' });
@@ -373,7 +369,6 @@ useEffect(() => {
 
   const handleClearForm = () => {
     setEnunciado('');
-    setTipo('alternativa');
     setAlternativas([
       { texto: '', correta: true },
       { texto: '', correta: false },
@@ -382,12 +377,12 @@ useEffect(() => {
     setGabarito('');
     setPalavrasChave('');
     setArquivos([]);
+    setRecursosExistentes([]);
     setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
     setAfirmacoes([{ texto: '', correta: true }]);
     setProposicoes([{ texto: '', correta: false }]);
-    setActiveImage(null);
   };
 
   const indexToLetter = (i) => String.fromCharCode(65 + i); // 0->A, 1->B...
@@ -419,15 +414,15 @@ useEffect(() => {
       return;
     }
 
-    // realiza upload dos arquivos selecionados (se houver)
-    let recursos = [];
+    // realiza upload dos NOVOS arquivos selecionados (se houver)
+    let recursosNovos = [];
     if (arquivos.length > 0) {
       try {
         for (const file of arquivos) {
           const uploaded = await uploadSingleFile(file);
-          recursos.push(uploaded);
+          recursosNovos.push(uploaded);
         }
-        setUploadedFiles(recursos);
+        setUploadedFiles(recursosNovos);
       } catch (e) {
         console.error('Erro ao enviar anexos:', e);
         setSnackbar({ open: true, message: 'Falha ao enviar arquivos. Tente novamente.', severity: 'error' });
@@ -436,12 +431,26 @@ useEffect(() => {
       }
     }
 
+    // Combinar URLs dos novos recursos + IDs dos recursos existentes
+    // A API aceita tanto URLs quanto IDs - enviar IDs é mais eficiente
+    const todosOsRecursos = [
+      ...recursosNovos.map((r) => r.url), // Novos: enviar URL
+      ...recursosExistentes.map((r) => r.id) // Existentes: enviar ID diretamente
+    ];
+
+    console.log('[handleSubmit] Recursos enviados:', {
+      novos: recursosNovos.length,
+      existentes: recursosExistentes.length,
+      total: todosOsRecursos.length,
+      idsExistentes: recursosExistentes.map(r => r.id)
+    });
+
     // monta o payload no formato esperado pela API
     const basePayload = {
       tipo,
       enunciado,
       tags: cleanTags,
-      recursos: recursos.map((r) => r.url),
+      recursos: todosOsRecursos, // Array misto de URLs (novos) e IDs (existentes)
       cursoIds: cursoId ? [cursoId] : [], // Adiciona o cursoId se vier de um curso
     };
 
@@ -561,11 +570,31 @@ useEffect(() => {
   };
 
   // manipula seleção de arquivos (sem upload imediato)
-  const handleFileChange = (event) => {
-    const files = Array.from(event.target.files || []);
+  const handleFileChange = (eventOrFiles, existingResources = null) => {
+    // Se são recursos existentes (do banco de imagens frequentes)
+    if (existingResources && Array.isArray(existingResources)) {
+      console.log('[handleFileChange] Adicionando recursos existentes:', existingResources);
+      setRecursosExistentes((prev) => [...prev, ...existingResources]);
+      return;
+    }
+
+    // Caso contrário, são novos arquivos para upload
+    let files = [];
+
+    // Se chamado por evento de input file
+    if (eventOrFiles?.target?.files) {
+      files = Array.from(eventOrFiles.target.files);
+    } else if (Array.isArray(eventOrFiles)) {
+      files = eventOrFiles;
+    }
+
     if (files.length === 0) return;
+
+    console.log('[handleFileChange] Adicionando novos arquivos:', files.length);
     setArquivos((prev) => [...prev, ...files]);
   };
+
+
 
   return (
     <Box 
@@ -974,36 +1003,57 @@ useEffect(() => {
           </Box>
         )}
 
-        {/* BOTÃO DE 'ADICIONAR ARQUIVO' */}
-        <Button
-          component="label"
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-          mb={2}
-        >
-          Adicionar arquivo
-          <VisuallyHiddenInput
-            type="file"
-            onChange={handleFileChange}
-            multiple
-          />
-        </Button>
+        {/* BOTÕES DE UPLOAD DE ARQUIVO */}
+        <ImageUploadSection 
+          handleFileChange={handleFileChange}
+        />
 
-        {/* Lista de arquivos adicionados */}
+        {/* Lista de NOVOS arquivos adicionados (para upload) */}
         {arquivos.map((file, index) => (
           <FileItem
-            key={index}
+            key={`novo-${index}`}
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
-              if (activeImage === f) setActiveImage(null);
             }}
-            isActiveImage={activeImage === file}
-            onSetActiveImage={handleSetActiveImage}
           />
         ))}
+
+        {/* Lista de recursos EXISTENTES do banco */}
+        {recursosExistentes.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+              Imagens do banco:
+            </Typography>
+            {recursosExistentes.map((recurso, i) => (
+              <Box key={`existente-${recurso.id}-${i}`} sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1, 
+                mb: 1,
+                p: 1,
+                backgroundColor: 'action.hover',
+                borderRadius: 1
+              }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+                  📷 {recurso.name}
+                </Typography>
+                <a href={recurso.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem' }}>
+                  visualizar
+                </a>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setRecursosExistentes((prev) => prev.filter((r) => r.id !== recurso.id));
+                  }}
+                  color="error"
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Arquivos enviados (links) */}
         {uploadedFiles.length > 0 && (
@@ -1012,7 +1062,7 @@ useEffect(() => {
               Arquivos enviados:
             </Typography>
             {uploadedFiles.map((f, i) => (
-              <Box key={`${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box key={`enviado-${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>{f.name}</Typography>
                 <a href={f.url} target="_blank" rel="noreferrer">abrir</a>
               </Box>
@@ -1065,5 +1115,23 @@ useEffect(() => {
         </Alert>
         </Snackbar>
     </Box>
+  );
+}
+
+export default function CriarQuestaoPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: 'background.default'
+      }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <CriarQuestaoForm />
+    </Suspense>
   );
 }

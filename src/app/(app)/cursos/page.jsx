@@ -49,16 +49,10 @@ export default function CursosPage() {
     fetchCursos();
   }, []);
 
-  const handleDelete = async (cursoId) => {
-    if (!confirm('Tem certeza que deseja excluir este curso?')) return;
-    try {
-      const res = await fetch(`/api/cursos/${cursoId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Falha ao excluir curso');
-      setCursos((prevCursos) => prevCursos.filter((c) => c.id !== cursoId));
-      alert('Curso excluído com sucesso');
-    } catch (e) {
-      alert(e.message || 'Erro ao excluir curso.');
-    }
+  const handleDelete = (cursoId) => {
+    // Remove o curso da lista local
+    // A exclusão já foi feita pelo CardOptionsButton
+    setCursos((prevCursos) => prevCursos.filter((c) => c.id !== cursoId));
   };
 
   const handleSearchChange = (event) => {

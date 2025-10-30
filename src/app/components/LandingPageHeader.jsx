@@ -3,7 +3,8 @@
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken, alpha} from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
-import NextLink from 'next/link'; // Importe o Link do Next.js
+import NextLink from 'next/link'; 
+import { signIn } from 'next-auth/react';
 
 const LandingPageHeader = () => {
   const { logoText, links, buttons } = landingContent.header;
@@ -14,7 +15,7 @@ const LandingPageHeader = () => {
       color="transparent"
       elevation={0}
       sx={{
-        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.75), 
+        backgroundColor: 'var(--mui-palette-header-main)',
         backdropFilter: 'blur(10px)',
         borderBottom: 1,
         borderColor: 'divider',
@@ -92,15 +93,13 @@ const LandingPageHeader = () => {
 
           {/* *** BOTÕES DE AÇÃO *** */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Button
-              component={NextLink} 
-              href="/dashboard"    
+            <Button    
               variant="text"
               color="inherit"
+              onClick={() => signIn('google')}
               sx={{ 
                 textTransform: 'none', 
                 fontWeight: 600,
-                // 4. ARREDONDAMENTO NO BOTÃO "ENTRAR"
                 borderRadius: '24px', 
                 px: 2, // Adiciona um pouco de padding lateral
               }}

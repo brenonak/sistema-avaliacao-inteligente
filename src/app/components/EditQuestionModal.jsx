@@ -25,6 +25,9 @@ import {
   Chip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
+import ImageUploadSection from './ImageUploadSection';
+import FileItem from './FileItem';
+import AIButton from './AIButton';
 
 export default function EditQuestionModal({ open, onClose, question, onSaveSuccess }) {
   // Estados para os campos do formulário
@@ -32,6 +35,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [tipo, setTipo] = useState('alternativa');
   const [alternativas, setAlternativas] = useState([]);
   const [tagsInput, setTagsInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isFormFilled, setIsFormFilled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
@@ -39,6 +44,7 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [margemErro, setMargemErro] = useState('');
   const [afirmacoes, setAfirmacoes] = useState([{ texto: '', correta: true }]);
   const [proposicoes, setProposicoes] = useState([{ texto: '', correta: false }]); // Começa com uma proposição
+  const [arquivos, setArquivos] = useState([]);
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
@@ -166,6 +172,23 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
     }
   };
 
+  // manipula seleção de arquivos (sem upload imediato)
+  const handleFileChange = (eventOrFiles) => {
+    let files = [];
+
+    // Se chamado por evento de input file
+    if (eventOrFiles?.target?.files) {
+      files = Array.from(eventOrFiles.target.files);
+    } else if (Array.isArray(eventOrFiles)) {
+      // Se chamado com o banco de imagens frequentes
+      files = eventOrFiles;
+    }
+
+    if (files.length === 0) return;
+
+    setArquivos((prev) => [...prev, ...files]);
+  };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Editar Questão</DialogTitle>
@@ -211,6 +234,38 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           fullWidth
           sx={{ mb: 3 }}
         />
+
+        {/* Botões de IA (funcionalidade ainda não implementada) */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+            <AIButton 
+              // onClick={handleReviewSpellingWithAI}
+              // loading={aiReviewing}
+              disabled={!isFormFilled || loading}
+              variant="outlined"
+              label="Revisar"
+              tooltipText="Usar IA para revisar ortografia e gramática do que foi preenchido"
+            />
+            
+            <AIButton 
+              // onClick={handleGenerateEnunciadoWithAI}
+              // loading={aiGenerating}
+              disabled={!isFormFilled || loading}
+              variant="outlined"
+              label="Gerar Enunciado"
+              tooltipText="Usar IA para gerar um enunciado de questão com base nas tags"
+            />
+  
+            {['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) && (
+              <AIButton 
+                // onClick={handleGenerateDistractorsWithAI}
+                // loading={aiGeneratingDistractors}
+                disabled={!isFormFilled || loading}
+                variant="outlined"
+                label="Gerar Distratores"
+                tooltipText="Gerar alternativas/afirmações incorretas com base no que já foi preenchido"
+              />
+            )}
+          </Box>
 
         {tipo === 'alternativa' && (
           <Box sx={{ mb: 3 }}>
@@ -467,6 +522,22 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             />
           </Box>
         )}
+
+        {/* BOTÕES DE UPLOAD DE ARQUIVO */}
+        <ImageUploadSection 
+          handleFileChange={handleFileChange}
+        />
+
+        {/* Lista de arquivos adicionados */}
+        {arquivos.map((file, index) => (
+          <FileItem
+            key={index}
+            file={file}
+            onExclude={(f) => {
+              setArquivos((prev) => prev.filter((x) => x !== f));
+            }}
+          />
+        ))}
 
       </DialogContent>
       <DialogActions sx={{ p: 3 }}>

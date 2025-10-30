@@ -33,7 +33,9 @@ import {
   Search, 
   Clear,
   QuestionAnswer,
-  School
+  School,
+  Assignment,
+  Description
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -45,15 +47,26 @@ export default function CursoDetalhesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Estados para provas
+  const [provas, setProvas] = useState([]);
+  const [loadingProvas, setLoadingProvas] = useState(false);
+  
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [questoesDisponiveis, setQuestoesDisponiveis] = useState([]);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para o diálogo de edição do curso
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editDescricao, setEditDescricao] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     fetchCurso();
+    fetchProvas();
   }, [cursoId]);
 
   const fetchCurso = async () => {
@@ -74,12 +87,70 @@ export default function CursoDetalhesPage() {
       }
       
       const data = await res.json();
+      
+      // Para cada questão, se houver recurso por ID, buscar a URL
+      if (data.questoes && data.questoes.length > 0) {
+        const questoesWithResourceUrl = await Promise.all(
+          data.questoes.map(async (q) => {
+            try {
+              const firstResourceId = Array.isArray(q.recursos) && q.recursos.length > 0 ? q.recursos[0] : null;
+              if (!firstResourceId) return q;
+              const r = await fetch(`/api/resources/${firstResourceId}`);
+              if (!r.ok) return q;
+              const rjson = await r.json();
+              const url = rjson?.resource?.url;
+              if (!url) return q;
+              return { ...q, recursoUrl: url };
+            } catch (_) {
+              return q;
+            }
+          })
+        );
+        data.questoes = questoesWithResourceUrl;
+      }
+      
       setCurso(data);
       setLoading(false);
     } catch (err) {
       console.error('Erro ao buscar curso:', err);
       setError(err.message || 'Erro desconhecido');
       setLoading(false);
+    }
+  };
+
+  const fetchProvas = async () => {
+    try {
+      setLoadingProvas(true);
+      const res = await fetch(`/api/cursos/${cursoId}/provas`);
+      if (!res.ok) throw new Error('Erro ao carregar provas');
+      const data = await res.json();
+      setProvas(data.items || []);
+    } catch (err) {
+      console.error('Erro ao buscar provas:', err);
+      setProvas([]);
+    } finally {
+      setLoadingProvas(false);
+    }
+  };
+
+  const handleDeleteProva = async (provaId) => {
+    if (!confirm('Tem certeza que deseja excluir esta prova?')) return;
+
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}/provas/${provaId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao excluir prova');
+      }
+
+      alert('Prova excluída com sucesso!');
+      fetchProvas();
+    } catch (error) {
+      console.error('Erro ao excluir prova:', error);
+      alert(error.message || 'Erro ao excluir prova');
     }
   };
 
@@ -217,6 +288,55 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const handleOpenEditDialog = () => {
+    setEditNome(curso.nome || '');
+    setEditDescricao(curso.descricao || '');
+    setOpenEditDialog(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editNome.trim()) {
+      alert('O nome do curso é obrigatório');
+      return;
+    }
+
+    setLoadingEdit(true);
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: editNome.trim(),
+          descricao: editDescricao.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao atualizar curso');
+      }
+
+      const updatedCurso = await res.json();
+      
+      // Atualizar o estado local com os novos dados
+      setCurso(prevCurso => ({
+        ...prevCurso,
+        nome: updatedCurso.nome,
+        descricao: updatedCurso.descricao,
+      }));
+      
+      setOpenEditDialog(false);
+      alert('Curso atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar curso:', error);
+      alert(error.message || 'Erro ao atualizar curso. Tente novamente.');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
   const filteredQuestoes = questoesDisponiveis.filter(q => 
     q.enunciado?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     q.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -273,6 +393,14 @@ export default function CursoDetalhesPage() {
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
+                color="primary"
+                startIcon={<Edit />}
+                onClick={handleOpenEditDialog}
+              >
+                Editar Curso
+              </Button>
+              <Button
+                variant="outlined"
                 color="error"
                 startIcon={<Delete />}
                 onClick={handleDeleteCurso}
@@ -290,6 +418,113 @@ export default function CursoDetalhesPage() {
         </Paper>
       </Box>
 
+      {/* Provas do Curso */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+            Provas ({provas.length})
+          </Typography>
+          <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+            >
+              Criar Nova Prova
+            </Button>
+          </Link>
+        </Box>
+
+        {loadingProvas ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : provas.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Description sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+              Nenhuma prova criada ainda.
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Crie uma prova para este curso.
+            </Typography>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {provas.map((prova, index) => (
+              <Card key={prova.id || index} sx={{ backgroundColor: 'background.paper' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                        {prova.titulo}
+                      </Typography>
+                      
+                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                        {prova.instrucoes}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+                        {prova.disciplina && (
+                          <Chip 
+                            label={`Disciplina: ${prova.disciplina}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.professor && (
+                          <Chip 
+                            label={`Professor: ${prova.professor}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.data && (
+                          <Chip 
+                            label={`Data: ${prova.data}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.duracao && (
+                          <Chip 
+                            label={`Duração: ${prova.duracao}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                        {prova.valorTotal && (
+                          <Chip 
+                            label={`Valor: ${prova.valorTotal}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+
+                      {prova.observacoes && (
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', mt: 1 }}>
+                          Obs: {prova.observacoes}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDeleteProva(prova.id)}
+                      title="Excluir prova"
+                      sx={{ ml: 2 }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+      </Box>
+
       {/* Questões do Curso */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -305,6 +540,15 @@ export default function CursoDetalhesPage() {
             >
               Adicionar Questões Existentes
             </Button>
+            <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Assignment />}
+              >
+                Criar Prova
+              </Button>
+            </Link>
             <Link href={`/questoes/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
               <Button
                 variant="contained"
@@ -334,17 +578,34 @@ export default function CursoDetalhesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
                         {index + 1}. {questao.enunciado}
                       </Typography>
+                      
+                      {/* Exibir recurso associado (imagem) se houver */}
+                      {questao.recursoUrl && (
+                        <Box
+                          component="img"
+                          src={questao.recursoUrl}
+                          alt="Recurso da questão"
+                          sx={{
+                            width: '100%',
+                            maxHeight: 300,
+                            objectFit: 'contain',
+                            borderRadius: 1,
+                            mb: 2,
+                            backgroundColor: 'background.default'
+                          }}
+                        />
+                      )}
                       
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <Chip 
                           label={questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
                                  questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
-                                 questao.tipo === 'proposicoes' ? 'Somatório' : 
+                                 questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
                                  questao.tipo === 'dissertativa' ? 'Dissertativa' : 
-                                 questao.tipo === 'numerica' ? 'Numérica' : questao.tipo}
+                                 questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
                           size="small"
                           color="primary"
                         />
@@ -353,20 +614,86 @@ export default function CursoDetalhesPage() {
                         ))}
                       </Box>
 
-                      {/* Preview das alternativas/afirmações */}
-                      {questao.alternativas && questao.alternativas.length > 0 && (
-                        <Box sx={{ pl: 2 }}>
-                          {questao.alternativas.slice(0, 2).map((alt, idx) => (
-                            <Typography key={idx} variant="body2" sx={{ color: 'text.secondary' }}>
-                              {alt.letra}) {alt.texto.substring(0, 50)}{alt.texto.length > 50 ? '...' : ''}
-                            </Typography>
-                          ))}
-                          {questao.alternativas.length > 2 && (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                              +{questao.alternativas.length - 2} alternativas
-                            </Typography>
-                          )}
+                      {/* Exibir resposta numérica se for questão numérica */}
+                      {questao.tipo === 'numerica' && (
+                        <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                            Resposta correta: {questao.respostaCorreta}
+                            {questao.margemErro > 0 && ` (± ${questao.margemErro})`}
+                          </Typography>
                         </Box>
+                      )}
+                      
+                      {/* Exibir gabarito para questões dissertativas */}
+                      {questao.tipo === 'dissertativa' && questao.gabarito && (
+                        <Box sx={{ mb: 2, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                            Gabarito: {questao.gabarito}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {/* Exibir alternativas completas para questões de múltipla escolha */}
+                      {questao.tipo === 'alternativa' && questao.alternativas && questao.alternativas.length > 0 && (
+                        <List dense>
+                          {questao.alternativas.map((alt, idx) => (
+                            <ListItem key={idx} sx={{ pl: 2 }}>
+                              <ListItemText
+                                primary={`${alt.letra || String.fromCharCode(65 + idx)}) ${alt.texto} ${alt.correta ? '(Correta)' : ''}`}
+                                sx={{
+                                  '& .MuiListItemText-primary': {
+                                    fontWeight: alt.correta ? 'bold' : 'normal',
+                                    color: alt.correta ? 'success.main' : 'text.secondary'
+                                  }
+                                }}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+
+                      {/* Exibir afirmações (V ou F) com gabarito */}
+                      {questao.tipo === 'afirmacoes' && Array.isArray(questao.afirmacoes) && (
+                        <List dense>
+                          {questao.afirmacoes.map((af, idx) => (
+                            <ListItem key={idx} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                              <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary' }}>
+                                {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][idx] || (idx + 1)}.
+                              </Typography>
+                              <Typography sx={{ mr: 1, fontWeight: 'bold', color: af.correta ? 'success.main' : 'error.main' }}>
+                                ({af.correta ? 'V' : 'F'})
+                              </Typography>
+                              <ListItemText primary={af.texto} />
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+
+                      {/* Exibir proposições (somatório) com valor e gabarito */}
+                      {questao.tipo === 'proposicoes' && Array.isArray(questao.proposicoes) && (
+                        <>
+                          <List dense>
+                            {questao.proposicoes.map((p, idx) => (
+                              <ListItem key={idx} sx={{ pl: 2, alignItems: 'flex-start' }}>
+                                <Typography sx={{ mr: 1, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'monospace' }}>
+                                  {String(p.valor).padStart(2, '0')}
+                                </Typography>
+                                <Typography sx={{ mr: 1, fontWeight: 'bold', color: p.correta ? 'success.main' : 'error.main' }}>
+                                  ({p.correta ? 'V' : 'F'})
+                                </Typography>
+                                <ListItemText primary={p.texto} />
+                              </ListItem>
+                            ))}
+                          </List>
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Gabarito (Soma):{' '}
+                              <Typography component="span" sx={{ color: 'success.main' }}>
+                                {questao.proposicoes.reduce((acc, p) => acc + (p.correta ? (Number(p.valor) || 0) : 0), 0)}
+                              </Typography>
+                            </Typography>
+                          </Box>
+                        </>
                       )}
                     </Box>
 
@@ -374,6 +701,7 @@ export default function CursoDetalhesPage() {
                       color="error"
                       onClick={() => handleRemoveQuestao(questao.id)}
                       title="Remover do curso"
+                      sx={{ ml: 2 }}
                     >
                       <Delete />
                     </IconButton>
@@ -435,13 +763,14 @@ export default function CursoDetalhesPage() {
                 <ListItem
                   key={questao.id}
                   dense
-                  button
+                  component="div"
                   onClick={() => handleToggleQuestao(questao.id)}
                   sx={{
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 1,
                     mb: 1,
+                    cursor: 'pointer',
                     '&:hover': {
                       backgroundColor: 'action.hover',
                     },
@@ -454,6 +783,7 @@ export default function CursoDetalhesPage() {
                   />
                   <ListItemText
                     primary={questao.enunciado}
+                    secondaryTypographyProps={{ component: 'div' }}
                     secondary={
                       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
                         <Chip label={questao.tipo} size="small" />
@@ -484,6 +814,49 @@ export default function CursoDetalhesPage() {
             disabled={selectedQuestoes.length === 0}
           >
             Adicionar Selecionadas
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Edição do Curso */}
+      <Dialog
+        open={openEditDialog}
+        onClose={() => !loadingEdit && setOpenEditDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Editar Curso</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Nome do Curso"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={editNome}
+            onChange={(e) => setEditNome(e.target.value)}
+            sx={{ mb: 2, mt: 1 }}
+            required
+          />
+          <TextField
+            margin="dense"
+            label="Descrição"
+            type="text"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={3}
+            value={editDescricao}
+            onChange={(e) => setEditDescricao(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)} disabled={loadingEdit}>
+            Cancelar
+          </Button>
+          <Button onClick={handleEditSave} variant="contained" disabled={loadingEdit}>
+            {loadingEdit ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
