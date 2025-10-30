@@ -53,7 +53,7 @@ function oid(id: string) {
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params; // ID do Curso
+    const { id } = await params; 
     const _id = oid(id);
     if (!_id) return badRequest("ID de curso inválido");
     
@@ -74,10 +74,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     
     // 2. Criar o documento da lista de exercícios
     const lista = {
-      cursoId: id, // Armazena o ID do curso como string para fácil filtragem
+      cursoId: id, 
       nomeMateria,
       questoesIds,
-      nomeInstituicao: nomeInstituicao || '', // Adiciona o nome da instituição
+      nomeInstituicao: nomeInstituicao || '', 
       criadoEm: new Date(),
     };
     
@@ -114,15 +114,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params; // ID do Curso
+    const { id } = await params; 
     
     const db = await getDb();
     const listas = await db.collection("listasDeExercicios")
-      .find({ cursoId: id }) // Filtra pelo ID do curso (string)
+      .find({ cursoId: id }) 
       .sort({ criadoEm: -1 })
       .toArray();
     
-    // Formata o _id para id
     const listasFormatadas = listas.map(({ _id, ...rest }) => ({
       id: _id?.toString?.() ?? _id,
       ...rest

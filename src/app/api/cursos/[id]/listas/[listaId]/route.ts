@@ -38,7 +38,7 @@ function oid(id: string) {
  */
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string, listaId: string }> }) {
   try {
-    const { listaId } = await params; // ID da Lista
+    const { listaId } = await params; 
     const _id = oid(listaId);
     
     if (!_id) return badRequest("ID da lista inválido");
