@@ -1,26 +1,15 @@
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+/**
+ * Route handler do Next-Auth
+ * 
+ * Reexporta os handlers GET/POST da configuração central em auth.ts
+ * Runtime: Node.js (necessário para MongoDB driver)
+ */
 
-export const authOptions = {
-  // Configurar um ou mais provedores de autenticação
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  // callbacks: {
-  //   async session({ session, token, user }) {
-  //     // Futuramente, usaremos isso para adicionar dados customizados à sessão
-  //     return session;
-  //   },
-  //   async jwt({ token, user, account }) {
-  //     // Futuramente, usaremos isso para pegar o access_token do Google
-  //     return token;
-  //   }
-  // }
-  // Por enquanto, deixar comentado
-};
+import NextAuth from "next-auth";
+import { authOptions } from "../../../../../auth";
+
+// Força runtime Node.js
+export const runtime = "nodejs";
 
 const handler = NextAuth(authOptions);
 
