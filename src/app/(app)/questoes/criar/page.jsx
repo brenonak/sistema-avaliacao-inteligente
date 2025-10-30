@@ -67,7 +67,8 @@ function CriarQuestaoForm() {
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
-  const [arquivos, setArquivos] = useState([]);
+  const [arquivos, setArquivos] = useState([]); // Novos arquivos para upload
+  const [recursosExistentes, setRecursosExistentes] = useState([]); // Recursos já no blob { id, url, name }
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -376,6 +377,7 @@ useEffect(() => {
     setGabarito('');
     setPalavrasChave('');
     setArquivos([]);
+    setRecursosExistentes([]);
     setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
@@ -412,15 +414,15 @@ useEffect(() => {
       return;
     }
 
-    // realiza upload dos arquivos selecionados (se houver)
-    let recursos = [];
+    // realiza upload dos NOVOS arquivos selecionados (se houver)
+    let recursosNovos = [];
     if (arquivos.length > 0) {
       try {
         for (const file of arquivos) {
           const uploaded = await uploadSingleFile(file);
-          recursos.push(uploaded);
+          recursosNovos.push(uploaded);
         }
-        setUploadedFiles(recursos);
+        setUploadedFiles(recursosNovos);
       } catch (e) {
         console.error('Erro ao enviar anexos:', e);
         setSnackbar({ open: true, message: 'Falha ao enviar arquivos. Tente novamente.', severity: 'error' });
@@ -429,12 +431,26 @@ useEffect(() => {
       }
     }
 
+    // Combinar URLs dos novos recursos + IDs dos recursos existentes
+    // A API aceita tanto URLs quanto IDs - enviar IDs é mais eficiente
+    const todosOsRecursos = [
+      ...recursosNovos.map((r) => r.url), // Novos: enviar URL
+      ...recursosExistentes.map((r) => r.id) // Existentes: enviar ID diretamente
+    ];
+
+    console.log('[handleSubmit] Recursos enviados:', {
+      novos: recursosNovos.length,
+      existentes: recursosExistentes.length,
+      total: todosOsRecursos.length,
+      idsExistentes: recursosExistentes.map(r => r.id)
+    });
+
     // monta o payload no formato esperado pela API
     const basePayload = {
       tipo,
       enunciado,
       tags: cleanTags,
-      recursos: recursos.map((r) => r.url),
+      recursos: todosOsRecursos, // Array misto de URLs (novos) e IDs (existentes)
       cursoIds: cursoId ? [cursoId] : [], // Adiciona o cursoId se vier de um curso
     };
 
@@ -554,19 +570,27 @@ useEffect(() => {
   };
 
   // manipula seleção de arquivos (sem upload imediato)
-  const handleFileChange = (eventOrFiles) => {
+  const handleFileChange = (eventOrFiles, existingResources = null) => {
+    // Se são recursos existentes (do banco de imagens frequentes)
+    if (existingResources && Array.isArray(existingResources)) {
+      console.log('[handleFileChange] Adicionando recursos existentes:', existingResources);
+      setRecursosExistentes((prev) => [...prev, ...existingResources]);
+      return;
+    }
+
+    // Caso contrário, são novos arquivos para upload
     let files = [];
 
     // Se chamado por evento de input file
     if (eventOrFiles?.target?.files) {
       files = Array.from(eventOrFiles.target.files);
     } else if (Array.isArray(eventOrFiles)) {
-      // Se chamado com o banco de imagens frequentes
       files = eventOrFiles;
     }
 
     if (files.length === 0) return;
 
+    console.log('[handleFileChange] Adicionando novos arquivos:', files.length);
     setArquivos((prev) => [...prev, ...files]);
   };
 
@@ -984,16 +1008,52 @@ useEffect(() => {
           handleFileChange={handleFileChange}
         />
 
-        {/* Lista de arquivos adicionados */}
+        {/* Lista de NOVOS arquivos adicionados (para upload) */}
         {arquivos.map((file, index) => (
           <FileItem
-            key={index}
+            key={`novo-${index}`}
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
             }}
           />
         ))}
+
+        {/* Lista de recursos EXISTENTES do banco */}
+        {recursosExistentes.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+              Imagens do banco:
+            </Typography>
+            {recursosExistentes.map((recurso, i) => (
+              <Box key={`existente-${recurso.id}-${i}`} sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1, 
+                mb: 1,
+                p: 1,
+                backgroundColor: 'action.hover',
+                borderRadius: 1
+              }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+                  📷 {recurso.name}
+                </Typography>
+                <a href={recurso.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem' }}>
+                  visualizar
+                </a>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setRecursosExistentes((prev) => prev.filter((r) => r.id !== recurso.id));
+                  }}
+                  color="error"
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Arquivos enviados (links) */}
         {uploadedFiles.length > 0 && (
@@ -1002,7 +1062,7 @@ useEffect(() => {
               Arquivos enviados:
             </Typography>
             {uploadedFiles.map((f, i) => (
-              <Box key={`${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box key={`enviado-${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>{f.name}</Typography>
                 <a href={f.url} target="_blank" rel="noreferrer">abrir</a>
               </Box>

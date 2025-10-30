@@ -99,8 +99,10 @@ export async function upsertRecurso(recursoData: Partial<Recurso>): Promise<Recu
 export async function getTopRecursos(limit: number = 10): Promise<Recurso[]> {
   const collection = await getRecursosCollection();
   
+  // Buscar todos os recursos, independente do status
+  // Ordenar por refCount (decrescente) e depois por data de atualização
   return await collection
-    .find({ status: { $ne: "orphan" } })
+    .find({})
     .sort({ "usage.refCount": -1, "updatedAt": -1 })
     .limit(limit)
     .toArray();
