@@ -39,6 +39,7 @@ import {
   ArrowUpward,
   ArrowDownward,
   Clear as ClearIcon,
+  Download,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -172,6 +173,17 @@ export default function CursoDetalhesPage() {
     } catch (error) {
       console.error('Erro ao excluir prova:', error);
       alert(error.message || 'Erro ao excluir prova');
+    }
+  };
+
+  const handleExportLatex = async (provaId) => {
+    try {
+      // TODO: Implementar chamada para endpoint de exportação LaTeX
+      // Por exemplo: const res = await fetch(`/api/gerar-prova?provaId=${provaId}&format=latex`);
+      alert(`Funcionalidade de exportar para LaTeX será implementada em breve para a prova ${provaId}`);
+    } catch (error) {
+      console.error('Erro ao exportar para LaTeX:', error);
+      alert('Erro ao exportar prova para LaTeX');
     }
   };
 
@@ -726,6 +738,13 @@ export default function CursoDetalhesPage() {
                         title="Editar prova"
                       >
                         <Edit />
+                      </IconButton>
+                      <IconButton
+                        color="success"
+                        onClick={() => handleExportLatex(prova.id)}
+                        title="Exportar para LaTeX"
+                      >
+                        <Download />
                       </IconButton>
                       <IconButton
                         color="error"
