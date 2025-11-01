@@ -35,7 +35,10 @@ import {
   QuestionAnswer,
   School,
   Assignment,
-  Description
+  Description,
+  ArrowUpward,
+  ArrowDownward,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -383,9 +386,40 @@ export default function CursoDetalhesPage() {
   };
 
   const handleToggleQuestaoProva = (questaoId) => {
-    setSelectedQuestoesProva((prev) =>
-      prev.includes(questaoId) ? prev.filter(q => q !== questaoId) : [...prev, questaoId]
-    );
+    setSelectedQuestoesProva((prev) => {
+      if (prev.includes(questaoId)) {
+        // Remover questão
+        return prev.filter(q => q !== questaoId);
+      } else {
+        // Adicionar questão no final da lista
+        return [...prev, questaoId];
+      }
+    });
+  };
+
+  // Mover questão para cima na ordem (edição de prova)
+  const handleMoveUpProva = (index) => {
+    if (index === 0) return;
+    setSelectedQuestoesProva((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  };
+
+  // Mover questão para baixo na ordem (edição de prova)
+  const handleMoveDownProva = (index) => {
+    if (index === selectedQuestoesProva.length - 1) return;
+    setSelectedQuestoesProva((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
+  };
+
+  // Remover questão da seleção (edição de prova)
+  const handleRemoveQuestaoProva = (questaoId) => {
+    setSelectedQuestoesProva((prev) => prev.filter(q => q !== questaoId));
   };
 
   const handleSaveEditProva = async () => {
@@ -1082,47 +1116,166 @@ export default function CursoDetalhesPage() {
                 Nenhuma questão cadastrada neste curso.
               </Typography>
             ) : (
-              <List sx={{ maxHeight: 300, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                {curso.questoes.map((questao) => {
-                  const questaoId = questao._id || questao.id;
-                  const isSelected = selectedQuestoesProva.includes(questaoId);
+              <Box>
+                {/* Questões Selecionadas - Ordenáveis */}
+                {selectedQuestoesProva.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
+                      Questões Selecionadas ({selectedQuestoesProva.length})
+                    </Typography>
+                    <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
+                      {selectedQuestoesProva.map((questaoId, index) => {
+                        const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                        if (!questao) return null;
 
-                  return (
-                    <ListItem
-                      key={questaoId}
-                      dense
-                      component="div"
-                      onClick={() => handleToggleQuestaoProva(questaoId)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': {
-                          backgroundColor: 'action.hover',
-                        },
-                      }}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        tabIndex={-1}
-                        disableRipple
-                      />
-                      <ListItemText
-                        primary={questao.enunciado || 'Sem enunciado'}
-                        secondaryTypographyProps={{ component: 'div' }}
-                        secondary={
-                          <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                            {questao.tipo && (
-                              <Chip label={questao.tipo} size="small" />
-                            )}
-                            {questao.tags?.slice(0, 2).map((tag, idx) => (
-                              <Chip key={idx} label={tag} size="small" variant="outlined" />
-                            ))}
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  );
-                })}
-              </List>
+                        return (
+                          <ListItem
+                            key={`selected-${questaoId}`}
+                            sx={{
+                              border: 1,
+                              borderColor: 'primary.main',
+                              borderRadius: 1,
+                              mb: 1,
+                              bgcolor: 'background.paper',
+                              p: 1,
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            {/* Número da ordem */}
+                            <Box
+                              sx={{
+                                minWidth: 32,
+                                height: 32,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                borderRadius: 1,
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                              }}
+                            >
+                              {index + 1}
+                            </Box>
+
+                            {/* Conteúdo da questão */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
+                                {questao.enunciado || 'Sem enunciado'}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {questao.tipo && (
+                                  <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                )}
+                                {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                  <Chip 
+                                    key={`sel-tag-${questaoId}-${idx}`} 
+                                    label={tag} 
+                                    size="small" 
+                                    variant="outlined" 
+                                    sx={{ height: 20, fontSize: '0.7rem' }}
+                                  />
+                                ))}
+                              </Box>
+                            </Box>
+
+                            {/* Botões de controle */}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              <Button
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveUpProva(index);
+                                }}
+                                disabled={index === 0}
+                                sx={{ minWidth: 'auto', p: 0.25 }}
+                              >
+                                <ArrowUpward fontSize="small" />
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveDownProva(index);
+                                }}
+                                disabled={index === selectedQuestoesProva.length - 1}
+                                sx={{ minWidth: 'auto', p: 0.25 }}
+                              >
+                                <ArrowDownward fontSize="small" />
+                              </Button>
+                            </Box>
+
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveQuestaoProva(questaoId);
+                              }}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              <ClearIcon fontSize="small" />
+                            </Button>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Box>
+                )}
+
+                {/* Divider se houver questões selecionadas */}
+                {selectedQuestoesProva.length > 0 && (
+                  <Divider sx={{ my: 1 }}>
+                    <Chip label="Questões Disponíveis" size="small" />
+                  </Divider>
+                )}
+
+                {/* Questões Disponíveis */}
+                <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  {curso.questoes
+                    .filter(questao => !selectedQuestoesProva.includes(questao._id || questao.id))
+                    .map((questao) => {
+                      const questaoId = questao._id || questao.id;
+
+                      return (
+                        <ListItem
+                          key={questaoId}
+                          dense
+                          component="div"
+                          onClick={() => handleToggleQuestaoProva(questaoId)}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <Checkbox
+                            checked={false}
+                            tabIndex={-1}
+                            disableRipple
+                          />
+                          <ListItemText
+                            primary={questao.enunciado || 'Sem enunciado'}
+                            secondaryTypographyProps={{ component: 'div' }}
+                            secondary={
+                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {questao.tipo && (
+                                  <Chip label={questao.tipo} size="small" />
+                                )}
+                                {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                  <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                ))}
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      );
+                    })}
+                </List>
+              </Box>
             )}
           </Box>
         </DialogContent>

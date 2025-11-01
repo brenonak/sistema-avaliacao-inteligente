@@ -32,9 +32,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     let questoes: Document[] = [];
     if (questoesIds.length > 0) {
-      questoes = await db.collection("questoes")
+      // Buscar todas as questões do banco
+      const questoesFromDb = await db.collection("questoes")
         .find({ _id: { $in: questoesIds }, cursoIds: id })
         .toArray();
+      
+      // Reorganizar questões na ordem em que foram selecionadas
+      questoes = questoesIds.map(qId => 
+        questoesFromDb.find(q => q._id.equals(qId))
+      ).filter(Boolean); // Remove questões não encontradas
     }
     
     // Criar documento da prova
