@@ -3,10 +3,9 @@ import { Box, IconButton, TextField, Avatar } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ImageIcon from '@mui/icons-material/Image';
 import Tooltip from '@mui/material/Tooltip';
 
-const FileItem = ({ file, onExclude, isActiveImage, onSetActiveImage }) => {
+const FileItem = ({ file, onExclude }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const isImage = file.type.startsWith('image/');
   const isPDF = file.type === 'application/pdf';
@@ -70,18 +69,6 @@ const FileItem = ({ file, onExclude, isActiveImage, onSetActiveImage }) => {
         variant="outlined"
         size="small"
       />
-        <Tooltip title="Definir como imagem da questão">
-          <span>
-            <IconButton
-              onClick={() => onSetActiveImage(file)}
-              color={isActiveImage ? 'accent' : 'primary'}
-              sx={{ ml: 1 }}
-              disabled={!isImage}
-            >
-              <ImageIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
         <Tooltip title="Remover arquivo">
           <span>
             <IconButton

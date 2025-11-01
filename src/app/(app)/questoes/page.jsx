@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
-import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete, Snackbar, Alert } from '@mui/material';
 import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
-import EditQuestionModal from '../components/EditQuestionModal';
-import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
+import EditQuestionModal from '../../components/EditQuestionModal';
+import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -35,6 +35,15 @@ export default function ListarQuestoesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionToDelete, setQuestionToDelete] = useState(null);
+
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   // Debounce para busca
   useEffect(() => {
@@ -121,14 +130,15 @@ export default function ListarQuestoesPage() {
       if (!res.ok) {
         throw new Error('Erro ao excluir questão');
       }
-      alert('Questão excluída com sucesso');
+      setSnackbar({ open: true, message: 'Questão excluída com sucesso', severity: 'success' });
+    
       // Remover a questão da lista localmente
       setQuestoes((prevQuestoes) => prevQuestoes.filter((q) => q.id !== questionToDelete.id));
     //console.log('Questão excluída com sucesso');
 
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Erro desconhecido ao excluir questão');
+      setSnackbar({ open: true, message: err.message || 'Erro desconhecido ao excluir questão', severity: 'error' });
     }
 
     //setOpenExclusionPopup(false);
@@ -152,6 +162,7 @@ export default function ListarQuestoesPage() {
         q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
+    setSnackbar({ open: true, message: 'Questão atualizada com sucesso!', severity: 'success' });
   };
 
   const handlePageChange = (event, page) => {
@@ -218,10 +229,11 @@ export default function ListarQuestoesPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      alert('Arquivo LaTeX gerado com sucesso!');
+      setSnackbar({ open: true, message: 'Arquivo LaTeX gerado com sucesso!', severity: 'success' });
+      
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Falha ao gerar arquivo LaTeX');
+      setSnackbar({ open: true, message: err.message || 'Falha ao gerar arquivo LaTeX', severity: 'error' });
     } finally {
       setExporting(false);
     }
@@ -614,7 +626,20 @@ export default function ListarQuestoesPage() {
           onSaveSuccess={handleSaveSuccess}
         />
       )}
-
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%', fontSize: '1.1rem' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

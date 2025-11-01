@@ -3,25 +3,37 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import CriarQuestaoPage from '../src/app/questoes/criar/page';
+import CriarQuestaoPage from '../src/app/(app)/questoes/criar/page';
+import { upload } from '@vercel/blob/client'; // Importar para mock
 
 // Mock para chamadas de API
 global.fetch = jest.fn();
 
-// Mock para a função alert
-jest.spyOn(window, 'alert').mockImplementation(() => {});
+// Mock para Next.js navigation
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn().mockImplementation((key) => {
+      if (key === 'cursoId') return '123';
+      if (key === 'cursoNome') return 'Meu Curso';
+      return null;
+    }),
+  }),
+}));
 
-const testTheme = createTheme({
-  // ... (sua configuração de tema)
-});
+// Mock para o cliente de upload do Vercel Blob
+jest.mock('@vercel/blob/client', () => ({
+  upload: jest.fn(),
+}));
+
+const testTheme = createTheme({});
 
 // Função de renderização customizada com os providers necessários
 const renderWithTheme = (component) => {
   return render(
-    <AppRouterCacheProvider>
-      <ThemeProvider theme={testTheme}>{component}</ThemeProvider>
-    </AppRouterCacheProvider>
+    <ThemeProvider theme={testTheme}>{component}</ThemeProvider>
   );
 };
 
@@ -35,136 +47,229 @@ async function selectQuestionType(user, typeName) {
 
 describe('CriarQuestaoPage', () => {
   const user = userEvent.setup();
+  let consoleErrorSpy;
 
   beforeEach(() => {
-    
-    fetch.mockReset();
-    window.alert.mockClear();
+    fetch.mockClear();
+    upload.mockClear();
+    // Silencia erros esperados no console durante os testes de falha
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  // --- TESTES BÁSICOS E DE MÚLTIPLA ESCOLHA ---
-  it('deve renderizar o formulário corretamente no estado inicial', () => {
-    renderWithTheme(<CriarQuestaoPage />);
-    expect(screen.getByRole('heading', { name: /Criar Nova Questão/i })).toBeInTheDocument();
-  });
-
-  it('deve submeter o formulário com sucesso para uma questão de múltipla escolha', async () => {
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ id: '123' }) });
-    renderWithTheme(<CriarQuestaoPage />);
-    
-    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
-    await user.type(screen.getByPlaceholderText('Alternativa A'), 'Brasília');
-    await user.type(screen.getByPlaceholderText('Alternativa B'), 'São Paulo');
-    await user.type(screen.getByLabelText('Tags (separadas por vírgula)'), 'geografia, brasil');
-
-    await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.any(Object));
-      expect(window.alert).toHaveBeenCalledWith('Questão salva com sucesso!');
-    });
-  });
-
-  it('deve submeter com sucesso uma questão de afirmações (V/F)', async () => {
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
-    renderWithTheme(<CriarQuestaoPage />);
-
-    await selectQuestionType(user, /Múltiplas Afirmações/i);
-    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Julgue os itens a seguir.');
-    await user.type(screen.getByLabelText('Afirmação 1'), 'O céu é azul.');
-    
-    await user.click(screen.getByRole('button', { name: /\+ Adicionar Afirmação/i }));
-    
-   
-    const segundaAfirmacao = screen.getByLabelText('Afirmação 2');
-    await user.type(segundaAfirmacao, 'A terra é plana.');
-    
-    // Encontra o container pai do input para achar o botão "F" correto
-    const parentContainer = segundaAfirmacao.closest('.MuiBox-root');
-    const botaoF = within(parentContainer).getByRole('button', { name: 'F' });
-    await user.click(botaoF);
-
-    await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-
-    await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
-            body: expect.stringContaining('"correta":false'),
-        }));
-    });
-  });
-
-  
-  it('deve submeter com sucesso uma questão de proposições múltiplas (somatório)', async () => {
-    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
-    renderWithTheme(<CriarQuestaoPage />);
-
-    await selectQuestionType(user, /Proposições Múltiplas/i);
-    
-    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Some os valores das proposições corretas.');
-    await user.type(screen.getByLabelText(/Afirmação de valor 1/i), 'Primeira proposição');
-    
-    await user.click(screen.getByRole('button', { name: /\+ Adicionar Proposição/i }));
-    await user.type(screen.getByLabelText(/Afirmação de valor 2/i), 'Segunda proposição');
-    await user.click(screen.getByRole('button', { name: /\+ Adicionar Proposição/i }));
-    await user.type(screen.getByLabelText(/Afirmação de valor 4/i), 'Terceira proposição');
-    
-    const vButtons = screen.getAllByRole('button', { name: 'V' });
-    await user.click(vButtons[0]); // Marca a de valor 1 (V)
-    await user.click(vButtons[2]); // Marca a de valor 4 (V)
-    
-    expect(screen.getByText(/Resposta Correta \(Soma\):/i)).toHaveTextContent('5');
-
-    await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.any(Object));
-    });
-  }, 10000); // Aumento do timeout para 10 segundos
-
-  // --- TESTES DE VALIDAÇÃO E ERROS ---
-
-  
-  it('deve exibir alerta se a resposta numérica estiver vazia', async () => {
-    renderWithTheme(<CriarQuestaoPage />);
-    await selectQuestionType(user, /Resposta Numérica/i);
-    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste numérico');
-    await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-    expect(window.alert).toHaveBeenCalledWith('Por favor, informe a resposta correta.');
-  });
-  
-  
-  it('deve exibir um alerta de erro se a API falhar', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: 'Erro interno do servidor' }),
-    });
-    renderWithTheme(<CriarQuestaoPage />);
-    
-    await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste de falha');
-    await user.type(screen.getByPlaceholderText('Alternativa A'), 'A');
-    await user.type(screen.getByPlaceholderText('Alternativa B'), 'B');
-    await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
-
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Erro interno do servidor');
-    });
-
+  afterEach(() => {
     consoleErrorSpy.mockRestore();
   });
 
-  // --- TESTES DE UI ADICIONAIS ---
+  // --- TESTES BÁSICOS E DE SUBMISSÃO (SEUS TESTES REFINADOS) ---
+  describe('Renderização e Submissão Principal', () => {
+    it('deve renderizar o formulário e o botão de voltar quando houver cursoId', () => {
+      renderWithTheme(<CriarQuestaoPage />);
+      expect(screen.getByRole('heading', { name: /Criar Nova Questão/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Voltar para Meu Curso/i })).toBeInTheDocument();
+    });
 
+    it('deve submeter com sucesso uma questão de múltipla escolha', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ id: '123' }) });
+      renderWithTheme(<CriarQuestaoPage />);
+      
+      await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
+      await user.type(screen.getByPlaceholderText('Alternativa A'), 'Brasília');
+      await user.type(screen.getByPlaceholderText('Alternativa B'), 'São Paulo');
+      await user.type(screen.getByLabelText('Tags (separadas por vírgula)'), 'geografia, brasil');
+
+      await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
+            body: expect.stringContaining('"tipo":"alternativa"')
+        }));
+        expect(screen.getByText('Questão criada com sucesso!')).toBeInTheDocument();
+      });
+    });
+
+    it('deve submeter com sucesso uma questão de afirmações (V/F)', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+      renderWithTheme(<CriarQuestaoPage />);
+
+      await selectQuestionType(user, /Múltiplas Afirmações/i);
+      await user.type(screen.getByLabelText('Enunciado da Questão'), 'Julgue os itens.');
+      await user.type(screen.getByLabelText('Afirmação 1'), 'O céu é azul.'); // Correta por padrão
+      
+      await user.click(screen.getByRole('button', { name: /\+ Adicionar Afirmação/i }));
+      
+      const segundaAfirmacaoInput = screen.getByLabelText('Afirmação 2');
+      await user.type(segundaAfirmacaoInput, 'A terra é plana.');
+      
+      const parentContainer = segundaAfirmacaoInput.closest('.MuiBox-root');
+      const botaoF = within(parentContainer).getByRole('button', { name: 'F' });
+      await user.click(botaoF);
+
+      await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+
+      await waitFor(() => {
+          expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
+              body: expect.stringContaining('"afirmacoes":[{"texto":"O céu é azul.","correta":true},{"texto":"A terra é plana.","correta":false}]')
+          }));
+      });
+    });
+
+    it('deve submeter com sucesso uma questão dissertativa', async () => {
+        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        renderWithTheme(<CriarQuestaoPage />);
   
-  it('deve renderizar chips de tags ao digitar no campo de tags', async () => {
-    renderWithTheme(<CriarQuestaoPage />);
-    const tagsInput = screen.getByLabelText('Tags (separadas por vírgula)');
-    await user.type(tagsInput, 'react, jest, testing');
+        await selectQuestionType(user, /Dissertativa/i);
+        await user.type(screen.getByLabelText('Enunciado da Questão'), 'Discorra sobre a importância dos testes.');
+        await user.type(screen.getByLabelText(/Gabarito/i), 'Testes garantem a qualidade.');
+        await user.type(screen.getByLabelText(/Palavras-chave/i), 'qualidade, jest');
 
-    expect(screen.getByText('react')).toBeInTheDocument();
-    expect(screen.getByText('jest')).toBeInTheDocument();
-    expect(screen.getByText('testing')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+  
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
+                body: expect.stringContaining('"gabarito":"Testes garantem a qualidade."')
+            }));
+        });
+      });
   });
+
+  // --- TESTES PARA FUNCIONALIDADES DE IA ---
+  describe('Funcionalidades de Inteligência Artificial', () => {
+    it('deve gerar um enunciado com IA ao clicar no botão "Gerar Enunciado"', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ enunciadoGerado: 'Enunciado gerado pela IA.' }) });
+      renderWithTheme(<CriarQuestaoPage />);
+
+      await user.type(screen.getByLabelText('Tags (separadas por vírgula)'), 'programação');
+      await user.click(screen.getByRole('button', { name: /Gerar Enunciado/i }));
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith('/api/ai/gerar-enunciado', expect.any(Object));
+        expect(screen.getByLabelText('Enunciado da Questão')).toHaveValue('Enunciado gerado pela IA.');
+        expect(screen.getByText('Enunciado gerado com sucesso!')).toBeInTheDocument();
+      });
+    });
+
+    it('deve revisar uma questão com IA e atualizar os campos', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ 
+        enunciadoRevisado: 'Qual é a capital correta do Brasil?',
+        alternativasRevisadas: ['Brasília.', 'São Paulo.']
+      }) });
+      renderWithTheme(<CriarQuestaoPage />);
+
+      await user.type(screen.getByLabelText('Enunciado da Questão'), 'qual a capital do brasil');
+      await user.type(screen.getByPlaceholderText('Alternativa A'), 'brasilia');
+      await user.type(screen.getByPlaceholderText('Alternativa B'), 'sao paulo');
+      
+      await user.click(screen.getByRole('button', { name: /Revisar/i }));
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith('/api/ai/revisar-questao', expect.any(Object));
+        expect(screen.getByLabelText('Enunciado da Questão')).toHaveValue('Qual é a capital correta do Brasil?');
+        expect(screen.getByPlaceholderText('Alternativa A')).toHaveValue('Brasília.');
+        expect(screen.getByText('Questão revisada com sucesso pela IA!')).toBeInTheDocument();
+      });
+    });
+
+    it('deve gerar distratores com IA para preencher alternativas vazias', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ alternativasIncorretas: ['Rio de Janeiro', 'Salvador'] }) });
+      renderWithTheme(<CriarQuestaoPage />);
+
+      await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
+      await user.type(screen.getByPlaceholderText('Alternativa A'), 'Brasília'); // Alternativa correta
+      
+      // Adiciona mais duas alternativas vazias
+      await user.click(screen.getByRole('button', {name: '+ Adicionar alternativa'}));
+      await user.click(screen.getByRole('button', {name: '+ Adicionar alternativa'}));
+
+      await user.click(screen.getByRole('button', { name: /Gerar Distratores/i }));
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith('/api/ai/gerar-alternativa', expect.objectContaining({
+          body: expect.stringContaining('"quantidade":3') // B, C, D vazias
+        }));
+        expect(screen.getByPlaceholderText('Alternativa B')).toHaveValue('Rio de Janeiro');
+        expect(screen.getByPlaceholderText('Alternativa C')).toHaveValue('Salvador');
+      });
+    });
+  });
+
+  // --- TESTES DE UI E CASOS DE BORDA ---
+  describe('Interações de UI e Casos de Borda', () => {
+    it('deve limpar o formulário ao clicar no botão "Limpar"', async () => {
+      renderWithTheme(<CriarQuestaoPage />);
+      const enunciadoInput = screen.getByLabelText('Enunciado da Questão');
+      await user.type(enunciadoInput, 'Texto de teste');
+      expect(enunciadoInput).toHaveValue('Texto de teste');
+
+      await user.click(screen.getByRole('button', { name: /Limpar/i }));
+      expect(enunciadoInput).toHaveValue('');
+    });
+
+    it('deve adicionar e remover uma alternativa', async () => {
+      renderWithTheme(<CriarQuestaoPage />);
+      
+      // Verifica estado inicial
+      expect(screen.getAllByPlaceholderText(/Alternativa [A-Z]/i)).toHaveLength(2);
+      
+      // Adiciona
+      await user.click(screen.getByRole('button', { name: '+ Adicionar alternativa' }));
+      expect(screen.getAllByPlaceholderText(/Alternativa [A-Z]/i)).toHaveLength(3);
+      expect(screen.getByPlaceholderText('Alternativa C')).toBeInTheDocument();
+
+      // Remove
+      const allDeleteButtons = screen.getAllByTitle('Remover alternativa');
+      await user.click(allDeleteButtons[2]); // Clica no botão de remover da Alternativa C
+      expect(screen.queryByPlaceholderText('Alternativa C')).not.toBeInTheDocument();
+      expect(screen.getAllByPlaceholderText(/Alternativa [A-Z]/i)).toHaveLength(2);
+    });
+
+    it('deve resetar campos específicos ao mudar o tipo da questão', async () => {
+      renderWithTheme(<CriarQuestaoPage />);
+      await user.type(screen.getByPlaceholderText('Alternativa A'), 'Texto da alternativa');
+      expect(screen.getByPlaceholderText('Alternativa A')).toHaveValue('Texto da alternativa');
+
+      // Muda para dissertativa
+      await selectQuestionType(user, /Dissertativa/i);
+      expect(screen.queryByPlaceholderText('Alternativa A')).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/Gabarito/i)).toBeInTheDocument();
+
+      // Volta para múltipla escolha
+      await selectQuestionType(user, /Múltipla escolha/i);
+      expect(screen.getByPlaceholderText('Alternativa A')).toHaveValue(''); // Deve estar limpo
+    });
+  });
+
+  // --- TESTES DE VALIDAÇÃO E ERROS ---
+  describe('Validações de Formulário e Erros de API', () => {
+    it('deve exibir alerta se o enunciado estiver vazio na submissão', async () => {
+      renderWithTheme(<CriarQuestaoPage />);
+      await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+      expect(await screen.findByText('Por favor, preencha o enunciado da questão.')).toBeInTheDocument();
+    });
+
+    it('deve exibir alerta se uma alternativa estiver vazia na submissão', async () => {
+        renderWithTheme(<CriarQuestaoPage />);
+        await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste');
+        await user.type(screen.getByPlaceholderText('Alternativa A'), 'Texto');
+        // Alternativa B fica vazia
+        await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+        expect(await screen.findByText('Todas as alternativas devem ser preenchidas.')).toBeInTheDocument();
+    });
+    
+    it('deve exibir um alerta de erro se a API de salvar falhar', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Erro interno do servidor' }),
+      });
+      renderWithTheme(<CriarQuestaoPage />);
+      
+      await user.type(screen.getByLabelText('Enunciado da Questão'), 'Teste de falha');
+      await user.type(screen.getByPlaceholderText('Alternativa A'), 'A');
+      await user.type(screen.getByPlaceholderText('Alternativa B'), 'B');
+      await user.click(screen.getByRole('button', { name: /Salvar Questão/i }));
+  
+      expect(await screen.findByText('Erro interno do servidor')).toBeInTheDocument();
+    });
+  });
+
 });
