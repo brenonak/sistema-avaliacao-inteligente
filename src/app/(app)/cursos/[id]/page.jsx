@@ -83,6 +83,7 @@ export default function CursoDetalhesPage() {
     observacoes: '',
   });
   const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
+  const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
 
   useEffect(() => {
     fetchCurso();
@@ -375,6 +376,14 @@ export default function CursoDetalhesPage() {
     const questoesProvaIds = (prova.questoes || []).map(q => q._id || q.id);
     setSelectedQuestoesProva(questoesProvaIds);
     
+    // Preencher pontuações
+    const pontuacoes = {};
+    (prova.questoes || []).forEach(q => {
+      const qId = q._id || q.id;
+      pontuacoes[qId] = q.pontuacao || 0;
+    });
+    setQuestoesPontuacaoProva(pontuacoes);
+    
     setOpenEditProvaDialog(true);
   };
 
@@ -420,6 +429,28 @@ export default function CursoDetalhesPage() {
   // Remover questão da seleção (edição de prova)
   const handleRemoveQuestaoProva = (questaoId) => {
     setSelectedQuestoesProva((prev) => prev.filter(q => q !== questaoId));
+    // Remover também a pontuação
+    setQuestoesPontuacaoProva((prev) => {
+      const newPontuacao = { ...prev };
+      delete newPontuacao[questaoId];
+      return newPontuacao;
+    });
+  };
+
+  // Atualizar pontuação de uma questão (edição de prova)
+  const handleChangePontuacaoProva = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacaoProva((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos (edição de prova)
+  const calcularTotalPontosProva = () => {
+    return selectedQuestoesProva.reduce((total, qId) => {
+      return total + (questoesPontuacaoProva[qId] || 0);
+    }, 0);
   };
 
   const handleSaveEditProva = async () => {
@@ -440,6 +471,14 @@ export default function CursoDetalhesPage() {
         return questao?._id || qId;
       });
 
+      // Preparar pontuações usando os IDs reais
+      const pontuacoes = {};
+      selectedQuestoesProva.forEach(qId => {
+        const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+        const realId = questao?._id || qId;
+        pontuacoes[realId] = questoesPontuacaoProva[qId] || 0;
+      });
+
       const res = await fetch(`/api/cursos/${cursoId}/provas/${editingProva.id}`, {
         method: 'PUT',
         headers: {
@@ -448,6 +487,7 @@ export default function CursoDetalhesPage() {
         body: JSON.stringify({
           ...editProvaData,
           questoesSelecionadas,
+          questoesPontuacao: pontuacoes,
         }),
       });
 
@@ -637,6 +677,20 @@ export default function CursoDetalhesPage() {
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', mt: 1 }}>
                           Obs: {prova.observacoes}
                         </Typography>
+                      )}
+
+                      {/* Mostrar informações sobre questões e pontuação */}
+                      {prova.questoes && prova.questoes.length > 0 && (
+                        <Box sx={{ mt: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                            Questões: {prova.questoes.length}
+                          </Typography>
+                          {prova.questoes.some(q => q.pontuacao > 0) && (
+                            <Typography variant="caption" sx={{ ml: 2, fontWeight: 'bold', color: 'success.main' }}>
+                              Total: {prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0).toFixed(1)} pontos
+                            </Typography>
+                          )}
+                        </Box>
                       )}
                     </Box>
 
@@ -1120,9 +1174,35 @@ export default function CursoDetalhesPage() {
                 {/* Questões Selecionadas - Ordenáveis */}
                 {selectedQuestoesProva.length > 0 && (
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
-                      Questões Selecionadas ({selectedQuestoesProva.length})
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        Questões Selecionadas ({selectedQuestoesProva.length})
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                          Total:
+                        </Typography>
+                        <Chip
+                          label={`${calcularTotalPontosProva().toFixed(1)} pts`}
+                          size="small"
+                          color={
+                            editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal)
+                              ? 'warning'
+                              : 'success'
+                          }
+                          sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                        />
+                        {editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal) && (
+                          <Chip
+                            label={`+${(calcularTotalPontosProva() - parseFloat(editProvaData.valorTotal)).toFixed(1)} extra`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: '0.65rem' }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
                     <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
                       {selectedQuestoesProva.map((questaoId, index) => {
                         const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
@@ -1180,6 +1260,21 @@ export default function CursoDetalhesPage() {
                                 ))}
                               </Box>
                             </Box>
+
+                            {/* Campo de pontuação */}
+                            <TextField
+                              type="number"
+                              label="Pts"
+                              value={questoesPontuacaoProva[questaoId] || ''}
+                              onChange={(e) => handleChangePontuacaoProva(questaoId, e.target.value)}
+                              inputProps={{
+                                min: 0,
+                                step: 0.5,
+                                style: { textAlign: 'center', fontSize: '0.85rem' }
+                              }}
+                              sx={{ width: 70 }}
+                              size="small"
+                            />
 
                             {/* Botões de controle */}
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>

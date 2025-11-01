@@ -60,6 +60,7 @@ export async function PUT(
       valorTotal,
       observacoes,
       questoesSelecionadas,
+      questoesPontuacao,
     } = body;
 
     if (!titulo || !instrucoes) {
@@ -90,10 +91,18 @@ export async function PUT(
           .find({ _id: { $in: questoesIds }, cursoIds: id })
           .toArray();
         
-        // Reorganizar questões na ordem em que foram selecionadas
-        questoes = questoesIds.map(qId => 
-          questoesFromDb.find(q => q._id.equals(qId))
-        ).filter(Boolean); // Remove questões não encontradas
+        // Reorganizar questões na ordem em que foram selecionadas e adicionar pontuação
+        questoes = questoesIds.map(qId => {
+          const questao = questoesFromDb.find(q => q._id.equals(qId));
+          if (!questao) return null;
+          
+          // Adicionar pontuação à questão
+          const pontuacao = questoesPontuacao?.[qId.toString()] || 0;
+          return {
+            ...questao,
+            pontuacao
+          };
+        }).filter(Boolean); // Remove questões não encontradas
       } else {
         questoes = [];
       }

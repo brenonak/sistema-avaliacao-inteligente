@@ -60,6 +60,7 @@ export default function CriarProvaPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
+  const [questoesPontuacao, setQuestoesPontuacao] = useState({}); // { questaoId: pontos }
 
   useEffect(() => {
     // Pré-preencher o nome da disciplina com o nome do curso, se disponível
@@ -128,6 +129,28 @@ export default function CriarProvaPage() {
   // Remover questão da seleção
   const handleRemoveQuestao = (id) => {
     setSelectedQuestoes((prev) => prev.filter(q => q !== id));
+    // Remover também a pontuação
+    setQuestoesPontuacao((prev) => {
+      const newPontuacao = { ...prev };
+      delete newPontuacao[id];
+      return newPontuacao;
+    });
+  };
+
+  // Atualizar pontuação de uma questão
+  const handleChangePontuacao = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacao((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos
+  const calcularTotalPontos = () => {
+    return selectedQuestoes.reduce((total, qId) => {
+      return total + (questoesPontuacao[qId] || 0);
+    }, 0);
   };
 
   const handleSubmit = async (e) => {
@@ -160,6 +183,14 @@ export default function CriarProvaPage() {
         return questao?._id || qId;
       });
 
+      // Preparar pontuações usando os IDs reais
+      const pontuacoes = {};
+      selectedQuestoes.forEach(qId => {
+        const questao = questoes.find(q => (q._id || q.id) === qId);
+        const realId = questao?._id || qId;
+        pontuacoes[realId] = questoesPontuacao[qId] || 0;
+      });
+
       const saveResponse = await fetch(`/api/cursos/${cursoId}/provas`, {
         method: 'POST',
         headers: {
@@ -168,6 +199,7 @@ export default function CriarProvaPage() {
         body: JSON.stringify({
           ...formData,
           questoesSelecionadas, // Contém os _id reais
+          questoesPontuacao: pontuacoes, // Pontuação por questão
         }),
       });
 
@@ -407,9 +439,33 @@ export default function CriarProvaPage() {
                   {/* Questões Selecionadas - Ordenáveis */}
                   {selectedQuestoes.length > 0 && (
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: 'primary.main' }}>
-                        Questões Selecionadas ({selectedQuestoes.length})
-                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                          Questões Selecionadas ({selectedQuestoes.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            Total de Pontos:
+                          </Typography>
+                          <Chip
+                            label={`${calcularTotalPontos().toFixed(1)} pts`}
+                            color={
+                              formData.valorTotal && calcularTotalPontos() > parseFloat(formData.valorTotal)
+                                ? 'warning'
+                                : 'success'
+                            }
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                          {formData.valorTotal && calcularTotalPontos() > parseFloat(formData.valorTotal) && (
+                            <Chip
+                              label={`+${(calcularTotalPontos() - parseFloat(formData.valorTotal)).toFixed(1)} pts extra`}
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      </Box>
                       <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1 }}>
                         {selectedQuestoes.map((questaoId, index) => {
                           const questao = questoes.find(q => (q._id || q.id) === questaoId);
@@ -470,6 +526,21 @@ export default function CriarProvaPage() {
                                   ))}
                                 </Box>
                               </Box>
+
+                              {/* Campo de pontuação */}
+                              <TextField
+                                type="number"
+                                label="Pontos"
+                                value={questoesPontuacao[questaoId] || ''}
+                                onChange={(e) => handleChangePontuacao(questaoId, e.target.value)}
+                                inputProps={{
+                                  min: 0,
+                                  step: 0.5,
+                                  style: { textAlign: 'center' }
+                                }}
+                                sx={{ width: 80 }}
+                                size="small"
+                              />
 
                               {/* Botões de controle */}
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
