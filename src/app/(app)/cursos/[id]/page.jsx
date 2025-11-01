@@ -1151,7 +1151,7 @@ export default function CursoDetalhesPage() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 bgcolor: 'primary.main',
-                                color: 'white',
+                                color: 'primary.contrastText',
                                 borderRadius: 1,
                                 fontWeight: 'bold',
                                 fontSize: '0.9rem',

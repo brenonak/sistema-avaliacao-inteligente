@@ -438,7 +438,7 @@ export default function CriarProvaPage() {
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   bgcolor: 'primary.main',
-                                  color: 'white',
+                                  color: 'primary.contrastText',
                                   borderRadius: 1,
                                   fontWeight: 'bold',
                                   fontSize: '1.1rem',
