@@ -21,6 +21,7 @@ import {
   useMediaQuery
 } from "@mui/material"
 import { Delete as DeleteIcon, Edit as EditIcon } from "@mui/icons-material"
+import ImageDeleteDialog from "./ImageDeleteDialog"
 
 export function GalleryGrid() {
   const [images, setImages] = useState([])
@@ -28,6 +29,13 @@ export function GalleryGrid() {
   const [deletingUrl, setDeletingUrl] = useState(null)
   const [editingImage, setEditingImage] = useState(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [deleteDialogState, setDeleteDialogState] = useState({
+    open: false,
+    image: null,
+    hasQuestions: false,
+    questionCount: 0,
+    isDeleting: false
+  })
 
   useEffect(() => {
     fetchImages()
@@ -124,36 +132,65 @@ export function GalleryGrid() {
     }
   };
 
-  const handleDelete = async (url) => {
-    if (!confirm("Tem certeza que deseja excluir esta foto?")) return
+  const handleDeleteClick = async (image) => {
+    try {
+      // Verificar relações da imagem
+      const response = await fetch(`/api/recursos/check-relations?url=${encodeURIComponent(image.url)}`);
+      const data = await response.json();
 
-    setDeletingUrl(url)
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check image relations");
+      }
+
+      setDeleteDialogState({
+        open: true,
+        image,
+        hasQuestions: data.hasQuestions,
+        questionCount: data.questionCount,
+        isDeleting: false
+      });
+    } catch (error) {
+      console.error("Error checking image relations:", error);
+      alert("Erro ao verificar relações da imagem. Tente novamente.");
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialogState.image) return;
+
+    setDeleteDialogState(prev => ({ ...prev, isDeleting: true }));
     try {
       const response = await fetch("/api/galeria", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      })
+        body: JSON.stringify({ url: deleteDialogState.image.url }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Failed to delete image")
+        throw new Error(data.error || "Failed to delete image");
       }
 
       if (data.success) {
         // Remove from state only if deletion was successful
-        setImages((prev) => prev.filter((img) => img.url !== url))
+        setImages((prev) => prev.filter((img) => img.url !== deleteDialogState.image.url));
+        setDeleteDialogState({
+          open: false,
+          image: null,
+          hasQuestions: false,
+          questionCount: 0,
+          isDeleting: false
+        });
       } else {
-        throw new Error(data.error || "Failed to delete image")
+        throw new Error(data.error || "Failed to delete image");
       }
     } catch (error) {
-      console.error("Error deleting image:", error)
-      alert("Erro ao excluir a foto. Tente novamente.")
-    } finally {
-      setDeletingUrl(null)
+      console.error("Error deleting image:", error);
+      alert("Erro ao excluir a foto. Tente novamente.");
+      setDeleteDialogState(prev => ({ ...prev, isDeleting: false }));
     }
-  }
+  };
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -258,18 +295,18 @@ export function GalleryGrid() {
               }}
             >
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton
-                  onClick={() => handleDelete(image.url)}
-                  disabled={deletingUrl === image.url}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    '&:hover': {
-                      bgcolor: 'background.default'
-                    }
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                              <IconButton
+                onClick={() => handleDeleteClick(image)}
+                disabled={deleteDialogState.isDeleting && deleteDialogState.image?.url === image.url}
+                sx={{
+                  bgcolor: 'background.paper',
+                  '&:hover': {
+                    bgcolor: 'background.default'
+                  }
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
                 <IconButton
                   onClick={() => {
                     setEditingImage(image);
@@ -301,6 +338,17 @@ export function GalleryGrid() {
           </ImageListItem>
         ))}
       </ImageList>
+
+      {/* Delete Confirmation Dialog */}
+      <ImageDeleteDialog
+        open={deleteDialogState.open}
+        imageName={deleteDialogState.image?.pathname || ''}
+        hasQuestions={deleteDialogState.hasQuestions}
+        questionCount={deleteDialogState.questionCount}
+        isDeleting={deleteDialogState.isDeleting}
+        onClose={() => setDeleteDialogState(prev => ({ ...prev, open: false }))}
+        onConfirm={handleDeleteConfirm}
+      />
 
       <Dialog 
         open={isEditDialogOpen} 

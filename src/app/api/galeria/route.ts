@@ -1,6 +1,8 @@
 import { put, list, del } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { upsertRecurso, getRecursosCollection } from "../../../lib/resources"
+import { getDb } from "../../../lib/mongodb"
+import { ObjectId } from "mongodb"
 
 // GET - List all images
 export async function GET(request: NextRequest) {
@@ -99,31 +101,39 @@ export async function DELETE(request: NextRequest) {
         } catch (blobError) {
           console.error("Failed to delete from blob storage:", blobError);
         }
-        return NextResponse.json({ error: "Resource not found in database" }, { status: 404 });
+        return NextResponse.json({ success: true });
       }
 
-      // Check if the resource is in use
-      if (recurso.usage.refCount > 0) {
-        return NextResponse.json(
-          { error: "Cannot delete resource that is in use by questions" },
-          { status: 400 }
-        );
-      }
+      // Verificar e deletar questões relacionadas
+      const db = await getDb();
+      const questoesCollection = db.collection("questoes");
+      
+      // Deletar todas as questões que usam esta imagem
+      const deleteQuestoes = await questoesCollection.deleteMany({
+        recursos: recurso._id.toString()
+      });
 
-      // Delete from both Blob and MongoDB
-      try {
-        await del(url);
-      } catch (blobError) {
-        console.error("Failed to delete from blob storage:", blobError);
-        throw new Error("Failed to delete from blob storage");
-      }
+      console.log(`Deleted ${deleteQuestoes.deletedCount} related questions`);
 
-      const deleteResult = await collection.deleteOne({ url });
+      // Deletar o recurso do MongoDB
+      const deleteResult = await collection.deleteOne({ _id: recurso._id });
       if (!deleteResult.deletedCount) {
         throw new Error("Failed to delete from database");
       }
 
-      return NextResponse.json({ success: true });
+      // Deletar o arquivo do Blob Storage
+      try {
+        await del(url);
+      } catch (blobError) {
+        console.error("Failed to delete from blob storage:", blobError);
+        // Mesmo que falhe ao deletar do blob, o registro já foi removido do banco
+        // Em um processo assíncrono posterior, podemos tentar limpar blobs órfãos
+      }
+
+      return NextResponse.json({ 
+        success: true,
+        deletedQuestions: deleteQuestoes.deletedCount
+      });
     } catch (error) {
       console.error("Error during delete operation:", error);
       throw error; // Re-throw para ser pego pelo try/catch externo
