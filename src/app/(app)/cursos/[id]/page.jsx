@@ -682,14 +682,39 @@ export default function CursoDetalhesPage() {
                       {/* Mostrar informações sobre questões e pontuação */}
                       {prova.questoes && prova.questoes.length > 0 && (
                         <Box sx={{ mt: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                            Questões: {prova.questoes.length}
-                          </Typography>
-                          {prova.questoes.some(q => q.pontuacao > 0) && (
-                            <Typography variant="caption" sx={{ ml: 2, fontWeight: 'bold', color: 'success.main' }}>
-                              Total: {prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0).toFixed(1)} pontos
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Questões: {prova.questoes.length}
                             </Typography>
-                          )}
+                            {prova.questoes.some(q => q.pontuacao > 0) && (
+                              <>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                                  •
+                                </Typography>
+                                <Chip
+                                  label={`${prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0).toFixed(1)} pts`}
+                                  size="small"
+                                  color={
+                                    prova.valorTotal && 
+                                    prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) > parseFloat(prova.valorTotal)
+                                      ? 'warning'
+                                      : 'success'
+                                  }
+                                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                />
+                                {prova.valorTotal && 
+                                 prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) > parseFloat(prova.valorTotal) && (
+                                  <Chip
+                                    label={`+${(prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) - parseFloat(prova.valorTotal)).toFixed(1)} pts extra`}
+                                    size="small"
+                                    color="warning"
+                                    variant="outlined"
+                                    sx={{ height: 20, fontSize: '0.65rem' }}
+                                  />
+                                )}
+                              </>
+                            )}
+                          </Box>
                         </Box>
                       )}
                     </Box>
