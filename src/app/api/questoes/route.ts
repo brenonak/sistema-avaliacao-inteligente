@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const finalSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
     const finalSortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "desc";
     
-    const sortObject = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
+    const sortObject: Record<string, 1 | -1> = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
 
     // Parâmetro de busca
     const searchQuery = url.searchParams.get("search") || "";
@@ -100,6 +100,12 @@ export async function GET(request: NextRequest) {
     // Adicionar filtro de busca por enunciado
     if (searchQuery.trim()) {
       filter.enunciado = { $regex: searchQuery.trim(), $options: "i" }; // Case-insensitive search
+    }
+
+    // Filtro por cursoId (campo 'cursoIds' inclui o id passado)
+    const curso = url.searchParams.get("curso");
+    if (curso) {
+      filter.cursoIds = curso;
     }
 
     // criar índices 
@@ -161,6 +167,7 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       tags,
       recursos: recursoIds, // references
+      cursoIds: Array.isArray(body.cursoIds) ? body.cursoIds : [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

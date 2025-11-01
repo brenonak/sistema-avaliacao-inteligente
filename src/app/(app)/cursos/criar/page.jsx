@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -8,70 +8,80 @@ import {
   TextField, 
   Button, 
   Paper,
-  Chip
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import { Save, Cancel } from '@mui/icons-material';
+import { set } from 'zod';
 
 export default function CriarCursoPage() {
   const router = useRouter();
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [professor, setProfessor] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const cleanTags = useMemo(() => (
-    tagsInput
-      .split(',')
-      .map(s => s.trim().toLowerCase())
-      .filter(Boolean)
-      .slice(0, 10)
-  ), [tagsInput]);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (nome.trim() === '') {
-      alert('Por favor, preencha o nome do curso.');
+      setSnackbar({ open: true, message: 'Por favor, preencha o nome do curso.', severity: 'error' });
       return;
     }
 
     const payload = {
       nome: nome.trim(),
       descricao: descricao.trim(),
-      professor: professor.trim(),
-      tags: cleanTags,
-      questoes: [], // Inicialmente vazio, questões serão adicionadas depois
     };
 
     try {
       setLoading(true);
-      
-      // Simular criação do curso
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Curso criado:', payload);
-      alert('Curso criado com sucesso!');
-      
-      // Redirecionar para a página de cursos (como exemplo, já que não temos API)
-      router.push('/cursos');
+      const res = await fetch('/api/cursos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || 'Erro ao criar curso!');
+      }
+      setSnackbar({ open: true, message: 'Curso criado com sucesso!', severity: 'success' });
+      setTimeout(() => {
+        router.push('/cursos');
+      }, 1500);
+
     } catch (e) {
-      console.error(e);
-      alert(e.message || 'Erro ao criar curso.');
-    } finally {
+      setSnackbar({ open: true, message: e.message || 'Erro ao criar curso' ,severity: 'error' });
       setLoading(false);
-    }
+    } 
   };
 
   const handleCancel = () => {
-    if (nome.trim() || descricao.trim() || professor.trim() || tagsInput.trim()) {
-      if (confirm('Tem certeza que deseja cancelar? As informações não serão salvas.')) {
-        router.push('/cursos');
-      }
+    if (nome.trim() || descricao.trim()) {
+      setDialogOpen(true);
     } else {
       router.push('/cursos');
     }
   };
+
+  const handleDialogClose = (confirm) => {
+    setDialogOpen(false);
+    if (confirm) {
+      router.push('/cursos');
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  }
 
   return (
     <Box 
@@ -123,42 +133,6 @@ export default function CriarCursoPage() {
           helperText="Descrição opcional do curso"
         />
 
-        {/* Professor */}
-        <TextField
-          id="professor"
-          label="Nome do Professor"
-          value={professor}
-          onChange={(e) => setProfessor(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          helperText="Nome do professor responsável"
-        />
-
-        {/* Tags */}
-        <TextField
-          id="tags"
-          label="Tags (separadas por vírgula)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          helperText="Adicione até 10 tags separadas por vírgula"
-        />
-        
-        {cleanTags.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-            {cleanTags.map((tag, index) => (
-              <Chip 
-                key={index} 
-                label={tag} 
-                color="primary" 
-                variant="outlined" 
-                size="small"
-              />
-            ))}
-          </Box>
-        )}
-
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
           <Button
@@ -192,6 +166,37 @@ export default function CriarCursoPage() {
           </Button>
         </Box>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => handleDialogClose(false)}
+      >
+        <DialogTitle>Descartar alterações?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Você tem alterações não salvas. Tem certeza que deseja descartar essas alterações e sair?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDialogClose(false)} color="primary">
+            Continuar Editando
+          </Button>
+          <Button onClick={() => handleDialogClose(true)} color="error" autoFocus>
+            Descartar e Sair
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 }

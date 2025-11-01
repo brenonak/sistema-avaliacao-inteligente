@@ -204,3 +204,55 @@ const data = await response.json();
 4. **Tipos de Arquivos:**
    - Apenas imagens são permitidas (JPEG, PNG, WebP, GIF, SVG).
    - Tamanho máximo: 10MB.
+
+# API: Questões - Referência a Cursos (`cursoIds`)
+
+## Campos do Documento Questão
+
+- **cursoIds**: `string[]` (ObjectId)
+    - Opcional. Pode ser omitido.
+    - Lista de IDs de cursos aos quais a questão está vinculada.
+    - Sem impacto em contratos antigos; endpoints aceitam e retornam este campo caso presente.
+
+---
+
+## Criação de Questão (`POST /api/questoes`)
+
+- Aceita o campo `cursoIds` opcional no body:
+
+    ```json
+    {
+      "enunciado": "...",
+      ...
+      "cursoIds": ["662e...", "662f..."]
+    }
+    ```
+- Se omitido, a questão é criada sem cursos associados.
+
+## Atualização de Questão (`PUT /api/questoes/[id]`)
+
+- Aceita o campo `cursoIds` opcional no body.
+- Campo substitui por completo os cursos associados à questão.
+
+## Listagem de Questões
+
+### Novo filtro `?curso=<id>`
+
+- Para filtrar questões relacionadas com um curso, utilize:
+    `/api/questoes?curso=ObjectIdDoCurso`
+- Retorna apenas questões cujo array `cursoIds` inclui o id informado.
+- Sem o parâmetro, segue comportamento anterior (total retrocompatibilidade).
+
+---
+
+## Exemplo de resposta com `cursoIds`:
+
+```json
+{
+  "id": "...",
+  ...
+  "cursoIds": ["662e...", "662f..."]
+}
+```
+
+- Questões criadas/atualizadas antes desta feature continuam funcionando normalmente.

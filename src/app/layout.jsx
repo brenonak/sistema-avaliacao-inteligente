@@ -1,21 +1,14 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import Header from "./components/Header";
+// Removido Geist para padronizar em Roboto
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, responsiveFontSizes, ThemeProvider, alpha } from '@mui/material/styles';
+import { Analytics } from "@vercel/analytics/next"; // Adicionando a importação do Analytics
+import AuthProvider from './components/AuthProvider';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 let customTheme = createTheme({
   cssVariables: {
@@ -57,12 +50,17 @@ let customTheme = createTheme({
 
     accent: {
       main: '#1e88e5', 
+      dark: '#0D47A1',
       contrastText: '#ffffff',
     },
     
     header: {
       main: alpha('#ffffff', 0.95),
     },
+
+    sidebar: {
+      main: '#ffffff',
+    }
   },
   colorSchemes: {
     dark: {
@@ -98,14 +96,18 @@ let customTheme = createTheme({
           contrastText: '#000000',
         },
         header: {
-          main: alpha('#000000', 0.80),
+          main: alpha('#1e1e1e', 0.95),
         },
+        sidebar: {
+          main: '#1e1e1e',
+        }
       },
     },
   },
 });
 
 customTheme = responsiveFontSizes(customTheme);
+
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
@@ -117,16 +119,17 @@ const roboto = Roboto({
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-br" className={roboto.variable}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <AppRouterCacheProvider>
           <ThemeProvider theme={customTheme}>
-            <Header />
-            {children}
+            <AuthProvider> 
+              {children}
+              <Analytics />
+            </AuthProvider> 
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
     </html>
   );
 }
+
