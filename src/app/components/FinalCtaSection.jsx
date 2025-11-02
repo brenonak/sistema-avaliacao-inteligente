@@ -5,6 +5,7 @@ import { Box, Typography, Button, darken } from '@mui/material';
 import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import NextLink from 'next/link';
 
 export default function FinalCtaSection() {
 
@@ -55,6 +56,8 @@ export default function FinalCtaSection() {
         </Typography>
 
         <Button
+          component={NextLink} 
+          href="/login" 
           variant="contained"
           size="large"
           disableElevation
