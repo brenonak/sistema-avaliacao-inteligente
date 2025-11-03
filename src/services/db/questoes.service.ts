@@ -92,7 +92,7 @@ async function validateCursoOwnership(
 }
 
 /**
- * Valida que todas as imagens pertencem ao usuário
+ * Valida que todas as imagens/recursos pertencem ao usuário
  */
 async function validateImagemOwnership(
   userId: string,
@@ -101,19 +101,28 @@ async function validateImagemOwnership(
   if (!imagemIds || imagemIds.length === 0) return;
 
   const db = await getDb();
-  const collection = db.collection("imagens");
+  // Verificar na collection "recursos" (onde as imagens são armazenadas)
+  const collection = db.collection("recursos");
 
   const imagemObjectIds = imagemIds.map((id) => new ObjectId(id));
   const userObjectId = new ObjectId(userId);
 
-  const imagens = await collection
+  const recursos = await collection
     .find({
       _id: { $in: imagemObjectIds },
       ownerId: userObjectId,
     })
     .toArray();
 
-  if (imagens.length !== imagemIds.length) {
+  if (recursos.length !== imagemIds.length) {
+    const found = recursos.map(r => r._id.toString());
+    const missing = imagemIds.filter(id => !found.includes(id));
+    console.error(`[validateImagemOwnership] Owner mismatch: recursos não encontrados ou não pertencem ao usuário`, {
+      userId,
+      requested: imagemIds,
+      found: found,
+      missing: missing
+    });
     throw new Error(
       "Owner mismatch: uma ou mais imagens não pertencem ao usuário"
     );

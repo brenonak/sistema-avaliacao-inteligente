@@ -19,8 +19,10 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const limit = Math.min(Number(url.searchParams.get("limit") || 100), 200);
     
-    // Obter recursos ordenados por frequência de uso (counter)
-    const recursos = await getTopRecursos(limit);
+    // Obter recursos do usuário ordenados por frequência de uso (counter)
+    const recursos = await getTopRecursos(userId, limit);
+    
+    console.log(`[GET /api/recursos] userId: ${userId}`);
     
     console.log(`[GET /api/recursos] Encontrados ${recursos?.length || 0} recursos no banco`);
     

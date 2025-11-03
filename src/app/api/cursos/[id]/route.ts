@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 import * as CursosService from "../../../../services/db/cursos.service";
 import * as QuestoesService from "../../../../services/db/questoes.service";
+import { getDb } from "../../../../lib/mongodb";
 
 /**
  * GET /api/cursos/[id]
@@ -29,15 +30,41 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       cursoIds: [id],
     });
 
-    // Formatar resposta - serializar ObjectIds
-    const questoesFormatadas = questoes.map(({ _id, ownerId, createdBy, updatedBy, cursoIds, imagemIds, ...rest }) => ({
-      id: _id?.toString(),
-      ownerId: ownerId?.toString(),
-      createdBy: createdBy?.toString(),
-      updatedBy: updatedBy?.toString(),
-      cursoIds: Array.isArray(cursoIds) ? cursoIds.map((id: any) => id?.toString()) : [],
-      imagemIds: Array.isArray(imagemIds) ? imagemIds.map((id: any) => id?.toString()) : [],
-      ...rest,
+    // Popular imagemIds com os dados completos dos recursos (incluindo URLs)
+    const db = await getDb();
+    const recursosCol = db.collection("recursos");
+    
+    // Formatar resposta - serializar ObjectIds e popular imagens
+    const questoesFormatadas = await Promise.all(questoes.map(async ({ _id, ownerId, createdBy, updatedBy, cursoIds, imagemIds, ...rest }) => {
+      // Popular imagemIds com os dados completos dos recursos
+      let imagens: any[] = [];
+      if (Array.isArray(imagemIds) && imagemIds.length > 0) {
+        try {
+          const recursos = await recursosCol.find({ 
+            _id: { $in: imagemIds }
+          }).toArray();
+          
+          imagens = recursos.map((rec: any) => ({
+            id: rec._id?.toString(),
+            url: rec.url,
+            filename: rec.filename,
+            mime: rec.mime
+          }));
+        } catch (err) {
+          console.error('[GET /api/cursos/[id]] Erro ao buscar recursos:', err);
+        }
+      }
+      
+      return {
+        id: _id?.toString(),
+        ownerId: ownerId?.toString(),
+        createdBy: createdBy?.toString(),
+        updatedBy: updatedBy?.toString(),
+        cursoIds: Array.isArray(cursoIds) ? cursoIds.map((id: any) => id?.toString()) : [],
+        imagemIds: Array.isArray(imagemIds) ? imagemIds.map((id: any) => id?.toString()) : [],
+        imagens, // Adicionar array de imagens populado
+        ...rest,
+      };
     }));
 
     return json({

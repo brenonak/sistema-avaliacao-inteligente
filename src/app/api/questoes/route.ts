@@ -104,9 +104,32 @@ export async function GET(request: NextRequest) {
     const total = questoes.length;
     const paginatedQuestoes = questoes.slice(skip, skip + limit);
 
-    // Formatar resposta - serializar ObjectIds
-    const items = paginatedQuestoes.map((doc: any) => {
+    // Formatar resposta - serializar ObjectIds e popular imagens
+    const db = await getDb();
+    const recursosCol = db.collection("recursos");
+    
+    const items = await Promise.all(paginatedQuestoes.map(async (doc: any) => {
       const { _id, ownerId, createdBy, updatedBy, cursoIds, imagemIds, ...rest } = doc;
+      
+      // Popular imagemIds com os dados completos dos recursos (incluindo URLs)
+      let imagens: any[] = [];
+      if (Array.isArray(imagemIds) && imagemIds.length > 0) {
+        try {
+          const recursos = await recursosCol.find({ 
+            _id: { $in: imagemIds }
+          }).toArray();
+          
+          imagens = recursos.map((rec: any) => ({
+            id: rec._id?.toString(),
+            url: rec.url,
+            filename: rec.filename,
+            mime: rec.mime
+          }));
+        } catch (err) {
+          console.error('[GET /api/questoes] Erro ao buscar recursos:', err);
+        }
+      }
+      
       return { 
         id: _id?.toString?.() ?? _id,
         ownerId: ownerId?.toString(),
@@ -114,10 +137,11 @@ export async function GET(request: NextRequest) {
         updatedBy: updatedBy?.toString(),
         cursoIds: Array.isArray(cursoIds) ? cursoIds.map((id: any) => id?.toString()) : [],
         imagemIds: Array.isArray(imagemIds) ? imagemIds.map((id: any) => id?.toString()) : [],
+        imagens, // Adicionar array de imagens populado
         ...rest, 
         tags: Array.isArray(rest.tags) ? rest.tags : [] 
       };
-    });
+    }));
 
     return json({ items, page, limit, total });
   } catch (e) {

@@ -15,8 +15,11 @@ export async function GET(request: NextRequest) {
     if (userIdOrError instanceof NextResponse) return userIdOrError;
     const userId = userIdOrError;
 
+    console.log('[GET /api/cursos] userId:', userId);
+
     // Listar cursos do usuário com contagem de questões
     const cursos = await CursosService.getCursosWithQuestionCount(userId);
+    console.log('[GET /api/cursos] Cursos encontrados:', cursos.length);
 
     // Formatar resposta - serializar ObjectIds
     const itens = cursos.map(({ _id, ownerId, createdBy, updatedBy, ...rest }) => ({

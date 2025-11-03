@@ -1,14 +1,13 @@
 import { put, list, del } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
-import { upsertRecurso, getRecursosCollection } from "../../../lib/resources"
+import { upsertRecurso, getRecursosCollection, getTopRecursos } from "../../../lib/resources"
 import { getDb } from "../../../lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers"
-import * as ImagensService from "../../../services/db/imagens.service"
 
 /**
  * GET /api/galeria
- * Lista todas as imagens do usuário autenticado
+ * Lista todas as imagens/recursos do usuário autenticado
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,22 +16,28 @@ export async function GET(request: NextRequest) {
     if (userIdOrError instanceof NextResponse) return userIdOrError;
     const userId = userIdOrError;
 
-    // Listar imagens do usuário
-    const imagens = await ImagensService.listImagens(userId);
+    console.log('[GET /api/galeria] Listando recursos para userId:', userId);
+
+    // Buscar todos os recursos do usuário (ordenados por uso)
+    const recursos = await getTopRecursos(userId, 200); // Limite alto para galeria
+
+    console.log('[GET /api/galeria] Recursos encontrados:', recursos.length);
 
     // Mapear para o formato esperado pela galeria
-    const images = imagens.map((imagem) => ({
-      id: imagem._id?.toString(),
-      url: imagem.url,
-      pathname: imagem.nome || "",
-      uploadedAt: imagem.createdAt?.toISOString(),
-      size: imagem.tamanho,
-      tipo: imagem.tipo,
+    const images = recursos.map((recurso) => ({
+      id: recurso._id?.toString(),
+      url: recurso.url,
+      pathname: recurso.key || recurso.filename,
+      uploadedAt: recurso.createdAt?.toISOString(),
+      size: recurso.sizeBytes,
+      tipo: recurso.mime,
+      filename: recurso.filename,
+      refCount: recurso.usage?.refCount || 0,
     }));
 
     return NextResponse.json({ images });
   } catch (error) {
-    console.error("Error listing images:", error);
+    console.error("[GET /api/galeria] Error listing images:", error);
     return NextResponse.json({ error: "Failed to list images" }, { status: 500 });
   }
 }
@@ -59,38 +64,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File must be an image" }, { status: 400 });
     }
 
+    console.log('[POST /api/galeria] Upload iniciado para:', file.name);
+
     const timestamp = Date.now();
     const filename = `${timestamp}-${file.name}`;
 
     // Upload to Vercel Blob
     const blob = await put(filename, file, {
       access: "public",
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
-    // Criar imagem no banco (vinculada ao usuário)
-    const imagem = await ImagensService.createImagem(userId, {
-      url: blob.url,
-      nome: file.name,
-      tipo: file.type,
-      tamanho: file.size,
-    });
+    console.log('[POST /api/galeria] Upload concluído:', blob.url);
 
-    // Também registrar em recursos para manter compatibilidade
-    await upsertRecurso({
+    // Registrar em recursos (única fonte de verdade)
+    const recurso = await upsertRecurso({
       provider: "vercel-blob",
       url: blob.url,
       key: blob.pathname,
       filename: file.name,
       mime: file.type,
       sizeBytes: file.size,
-    });
+    }, userId);
+
+    console.log('[POST /api/galeria] Recurso registrado:', recurso._id);
 
     return NextResponse.json({
-      id: imagem._id?.toString(),
-      url: imagem.url,
-      pathname: imagem.nome,
-      uploadedAt: imagem.createdAt?.toISOString(),
-      size: imagem.tamanho,
+      id: recurso._id?.toString(),
+      url: recurso.url,
+      pathname: recurso.key,
+      uploadedAt: recurso.createdAt?.toISOString(),
+      size: recurso.sizeBytes,
+      filename: recurso.filename,
     });
   } catch (error) {
     console.error("Upload error:", error);
@@ -120,21 +125,29 @@ export async function DELETE(request: NextRequest) {
 
     const { url, id } = body;
 
-    // Buscar imagem por ID ou URL
-    let imagem;
+    console.log('[DELETE /api/galeria] Deletando recurso:', { url, id, userId });
+
+    // Buscar recurso por ID ou URL
+    const collection = await getRecursosCollection();
+    let recurso;
+    
     if (id) {
-      imagem = await ImagensService.getImagemById(userId, id);
+      recurso = await collection.findOne({
+        _id: new ObjectId(id),
+        ownerId: new ObjectId(userId),
+      });
     } else if (url) {
-      // Buscar todas as imagens do usuário e encontrar por URL
-      const imagens = await ImagensService.listImagens(userId);
-      imagem = imagens.find((img) => img.url === url);
+      recurso = await collection.findOne({
+        url: url,
+        ownerId: new ObjectId(userId),
+      });
     }
 
-    if (!imagem) {
+    if (!recurso) {
       return NextResponse.json({ error: "Image not found or access denied" }, { status: 404 });
     }
 
-    const imagemId = imagem._id?.toString()!;
+    const recursoId = recurso._id.toString();
 
     // Verificar se há questões usando esta imagem
     const db = await getDb();
@@ -142,8 +155,10 @@ export async function DELETE(request: NextRequest) {
     
     const questoesUsandoImagem = await questoesCollection.countDocuments({
       ownerId: new ObjectId(userId),
-      imagemIds: new ObjectId(imagemId),
+      imagemIds: new ObjectId(recursoId),
     });
+
+    console.log('[DELETE /api/galeria] Questões usando imagem:', questoesUsandoImagem);
 
     if (questoesUsandoImagem > 0) {
       return NextResponse.json(
@@ -155,27 +170,25 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Deletar imagem do banco (apenas se pertencer ao usuário)
-    const deleted = await ImagensService.deleteImagem(userId, imagemId);
+    // Deletar recurso do banco
+    const deleteResult = await collection.deleteOne({
+      _id: new ObjectId(recursoId),
+      ownerId: new ObjectId(userId),
+    });
 
-    if (!deleted) {
+    if (deleteResult.deletedCount === 0) {
       return NextResponse.json({ error: "Failed to delete image" }, { status: 500 });
     }
 
+    console.log('[DELETE /api/galeria] Recurso deletado do MongoDB');
+
     // Deletar o arquivo do Blob Storage
     try {
-      await del(imagem.url);
+      await del(recurso.url);
+      console.log('[DELETE /api/galeria] Arquivo deletado do Blob Storage');
     } catch (blobError) {
-      console.error("Failed to delete from blob storage:", blobError);
+      console.error("[DELETE /api/galeria] Failed to delete from blob storage:", blobError);
       // Mesmo que falhe ao deletar do blob, o registro já foi removido do banco
-    }
-
-    // Também deletar de recursos (para manter compatibilidade)
-    try {
-      const collection = await getRecursosCollection();
-      await collection.deleteOne({ url: imagem.url });
-    } catch (e) {
-      console.error("Failed to delete from recursos:", e);
     }
 
     return NextResponse.json({ 

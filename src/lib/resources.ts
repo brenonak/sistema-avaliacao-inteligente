@@ -9,6 +9,7 @@ export interface Recurso {
   filename: string;
   mime: string;
   sizeBytes: number;
+  ownerId: ObjectId; // ID do usuário que fez o upload
   usage: { refCount: number };
   createdAt: Date;
   updatedAt: Date;
@@ -68,14 +69,22 @@ async function createIndexes(collection: Collection<Recurso>): Promise<void> {
   }
 }
 
-export async function upsertRecurso(recursoData: Partial<Recurso>): Promise<Recurso> {
+export async function upsertRecurso(recursoData: Partial<Recurso>, userId?: string): Promise<Recurso> {
   const collection = await getRecursosCollection();
   const now = new Date();
+  
+  // Se ownerId não foi fornecido e temos userId, converter para ObjectId
+  const ownerId = recursoData.ownerId || (userId ? new ObjectId(userId) : undefined);
+  
+  if (!ownerId) {
+    throw new Error("ownerId ou userId deve ser fornecido para criar recurso");
+  }
   
   const filter = { url: recursoData.url };
   const update = {
     $set: {
       ...recursoData,
+      ownerId, // Sempre setar o ownerId
       updatedAt: now,
     },
     $setOnInsert: {
@@ -96,13 +105,13 @@ export async function upsertRecurso(recursoData: Partial<Recurso>): Promise<Recu
   return result;
 }
 
-export async function getTopRecursos(limit: number = 10): Promise<Recurso[]> {
+export async function getTopRecursos(userId: string, limit: number = 10): Promise<Recurso[]> {
   const collection = await getRecursosCollection();
   
-  // Buscar todos os recursos, independente do status
+  // SEMPRE filtrar por ownerId (multi-tenant)
   // Ordenar por refCount (decrescente) e depois por data de atualização
   return await collection
-    .find({})
+    .find({ ownerId: new ObjectId(userId) })
     .sort({ "usage.refCount": -1, "updatedAt": -1 })
     .limit(limit)
     .toArray();
