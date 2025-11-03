@@ -52,28 +52,28 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Callback de signIn: aceita APENAS logins do Google
     async signIn({ account, profile, user }) {
-      console.log('[Auth] signIn callback:', { 
-        email: profile?.email, 
-        userId: user?.id,
-        provider: account?.provider,
-        providerAccountId: account?.providerAccountId 
-      });
+      console.log('[Auth] ===== SIGNIN CALLBACK =====');
+      console.log('[Auth] Email:', profile?.email);
+      console.log('[Auth] User ID:', user?.id);
+      console.log('[Auth] Provider:', account?.provider);
+      console.log('[Auth] Provider Account ID:', account?.providerAccountId);
+      console.log('[Auth] Email Verified:', (profile as any)?.email_verified);
+      console.log('[Auth] Profile:', JSON.stringify(profile, null, 2));
       
       // Bloquear qualquer provider que não seja Google
       if (account?.provider !== "google") {
-        console.warn(`[Auth] Tentativa de login bloqueada: provider ${account?.provider}`);
+        console.warn(`[Auth] ❌ Login bloqueado: provider ${account?.provider} não permitido`);
         return false;
       }
       
       // Validação adicional: garantir que tem email verificado
       if (profile?.email && (profile as any).email_verified) {
-        console.log(`[Auth] Email verificado, permitindo login: ${profile.email}`);
+        console.log(`[Auth] ✅ Email verificado, permitindo login: ${profile.email}`);
         // O MongoDB Adapter já cria/atualiza o usuário e a account automaticamente
-        // Não precisamos fazer nada aqui
         return true;
       }
       
-      console.warn(`[Auth] Login Google bloqueado: email não verificado`);
+      console.warn(`[Auth] ❌ Login bloqueado: email não verificado`);
       return false;
     },
     
@@ -120,7 +120,7 @@ export const authOptions: NextAuthOptions = {
   // Páginas customizadas
   pages: {
     signIn: "/login",
-    error: "/login", // Redirecionar erros para página de login
+    // error: "/login", // Não redirecionar erros, deixar Next-Auth mostrar a mensagem
   },
   
   // Debug em desenvolvimento
