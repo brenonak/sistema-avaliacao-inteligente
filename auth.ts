@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
   // Callbacks
   callbacks: {
     // Callback de signIn: aceita APENAS logins do Google
-    async signIn({ account, profile }) {
+    async signIn({ account, profile, user }) {
       // Bloquear qualquer provider que não seja Google
       if (account?.provider !== "google") {
         console.warn(`[Auth] Tentativa de login bloqueada: provider ${account?.provider}`);
@@ -60,6 +60,26 @@ export const authOptions: NextAuthOptions = {
       
       // Validação adicional: garantir que tem email verificado
       if (profile?.email && (profile as any).email_verified) {
+        // Garantir que o usuário existe no banco de dados
+        if (user?.id) {
+          const client = await clientPromise;
+          const db = client.db(process.env.MONGODB_DB);
+          const usersCollection = db.collection("users");
+          
+          // Verificar se o usuário já existe
+          const existingUser = await usersCollection.findOne({ email: profile.email });
+          
+          // Se não existe, criar o documento do usuário
+          if (!existingUser) {
+            await usersCollection.insertOne({
+              name: profile.name || null,
+              email: profile.email,
+              image: (profile as any).picture || null,
+              emailVerified: new Date(),
+            });
+            console.log(`[Auth] Usuário criado: ${profile.email}`);
+          }
+        }
         return true;
       }
       
