@@ -53,6 +53,10 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 ```
 
 ---
+## Arquitetura do projeto
+<img width="1126" height="422" alt="Screenshot 2025-11-03 at 18 52 57" src="https://github.com/user-attachments/assets/6db262b3-bf3a-47e7-bc15-901841ca19e6" />
+
+---
 
 ## Como Configurar o Ambiente de Desenvolvimento
 
