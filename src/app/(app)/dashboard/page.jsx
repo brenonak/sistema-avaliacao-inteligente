@@ -21,8 +21,13 @@ export default function DashboardPage() {
         const res = await fetch('/api/cursos');
         if (!res.ok) throw new Error('Erro ao carregar cursos');
         const json = await res.json();
-        // Limitar a 6 cursos mais recentes no dashboard
-        setCursos((json.itens || []).slice(0, 6));
+        
+        // Ordenar cursos por quantidade de questões (decrescente) e pegar os 6 primeiros
+        const cursosOrdenados = (json.itens || [])
+          .sort((a, b) => (b.questoesCount || 0) - (a.questoesCount || 0))
+          .slice(0, 6);
+        
+        setCursos(cursosOrdenados);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
         setCursos([]);
@@ -40,9 +45,14 @@ export default function DashboardPage() {
           padding: 5,
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography gutterBottom variant="h4" component="div">
-              Meus Cursos
-            </Typography>
+            <Box>
+              <Typography gutterBottom variant="h4" component="div">
+                Meus Cursos
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Top 6 cursos com mais questões
+              </Typography>
+            </Box>
             <Link href="/cursos" passHref style={{ textDecoration: 'none' }}>
               <Button variant="text" size="small">
                 Ver todos
