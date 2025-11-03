@@ -35,7 +35,11 @@ import {
   QuestionAnswer,
   School,
   Assignment,
-  Description
+  Description,
+  ArrowUpward,
+  ArrowDownward,
+  Clear as ClearIcon,
+  Download,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -63,6 +67,24 @@ export default function CursoDetalhesPage() {
   const [editNome, setEditNome] = useState('');
   const [editDescricao, setEditDescricao] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
+  
+  // Estados para o diálogo de edição de prova
+  const [openEditProvaDialog, setOpenEditProvaDialog] = useState(false);
+  const [editingProva, setEditingProva] = useState(null);
+  const [loadingEditProva, setLoadingEditProva] = useState(false);
+  const [editProvaData, setEditProvaData] = useState({
+    titulo: '',
+    instrucoes: '',
+    nomeEscola: '',
+    disciplina: '',
+    professor: '',
+    data: '',
+    duracao: '',
+    valorTotal: '',
+    observacoes: '',
+  });
+  const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
+  const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
 
   useEffect(() => {
     fetchCurso();
@@ -151,6 +173,17 @@ export default function CursoDetalhesPage() {
     } catch (error) {
       console.error('Erro ao excluir prova:', error);
       alert(error.message || 'Erro ao excluir prova');
+    }
+  };
+
+  const handleExportLatex = async (provaId) => {
+    try {
+      // TODO: Implementar chamada para endpoint de exportação LaTeX
+      // Por exemplo: const res = await fetch(`/api/gerar-prova?provaId=${provaId}&format=latex`);
+      alert(`Funcionalidade de exportar para LaTeX será implementada em breve para a prova ${provaId}`);
+    } catch (error) {
+      console.error('Erro ao exportar para LaTeX:', error);
+      alert('Erro ao exportar prova para LaTeX');
     }
   };
 
@@ -337,6 +370,156 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const handleOpenEditProva = async (prova) => {
+    setEditingProva(prova);
+    setEditProvaData({
+      titulo: prova.titulo || '',
+      instrucoes: prova.instrucoes || '',
+      nomeEscola: prova.nomeEscola || '',
+      disciplina: prova.disciplina || '',
+      professor: prova.professor || '',
+      data: prova.data || '',
+      duracao: prova.duracao || '',
+      valorTotal: prova.valorTotal || '',
+      observacoes: prova.observacoes || '',
+    });
+    
+    // Preencher questões selecionadas da prova
+    const questoesProvaIds = (prova.questoes || []).map(q => q._id || q.id);
+    setSelectedQuestoesProva(questoesProvaIds);
+    
+    // Preencher pontuações
+    const pontuacoes = {};
+    (prova.questoes || []).forEach(q => {
+      const qId = q._id || q.id;
+      pontuacoes[qId] = q.pontuacao || 0;
+    });
+    setQuestoesPontuacaoProva(pontuacoes);
+    
+    setOpenEditProvaDialog(true);
+  };
+
+  const handleChangeEditProva = (field) => (event) => {
+    setEditProvaData({
+      ...editProvaData,
+      [field]: event.target.value,
+    });
+  };
+
+  const handleToggleQuestaoProva = (questaoId) => {
+    setSelectedQuestoesProva((prev) => {
+      if (prev.includes(questaoId)) {
+        // Remover questão
+        return prev.filter(q => q !== questaoId);
+      } else {
+        // Adicionar questão no final da lista
+        return [...prev, questaoId];
+      }
+    });
+  };
+
+  // Mover questão para cima na ordem (edição de prova)
+  const handleMoveUpProva = (index) => {
+    if (index === 0) return;
+    setSelectedQuestoesProva((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  };
+
+  // Mover questão para baixo na ordem (edição de prova)
+  const handleMoveDownProva = (index) => {
+    if (index === selectedQuestoesProva.length - 1) return;
+    setSelectedQuestoesProva((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
+  };
+
+  // Remover questão da seleção (edição de prova)
+  const handleRemoveQuestaoProva = (questaoId) => {
+    setSelectedQuestoesProva((prev) => prev.filter(q => q !== questaoId));
+    // Remover também a pontuação
+    setQuestoesPontuacaoProva((prev) => {
+      const newPontuacao = { ...prev };
+      delete newPontuacao[questaoId];
+      return newPontuacao;
+    });
+  };
+
+  // Atualizar pontuação de uma questão (edição de prova)
+  const handleChangePontuacaoProva = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacaoProva((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos (edição de prova)
+  const calcularTotalPontosProva = () => {
+    return selectedQuestoesProva.reduce((total, qId) => {
+      return total + (questoesPontuacaoProva[qId] || 0);
+    }, 0);
+  };
+
+  const handleSaveEditProva = async () => {
+    if (!editProvaData.titulo.trim()) {
+      alert('O título da prova é obrigatório');
+      return;
+    }
+
+    if (!editProvaData.instrucoes.trim()) {
+      alert('As instruções são obrigatórias');
+      return;
+    }
+
+    setLoadingEditProva(true);
+    try {
+      const questoesSelecionadas = selectedQuestoesProva.map(qId => {
+        const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+        return questao?._id || qId;
+      });
+
+      // Preparar pontuações usando os IDs reais
+      const pontuacoes = {};
+      selectedQuestoesProva.forEach(qId => {
+        const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+        const realId = questao?._id || qId;
+        pontuacoes[realId] = questoesPontuacaoProva[qId] || 0;
+      });
+
+      const res = await fetch(`/api/cursos/${cursoId}/provas/${editingProva.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...editProvaData,
+          questoesSelecionadas,
+          questoesPontuacao: pontuacoes,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao atualizar prova');
+      }
+
+      alert('Prova atualizada com sucesso!');
+      setOpenEditProvaDialog(false);
+      setEditingProva(null);
+      fetchProvas();
+    } catch (error) {
+      console.error('Erro ao atualizar prova:', error);
+      alert(error.message || 'Erro ao atualizar prova. Tente novamente.');
+    } finally {
+      setLoadingEditProva(false);
+    }
+  };
+
   const filteredQuestoes = questoesDisponiveis.filter(q => 
     q.enunciado?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     q.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -507,16 +690,70 @@ export default function CursoDetalhesPage() {
                           Obs: {prova.observacoes}
                         </Typography>
                       )}
+
+                      {/* Mostrar informações sobre questões e pontuação */}
+                      {prova.questoes && prova.questoes.length > 0 && (
+                        <Box sx={{ mt: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Questões: {prova.questoes.length}
+                            </Typography>
+                            {prova.questoes.some(q => q.pontuacao > 0) && (
+                              <>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                                  •
+                                </Typography>
+                                <Chip
+                                  label={`${prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0).toFixed(1)} pts`}
+                                  size="small"
+                                  color={
+                                    prova.valorTotal && 
+                                    prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) > parseFloat(prova.valorTotal)
+                                      ? 'warning'
+                                      : 'success'
+                                  }
+                                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                />
+                                {prova.valorTotal && 
+                                 prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) > parseFloat(prova.valorTotal) && (
+                                  <Chip
+                                    label={`+${(prova.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) - parseFloat(prova.valorTotal)).toFixed(1)} pts extra`}
+                                    size="small"
+                                    color="warning"
+                                    variant="outlined"
+                                    sx={{ height: 20, fontSize: '0.65rem' }}
+                                  />
+                                )}
+                              </>
+                            )}
+                          </Box>
+                        </Box>
+                      )}
                     </Box>
 
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDeleteProva(prova.id)}
-                      title="Excluir prova"
-                      sx={{ ml: 2 }}
-                    >
-                      <Delete />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleOpenEditProva(prova)}
+                        title="Editar prova"
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton
+                        color="success"
+                        onClick={() => handleExportLatex(prova.id)}
+                        title="Exportar para LaTeX"
+                      >
+                        <Download />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteProva(prova.id)}
+                        title="Excluir prova"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
@@ -857,6 +1094,336 @@ export default function CursoDetalhesPage() {
           </Button>
           <Button onClick={handleEditSave} variant="contained" disabled={loadingEdit}>
             {loadingEdit ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Edição de Prova */}
+      <Dialog
+        open={openEditProvaDialog}
+        onClose={() => !loadingEditProva && setOpenEditProvaDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Editar Prova</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            {/* Informações básicas */}
+            <TextField
+              fullWidth
+              required
+              label="Título da Prova"
+              value={editProvaData.titulo}
+              onChange={handleChangeEditProva('titulo')}
+              variant="outlined"
+              multiline
+              rows={2}
+            />
+
+            <TextField
+              fullWidth
+              required
+              label="Instruções"
+              value={editProvaData.instrucoes}
+              onChange={handleChangeEditProva('instrucoes')}
+              variant="outlined"
+              multiline
+              rows={3}
+            />
+
+            <TextField
+              fullWidth
+              label="Observações"
+              value={editProvaData.observacoes}
+              onChange={handleChangeEditProva('observacoes')}
+              variant="outlined"
+              multiline
+              rows={2}
+            />
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Dados do cabeçalho */}
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              Dados do Cabeçalho
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Nome da Escola/Instituição"
+                value={editProvaData.nomeEscola}
+                onChange={handleChangeEditProva('nomeEscola')}
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Disciplina"
+                value={editProvaData.disciplina}
+                onChange={handleChangeEditProva('disciplina')}
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Nome do Professor"
+                value={editProvaData.professor}
+                onChange={handleChangeEditProva('professor')}
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Data"
+                type="date"
+                value={editProvaData.data}
+                onChange={handleChangeEditProva('data')}
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Duração"
+                value={editProvaData.duracao}
+                onChange={handleChangeEditProva('duracao')}
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Valor Total"
+                value={editProvaData.valorTotal}
+                onChange={handleChangeEditProva('valorTotal')}
+                variant="outlined"
+              />
+            </Box>
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Questões da prova */}
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              Questões da Prova
+            </Typography>
+
+            {(!curso.questoes || curso.questoes.length === 0) ? (
+              <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                Nenhuma questão cadastrada neste curso.
+              </Typography>
+            ) : (
+              <Box>
+                {/* Questões Selecionadas - Ordenáveis */}
+                {selectedQuestoesProva.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        Questões Selecionadas ({selectedQuestoesProva.length})
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                          Total:
+                        </Typography>
+                        <Chip
+                          label={`${calcularTotalPontosProva().toFixed(1)} pts`}
+                          size="small"
+                          color={
+                            editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal)
+                              ? 'warning'
+                              : 'success'
+                          }
+                          sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                        />
+                        {editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal) && (
+                          <Chip
+                            label={`+${(calcularTotalPontosProva() - parseFloat(editProvaData.valorTotal)).toFixed(1)} extra`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: '0.65rem' }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                    <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
+                      {selectedQuestoesProva.map((questaoId, index) => {
+                        const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                        if (!questao) return null;
+
+                        return (
+                          <ListItem
+                            key={`selected-${questaoId}`}
+                            sx={{
+                              border: 1,
+                              borderColor: 'primary.main',
+                              borderRadius: 1,
+                              mb: 1,
+                              bgcolor: 'background.paper',
+                              p: 1,
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            {/* Número da ordem */}
+                            <Box
+                              sx={{
+                                minWidth: 32,
+                                height: 32,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: 'primary.main',
+                                color: 'primary.contrastText',
+                                borderRadius: 1,
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                              }}
+                            >
+                              {index + 1}
+                            </Box>
+
+                            {/* Conteúdo da questão */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
+                                {questao.enunciado || 'Sem enunciado'}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {questao.tipo && (
+                                  <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                )}
+                                {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                  <Chip 
+                                    key={`sel-tag-${questaoId}-${idx}`} 
+                                    label={tag} 
+                                    size="small" 
+                                    variant="outlined" 
+                                    sx={{ height: 20, fontSize: '0.7rem' }}
+                                  />
+                                ))}
+                              </Box>
+                            </Box>
+
+                            {/* Campo de pontuação */}
+                            <TextField
+                              type="number"
+                              label="Pts"
+                              value={questoesPontuacaoProva[questaoId] || ''}
+                              onChange={(e) => handleChangePontuacaoProva(questaoId, e.target.value)}
+                              inputProps={{
+                                min: 0,
+                                step: 0.5,
+                                style: { textAlign: 'center', fontSize: '0.85rem' }
+                              }}
+                              sx={{ width: 70 }}
+                              size="small"
+                            />
+
+                            {/* Botões de controle */}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              <Button
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveUpProva(index);
+                                }}
+                                disabled={index === 0}
+                                sx={{ minWidth: 'auto', p: 0.25 }}
+                              >
+                                <ArrowUpward fontSize="small" />
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveDownProva(index);
+                                }}
+                                disabled={index === selectedQuestoesProva.length - 1}
+                                sx={{ minWidth: 'auto', p: 0.25 }}
+                              >
+                                <ArrowDownward fontSize="small" />
+                              </Button>
+                            </Box>
+
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveQuestaoProva(questaoId);
+                              }}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              <ClearIcon fontSize="small" />
+                            </Button>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Box>
+                )}
+
+                {/* Divider se houver questões selecionadas */}
+                {selectedQuestoesProva.length > 0 && (
+                  <Divider sx={{ my: 1 }}>
+                    <Chip label="Questões Disponíveis" size="small" />
+                  </Divider>
+                )}
+
+                {/* Questões Disponíveis */}
+                <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  {curso.questoes
+                    .filter(questao => !selectedQuestoesProva.includes(questao._id || questao.id))
+                    .map((questao) => {
+                      const questaoId = questao._id || questao.id;
+
+                      return (
+                        <ListItem
+                          key={questaoId}
+                          dense
+                          component="div"
+                          onClick={() => handleToggleQuestaoProva(questaoId)}
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            },
+                          }}
+                        >
+                          <Checkbox
+                            checked={false}
+                            tabIndex={-1}
+                            disableRipple
+                          />
+                          <ListItemText
+                            primary={questao.enunciado || 'Sem enunciado'}
+                            secondaryTypographyProps={{ component: 'div' }}
+                            secondary={
+                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                {questao.tipo && (
+                                  <Chip label={questao.tipo} size="small" />
+                                )}
+                                {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                  <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                ))}
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      );
+                    })}
+                </List>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditProvaDialog(false)} disabled={loadingEditProva}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSaveEditProva} variant="contained" disabled={loadingEditProva}>
+            {loadingEditProva ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </DialogActions>
       </Dialog>
