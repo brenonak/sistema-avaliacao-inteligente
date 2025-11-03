@@ -2,6 +2,18 @@ import { z } from "zod";
 
 export const TipoQuestao = z.enum(["dissertativa", "alternativa", "afirmacoes", "proposicoes", "numerica"]);
 
+// Schema para completar perfil do usuário
+export const CompleteProfileSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  papel: z.enum(["professor", "aluno"], {
+    message: "Papel deve ser 'professor' ou 'aluno'"
+  }),
+  instituicao: z.string().optional(),
+  curso: z.string().optional(),
+  areasInteresse: z.array(z.string()).optional().default([]),
+  profileCompleted: z.boolean().default(true),
+});
+
 export const AlternativaSchema = z.object({
   letra: z.string().min(1),
   texto: z.string().min(1),

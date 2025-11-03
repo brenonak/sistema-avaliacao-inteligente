@@ -58,7 +58,6 @@ export const authOptions: NextAuthOptions = {
       console.log('[Auth] Provider:', account?.provider);
       console.log('[Auth] Provider Account ID:', account?.providerAccountId);
       console.log('[Auth] Email Verified:', (profile as any)?.email_verified);
-      console.log('[Auth] Profile:', JSON.stringify(profile, null, 2));
       
       // Bloquear qualquer provider que não seja Google
       if (account?.provider !== "google") {
@@ -69,7 +68,12 @@ export const authOptions: NextAuthOptions = {
       // Validação adicional: garantir que tem email verificado
       if (profile?.email && (profile as any).email_verified) {
         console.log(`[Auth] ✅ Email verificado, permitindo login: ${profile.email}`);
+        console.log(`[Auth] ✅ MongoDB Adapter processou user ID: ${user.id}`);
+        
         // O MongoDB Adapter já cria/atualiza o usuário e a account automaticamente
+        // Os índices únicos garantem que:
+        // 1. users.email é único (cada email = 1 usuário)
+        // 2. accounts.provider+providerAccountId é único (cada conta Google = 1 account)
         return true;
       }
       
@@ -102,17 +106,20 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     
-    // Callback de redirect: redireciona para dashboard após login
+    // Callback de redirect: redireciona após autenticação
     async redirect({ url, baseUrl }) {
-      // Se está fazendo login (vindo da página de login), redireciona para dashboard
-      if (url === baseUrl || url === `${baseUrl}/` || url.includes('/api/auth/callback')) {
-        return `${baseUrl}/dashboard`;
+      // Se não é um callback de autenticação, deixa passar
+      if (!url.includes('/api/auth/callback') && url !== baseUrl && url !== `${baseUrl}/`) {
+        if (url.startsWith(baseUrl)) {
+          return url;
+        }
+        return baseUrl;
       }
-      // Se já tem um callbackUrl, usa ele
-      if (url.startsWith(baseUrl)) {
-        return url;
-      }
-      // Caso contrário, redireciona para dashboard
+
+      // Após login via callback, redirecionar para /dashboard
+      // O middleware verificará se o perfil está completo:
+      // - Se incompleto: redireciona para /cadastro
+      // - Se completo: permite acesso ao /dashboard
       return `${baseUrl}/dashboard`;
     },
   },

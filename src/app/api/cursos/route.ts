@@ -46,9 +46,19 @@ export async function POST(request: NextRequest) {
 
     // Validar body
     const body = await request.json();
+    console.log('[POST /api/cursos] Body recebido:', JSON.stringify(body, null, 2));
+    console.log('[POST /api/cursos] userId:', userId);
+    
     const parsed = CursoCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest("Dados inválidos");
+      console.error('[POST /api/cursos] Erro de validação:', parsed.error.issues);
+      return NextResponse.json(
+        { 
+          error: "Dados inválidos", 
+          details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+        },
+        { status: 400 }
+      );
     }
 
     // Verificar se já existe curso com mesmo slug para este usuário

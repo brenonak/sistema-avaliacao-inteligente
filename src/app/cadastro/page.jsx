@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from 'react'; // 1. IMPORTAR 'useState'
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { 
   Container, 
   Box, 
@@ -15,10 +17,13 @@ import {
   FormControlLabel, 
   Checkbox,
   Autocomplete,
-  Chip
+  Chip,
+  Alert
 } from '@mui/material';
 
 export default function PaginaCadastro() {
+    const { data: session } = useSession();
+    const router = useRouter();
 
     // Estados para controlar os campos do formulário
     const [nome, setNome] = useState('');
@@ -30,6 +35,14 @@ export default function PaginaCadastro() {
     const [nomeArquivoFoto, setNomeArquivoFoto] = useState("");
 
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Pré-preencher nome com dados da sessão
+    useEffect(() => {
+        if (session?.user?.name) {
+            setNome(session.user.name);
+        }
+    }, [session]);
 
     // Handler para a seleção de foto
     const handleFotoChange = (event) => {
@@ -40,28 +53,47 @@ export default function PaginaCadastro() {
         }
     };
 
-    // Placeholder para a Task #169 (Integrar API)
-    // Esta função garante que o formulário é funcional (controlado)
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         setLoading(true);
+        setError('');
 
-        // Mostra todos os dados coletados no console
-        console.log("Task #167: Dados do formulário para envio (simulado):", { 
-            nome, 
-            papel, 
-            instituicao, 
-            curso,
-            areasInteresse,
-            foto // O arquivo em si
-        });
-        
-        // A chamada de API real (Task #169) substituirá este 'setTimeout'
-        setTimeout(() => {
-        console.log("Simulação de 'Salvo!'");
-        setLoading(false);
-        }, 1500);
-};
+        try {
+            // Preparar dados para envio
+            const profileData = {
+                nome: nome.trim(),
+                papel,
+                instituicao: instituicao.trim() || undefined,
+                curso: curso.trim() || undefined,
+                areasInteresse: areasInteresse.length > 0 ? areasInteresse : undefined,
+                profileCompleted: true
+            };
+
+            // Enviar para API
+            const response = await fetch('/api/profile/complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(profileData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao salvar perfil');
+            }
+
+            console.log('Perfil salvo com sucesso:', data);
+            
+            // Redirecionar para dashboard com parâmetro para forçar refresh do cache
+            router.push('/dashboard?refreshProfile=1');
+        } catch (err) {
+            console.error('Erro ao salvar perfil:', err);
+            setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
+            setLoading(false);
+        }
+    };
 
   return (
     <Container 
@@ -101,6 +133,13 @@ export default function PaginaCadastro() {
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
           
+            {/* Mensagem de erro */}
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
+
             {/* Campo Nome Completo */}
             <TextField
             label="Nome Completo"
@@ -109,8 +148,6 @@ export default function PaginaCadastro() {
             fullWidth
             required
             margin="normal"
-            // (Nota: A Task #168 - 'Obter Dados Iniciais' -
-            //  vai modificar o valor inicial deste 'useState')
             />
 
             {/* Campo Papel (Professor/Aluno) */}
