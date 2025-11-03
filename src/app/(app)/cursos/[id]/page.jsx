@@ -1249,7 +1249,8 @@ export default function CursoDetalhesPage() {
                     </Box>
                     <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
                       {selectedQuestoesProva.map((questaoId, index) => {
-                        const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                        //Busca os dados completos da questão diretamente do array 'questoes' que está salvo dentro do documento da prova 
+                        const questao = editingProva.questoes.find(q => (q._id || q.id) === questaoId);
                         if (!questao) return null;
 
                         return (
