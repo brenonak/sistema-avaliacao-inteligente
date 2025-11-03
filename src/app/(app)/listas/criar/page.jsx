@@ -134,11 +134,6 @@ export default function CriarListaPage() {
       return;
     }
 
-    if (!formData.nomeInstituicao.trim()) {
-      setError('O nome da instituição é obrigatório');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 

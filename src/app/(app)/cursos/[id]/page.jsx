@@ -29,6 +29,7 @@ import {
   Add, 
   Edit, 
   Delete, 
+  PostAdd,
   ArrowBack, 
   Search, 
   Clear,
@@ -196,6 +197,27 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const handleDeleteLista = async (listaId) => {
+    if (!confirm('Tem certeza que deseja excluir esta lista de exercícios?')) return;
+
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao excluir lista');
+      }
+
+      alert('Lista excluída com sucesso!');
+      fetchExercícios();
+    } catch (error) {
+      console.error('Erro ao excluir lista:', error);
+      alert(error.message || 'Erro ao excluir lista');
+    }
+  }
+
   const handleExportLatex = async (provaId) => {
     try {
       // TODO: Implementar chamada para endpoint de exportação LaTeX
@@ -206,6 +228,9 @@ export default function CursoDetalhesPage() {
       alert('Erro ao exportar prova para LaTeX');
     }
   };
+
+  const handleGerarLista = async (listaId) => {
+  }
 
   const handleOpenAddDialog = async () => {
     setOpenAddDialog(true);
@@ -418,6 +443,9 @@ export default function CursoDetalhesPage() {
     
     setOpenEditProvaDialog(true);
   };
+
+  const handleOpenEditLista = async (lista) => {
+  }
 
   const handleChangeEditProva = (field) => (event) => {
     setEditProvaData({
@@ -812,8 +840,67 @@ export default function CursoDetalhesPage() {
               Crie uma lista de exercícios para este curso.
             </Typography>
           </Paper>
-        ) : <Box></Box>
-        }
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {exercícios.map((lista, index) => (
+              <Card key={lista.id || index} sx={{ backgroundColor: 'background.paper' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                        {lista.nomeMateria}
+                      </Typography>
+
+                      {lista.nomeInstituicao && (
+                        <Box sx={{ display: 'inline-block'}}>
+                          <Chip 
+                            label={`Instituição: ${lista.nomeInstituicao}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                      )}
+
+                      {/* Mostrar informações sobre questões */}
+                      {lista.questoesIds && lista.questoesIds.length > 0 && (
+                        <Box sx={{ mt: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Questões: {lista.questoesIds.length}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleOpenEditLista(lista)}
+                        title="Editar Lista"
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton
+                        color="success"
+                        onClick={() => handleGerarLista(lista.id)}
+                        title="Gerar Lista de Exercícios"
+                      >
+                        <PostAdd />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteLista(lista.id)}
+                        title="Excluir lista"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
       </Box>
 
       {/* Questões do Curso */}
