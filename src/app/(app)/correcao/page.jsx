@@ -53,9 +53,9 @@ export default function CorrecaoPage() {
       // const res = await fetch("/api/correcao", { method: "POST", body: formData });
       // if (!res.ok) throw new Error("Falha ao iniciar correção");
 
-      console.log("Correção iniciada com sucesso");
+      console.log("Correção feita com sucesso");
     } catch (err) {
-      console.error("Erro ao iniciar correção:", err);
+      console.error("Erro ao efetuar a correção:", err);
     } finally {
       setLoading(false);
     }
