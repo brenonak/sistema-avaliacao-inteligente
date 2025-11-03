@@ -55,6 +55,10 @@ export default function CursoDetalhesPage() {
   const [provas, setProvas] = useState([]);
   const [loadingProvas, setLoadingProvas] = useState(false);
   
+  // Estados para listas de exercícios
+  const [exercícios, setExercícios] = useState([]);
+  const [loadingExercícios, setLoadingExercícios] = useState(false);
+
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [questoesDisponiveis, setQuestoesDisponiveis] = useState([]);
@@ -89,6 +93,7 @@ export default function CursoDetalhesPage() {
   useEffect(() => {
     fetchCurso();
     fetchProvas();
+    fetchExercícios();
   }, [cursoId]);
 
   const fetchCurso = async () => {
@@ -152,6 +157,21 @@ export default function CursoDetalhesPage() {
       setProvas([]);
     } finally {
       setLoadingProvas(false);
+    }
+  };
+
+  const fetchExercícios = async () => {
+    try {
+      setLoadingExercícios(true);
+      const res = await fetch(`/api/cursos/${cursoId}/listas`);
+      if (!res.ok) throw new Error('Erro ao carregar listas');
+      const data = await res.json();
+      setExercícios(data.items || []);
+    } catch (err) {
+      console.error('Erro ao buscar listas:', err);
+      setExercícios([]);
+    } finally {
+      setLoadingExercícios(false);
     }
   };
 
@@ -612,7 +632,7 @@ export default function CursoDetalhesPage() {
               variant="contained"
               color="primary"
               startIcon={<Add />}
-            >
+            >Prova
               Criar Nova Prova
             </Button>
           </Link>
@@ -760,6 +780,40 @@ export default function CursoDetalhesPage() {
             ))}
           </Box>
         )}
+      </Box>
+
+      {/* Exercícios do Curso */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+            Listas de Exercícios ({exercícios.length})
+          </Typography>
+          <Link href={`/listas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+            >
+              Criar Nova Lista de Exercícios
+            </Button>
+          </Link>
+        </Box>
+        {loadingExercícios ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : exercícios.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Description sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+              Nenhuma lista de exercícios criada ainda.
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Crie uma lista de exercícios para este curso.
+            </Typography>
+          </Paper>
+        ) : <Box></Box>
+        }
       </Box>
 
       {/* Questões do Curso */}
