@@ -2,11 +2,21 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextRequest, NextResponse } from "next/server";
  
 import { upsertRecurso } from "../../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 
 export const runtime = "nodejs";
 
+/**
+ * POST /api/blob/upload
+ * Faz upload de arquivo para Vercel Blob (requer autenticação)
+ */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     // Ensure the server has the required Blob token configured
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error("BLOB_READ_WRITE_TOKEN is not set in the environment");

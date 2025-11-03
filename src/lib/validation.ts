@@ -126,9 +126,11 @@ export type QuestaoUpdate = z.infer<typeof QuestaoUpdateSchema>;
 
 export const CursoSchema = z.object({
   nome: z.string().min(3, "Nome obrigatório"),
+  codigo: z.string().min(1, "Código obrigatório"),
+  slug: z.string().min(1, "Slug obrigatório"),
   descricao: z.string().optional(),
 });
 export const CursoCreateSchema = CursoSchema;
-export const CursoUpdateSchema = CursoSchema.partial();
+export const CursoUpdateSchema = CursoSchema.omit({ codigo: true, slug: true }).partial();
 export type CursoCreate = z.infer<typeof CursoCreateSchema>;
 export type CursoUpdate = z.infer<typeof CursoUpdateSchema>;

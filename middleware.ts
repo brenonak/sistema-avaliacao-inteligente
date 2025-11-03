@@ -4,19 +4,21 @@
  * Protege rotas sensíveis que exigem login via Google.
  * 
  * ROTAS PROTEGIDAS (matcher):
- * - /cursos/criar - Criar novo curso
- * - /questoes/criar - Criar nova questão
+ * - /cursos - Listagem de cursos (agora protegida - multi-tenant)
+ * - /cursos/* - Todas as sub-rotas de cursos
+ * - /questoes - Listagem de questões (agora protegida - multi-tenant)
+ * - /questoes/* - Todas as sub-rotas de questões
+ * - /galeria - Galeria de imagens
  * - /dashboard - Dashboard do usuário
- * 
- * Para adicionar mais rotas protegidas, edite o array 'matcher' abaixo.
+ * - /api/cursos/* - APIs de cursos (protegidas)
+ * - /api/questoes/* - APIs de questões (protegidas)
+ * - /api/galeria/* - APIs de galeria (protegidas)
  * 
  * ROTAS PÚBLICAS (não afetadas):
  * - / (landing page)
- * - /cursos (listagem pública)
- * - /cursos/[id] (visualização pública)
- * - /questoes (listagem pública)
  * - /login
- * - /api/* (exceto rotas específicas se necessário)
+ * - /cadastro
+ * - /api/auth/* (Next-Auth)
  */
 
 import { NextResponse } from "next/server";
@@ -52,16 +54,40 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configuração do matcher - APENAS rotas que exigem autenticação
+// Configuração do matcher - rotas que exigem autenticação (multi-tenant)
 export const config = {
   matcher: [
-    // Criar curso
-    "/cursos/criar",
-    // Criar questão
-    "/questoes/criar",
+    // Páginas de cursos (todas protegidas)
+    "/cursos/:path*",
+    
+    // Páginas de questões (todas protegidas)
+    "/questoes/:path*",
+    
+    // Galeria de imagens
+    "/galeria/:path*",
+    
     // Dashboard
-    "/dashboard",
-    // Adicione aqui outras rotas que devem ser protegidas
-    // Exemplo: "/cursos/:path*/editar", "/questoes/:path*/editar"
+    "/dashboard/:path*",
+    
+    // APIs de cursos (todas protegidas)
+    "/api/cursos/:path*",
+    
+    // APIs de questões (todas protegidas)
+    "/api/questoes/:path*",
+    
+    // APIs de galeria (todas protegidas)
+    "/api/galeria/:path*",
+    
+    // API de blob/upload
+    "/api/blob/:path*",
+    
+    // API de recursos
+    "/api/recursos/:path*",
+    
+    // API de gerar prova
+    "/api/gerar-prova/:path*",
+    
+    // API de correção
+    "/api/correcao/:path*",
   ],
 };

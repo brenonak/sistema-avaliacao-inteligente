@@ -1,12 +1,21 @@
-import { NextRequest } from "next/server";
-import { json, serverError } from "../../../lib/http";
+import { NextRequest, NextResponse } from "next/server";
+import { json } from "../../../lib/http";
 import { getTopRecursos } from "../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers";
 
 export const dynamic = "force-dynamic"; // evita cache SSR em dev
 
-// GET /recursos - Listar imagens por frequência
+/**
+ * GET /api/recursos
+ * Lista recursos (imagens) do usuário autenticado
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const url = new URL(request.url);
     const limit = Math.min(Number(url.searchParams.get("limit") || 100), 200);
     

@@ -1,40 +1,75 @@
-import { getDb } from "../../../lib/mongodb";
 import { json, badRequest, serverError } from "../../../lib/http";
 import { CursoCreateSchema } from "../../../lib/validation";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers";
+import * as CursosService from "../../../services/db/cursos.service";
 
+/**
+ * GET /api/cursos
+ * Lista todos os cursos do usuário autenticado (com contagem de questões)
+ */
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    const cursos = await db.collection("cursos").find({}).toArray();
-    // Para cada curso, contar questões associadas
-    const questoesCounts = await db.collection("questoes").aggregate([
-      { $unwind: "$cursoIds" },
-      { $group: { _id: "$cursoIds", count: { $sum: 1 } } }
-    ]).toArray();
-    const countsMap = Object.fromEntries(questoesCounts.map(q => [q._id, q.count]));
-    const itens = cursos.map(({ _id, ...rest }) => ({
-      id: _id.toString(),
-      questoesCount: countsMap[_id.toString()] || 0,
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
+    // Listar cursos do usuário com contagem de questões
+    const cursos = await CursosService.getCursosWithQuestionCount(userId);
+
+    // Formatar resposta - serializar ObjectIds
+    const itens = cursos.map(({ _id, ownerId, createdBy, updatedBy, ...rest }) => ({
+      id: _id?.toString(),
+      ownerId: ownerId?.toString(),
+      createdBy: createdBy?.toString(),
+      updatedBy: updatedBy?.toString(),
       ...rest,
     }));
+
     return json({ itens });
   } catch (e) {
     return serverError(e);
   }
 }
 
+/**
+ * POST /api/cursos
+ * Cria um novo curso para o usuário autenticado
+ */
 export async function POST(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
+    // Validar body
     const body = await request.json();
     const parsed = CursoCreateSchema.safeParse(body);
-    if (!parsed.success) return badRequest("Dados inválidos");
-    const db = await getDb();
-    const exists = await db.collection("cursos").findOne({ nome: parsed.data.nome });
-    if (exists) return badRequest("Já existe um curso com este nome");
-    const doc = { ...parsed.data, criadoEm: new Date(), atualizadoEm: new Date() };
-    const res = await db.collection("cursos").insertOne(doc);
-    return json({ id: res.insertedId.toString(), ...doc }, 201);
+    if (!parsed.success) {
+      return badRequest("Dados inválidos");
+    }
+
+    // Verificar se já existe curso com mesmo slug para este usuário
+    const existingCurso = await CursosService.getCursoBySlug(userId, parsed.data.slug);
+    if (existingCurso) {
+      return badRequest("Já existe um curso com este slug");
+    }
+
+    // Criar curso (ownerId será injetado automaticamente)
+    const curso = await CursosService.createCurso(userId, parsed.data);
+
+    return json(
+      {
+        id: curso._id?.toString(),
+        nome: curso.nome,
+        codigo: curso.codigo,
+        slug: curso.slug,
+        descricao: curso.descricao,
+      },
+      201
+    );
   } catch (e) {
     return serverError(e);
   }

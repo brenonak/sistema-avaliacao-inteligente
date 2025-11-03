@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../lib/mongodb";
 import { ObjectId } from "mongodb";
+import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers";
 
 interface BlobDocument {
   url: string;
@@ -16,13 +17,23 @@ interface BlobDocument {
   nota: number;
   corrigido_em: Date | null;
   comentario: string | null;
+  ownerId: ObjectId;
   usage: {
     refCount: number;
   };
 }
 
+/**
+ * POST /api/correcao
+ * Faz upload de provas para correção (requer autenticação)
+ */
 export async function POST(request: Request) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
     const provaId = formData.get('provaId') as string | undefined;
@@ -63,6 +74,7 @@ export async function POST(request: Request) {
           nota: -1,
           corrigido_em: null,
           comentario: null,
+          ownerId: new ObjectId(userId),
           usage: {
             refCount: 0
           }
@@ -74,9 +86,16 @@ export async function POST(request: Request) {
       })
     );
 
+    // Serializar ObjectIds antes de retornar
+    const arquivosSerializados = results.map(arquivo => ({
+      ...arquivo,
+      _id: arquivo._id?.toString(),
+      ownerId: arquivo.ownerId?.toString(),
+    }));
+
     return NextResponse.json({
       message: "Arquivos enviados com sucesso",
-      arquivos: results
+      arquivos: arquivosSerializados
     });
   } catch (error) {
     console.error("Erro ao processar upload:", error);
@@ -105,7 +124,15 @@ export async function GET(request: Request) {
             { status: 404 }
           );
         }
-        return NextResponse.json(arquivo);
+        
+        // Serializar ObjectIds
+        const arquivoSerializado = {
+          ...arquivo,
+          _id: arquivo._id?.toString(),
+          ownerId: arquivo.ownerId?.toString(),
+        };
+        
+        return NextResponse.json(arquivoSerializado);
       } catch (idError) {
         return NextResponse.json(
           { error: "ID de arquivo inválido" },
@@ -116,7 +143,15 @@ export async function GET(request: Request) {
 
     // Listar todos os arquivos
     const arquivos = await correcaoCollection.find().toArray();
-    return NextResponse.json(arquivos);
+    
+    // Serializar ObjectIds
+    const arquivosSerializados = arquivos.map(arquivo => ({
+      ...arquivo,
+      _id: arquivo._id?.toString(),
+      ownerId: arquivo.ownerId?.toString(),
+    }));
+    
+    return NextResponse.json(arquivosSerializados);
   } catch (error) {
     console.error("Erro ao buscar correções:", error);
     return NextResponse.json(

@@ -52,6 +52,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Callback de signIn: aceita APENAS logins do Google
     async signIn({ account, profile, user }) {
+      console.log('[Auth] signIn callback:', { 
+        email: profile?.email, 
+        userId: user?.id,
+        provider: account?.provider,
+        providerAccountId: account?.providerAccountId 
+      });
+      
       // Bloquear qualquer provider que não seja Google
       if (account?.provider !== "google") {
         console.warn(`[Auth] Tentativa de login bloqueada: provider ${account?.provider}`);
@@ -60,26 +67,9 @@ export const authOptions: NextAuthOptions = {
       
       // Validação adicional: garantir que tem email verificado
       if (profile?.email && (profile as any).email_verified) {
-        // Garantir que o usuário existe no banco de dados
-        if (user?.id) {
-          const client = await clientPromise;
-          const db = client.db(process.env.MONGODB_DB);
-          const usersCollection = db.collection("users");
-          
-          // Verificar se o usuário já existe
-          const existingUser = await usersCollection.findOne({ email: profile.email });
-          
-          // Se não existe, criar o documento do usuário
-          if (!existingUser) {
-            await usersCollection.insertOne({
-              name: profile.name || null,
-              email: profile.email,
-              image: (profile as any).picture || null,
-              emailVerified: new Date(),
-            });
-            console.log(`[Auth] Usuário criado: ${profile.email}`);
-          }
-        }
+        console.log(`[Auth] Email verificado, permitindo login: ${profile.email}`);
+        // O MongoDB Adapter já cria/atualiza o usuário e a account automaticamente
+        // Não precisamos fazer nada aqui
         return true;
       }
       
@@ -92,6 +82,7 @@ export const authOptions: NextAuthOptions = {
       // Na primeira vez que o JWT é criado (após login)
       if (user) {
         token.id = user.id;
+        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}`);
       }
       
       // Incluir provider info

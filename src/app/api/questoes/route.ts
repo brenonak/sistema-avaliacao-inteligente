@@ -1,8 +1,10 @@
 import { getDb } from "../../../lib/mongodb";
 import { json, badRequest, serverError } from "../../../lib/http";
 import { QuestaoCreateSchema } from "../../../lib/validation";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getRecursoByUrl, incrementResourceUsage } from "../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers";
+import * as QuestoesService from "../../../services/db/questoes.service";
 
 export const dynamic = "force-dynamic"; // evita cache SSR em dev
 
@@ -62,92 +64,92 @@ async function ensureIndexes() {
   }
 }
 
+/**
+ * GET /api/questoes
+ * Lista questões do usuário autenticado (com filtros e paginação)
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const url = new URL(request.url);
     const tipo = url.searchParams.get("tipo") || undefined;
-    const limit = Math.min(Number(url.searchParams.get("limit") || 20), 100);
-    const skipParam = url.searchParams.get("skip");
-    const pageParam = url.searchParams.get("page");
-    const skip = skipParam !== null ? Math.max(Number(skipParam) || 0, 0) : Math.max(((Number(pageParam) || 1) - 1) * limit, 0);
-    const page = skipParam !== null ? Math.floor(skip / limit) + 1 : Math.max(Number(pageParam) || 1, 1);
-
-    // Parâmetros de ordenação
-    const sortBy = url.searchParams.get("sortBy") || "createdAt";
-    const sortOrder = url.searchParams.get("sortOrder") || "desc";
+    const dificuldade = url.searchParams.get("dificuldade") || undefined;
     
-    // Validar parâmetros de ordenação
-    const validSortFields = ["createdAt", "updatedAt"];
-    const validSortOrders = ["asc", "desc"];
-    
-    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : "createdAt";
-    const finalSortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "desc";
-    
-    const sortObject: Record<string, 1 | -1> = { [finalSortBy]: finalSortOrder === "desc" ? -1 : 1 };
-
-    // Parâmetro de busca
-    const searchQuery = url.searchParams.get("search") || "";
-
+    // Parse filtros de tags
     const tagFilter = parseTagFilterFromQuery(url);
-
-    const db = await getDb();
-    const filter: any = {};
-    if (tipo) filter.tipo = tipo;
-    if (tagFilter.mode === "any") {
-      filter.tags = { $in: tagFilter.values };
-    }
+    const tags = tagFilter.mode === "any" ? tagFilter.values : undefined;
     
-    // Adicionar filtro de busca por enunciado
-    if (searchQuery.trim()) {
-      filter.enunciado = { $regex: searchQuery.trim(), $options: "i" }; // Case-insensitive search
-    }
+    // Parse filtro de cursos
+    const cursoParam = url.searchParams.get("curso");
+    const cursoIds = cursoParam ? [cursoParam] : undefined;
 
-    // Filtro por cursoId (campo 'cursoIds' inclui o id passado)
-    const curso = url.searchParams.get("curso");
-    if (curso) {
-      filter.cursoIds = curso;
-    }
-
-    // criar índices 
-    void ensureIndexes();
-
-    const [rawItems, total] = await Promise.all([
-      db.collection("questoes")
-        .find(filter)
-        .sort(sortObject)
-        .skip(skip)
-        .limit(limit)
-        .toArray(),
-      db.collection("questoes").countDocuments(filter),
-    ]);
-
-    // Normaliza _id para id string
-    const items = rawItems.map((doc: any) => {
-      const { _id, ...rest } = doc;
-      return { id: _id?.toString?.() ?? _id, ...rest, tags: Array.isArray((rest as any).tags) ? (rest as any).tags : [] };
+    // Buscar questões do usuário com filtros
+    const questoes = await QuestoesService.listQuestoes(userId, {
+      tipo,
+      dificuldade,
+      tags,
+      cursoIds,
     });
+
+    // Paginação (aplicada após buscar do DB)
+    const limit = Math.min(Number(url.searchParams.get("limit") || 20), 100);
+    const pageParam = url.searchParams.get("page");
+    const page = Math.max(Number(pageParam) || 1, 1);
+    const skip = (page - 1) * limit;
+    
+    const total = questoes.length;
+    const paginatedQuestoes = questoes.slice(skip, skip + limit);
+
+    // Formatar resposta - serializar ObjectIds
+    const items = paginatedQuestoes.map((doc: any) => {
+      const { _id, ownerId, createdBy, updatedBy, cursoIds, imagemIds, ...rest } = doc;
+      return { 
+        id: _id?.toString?.() ?? _id,
+        ownerId: ownerId?.toString(),
+        createdBy: createdBy?.toString(),
+        updatedBy: updatedBy?.toString(),
+        cursoIds: Array.isArray(cursoIds) ? cursoIds.map((id: any) => id?.toString()) : [],
+        imagemIds: Array.isArray(imagemIds) ? imagemIds.map((id: any) => id?.toString()) : [],
+        ...rest, 
+        tags: Array.isArray(rest.tags) ? rest.tags : [] 
+      };
+    });
+
     return json({ items, page, limit, total });
   } catch (e) {
     return serverError(e);
   }
 }
 
+/**
+ * POST /api/questoes
+ * Cria uma nova questão para o usuário autenticado
+ */
 export async function POST(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const body = await request.json();
     const parsed = QuestaoCreateSchema.safeParse(body);
     if (!parsed.success) {
-        return badRequest(parsed.error.issues.map(i => i.message).join("; "));
+      return badRequest(parsed.error.issues.map(i => i.message).join("; "));
     }
 
+    // Sanitizar tags
     const tags = sanitizeTags((body as any)?.tags);
 
-    // Resolve recursos: accept array of resource URLs or IDs in body.recursos
+    // Resolver recursos (se fornecidos)
     const rawRecursos = Array.isArray((body as any)?.recursos) ? (body as any).recursos : [];
     const recursoIds: string[] = [];
     for (const item of rawRecursos) {
       if (typeof item === "string") {
-        // try as ObjectId string first; if not, treat as URL
         if (/^[a-f\d]{24}$/i.test(item)) {
           recursoIds.push(item);
         } else {
@@ -163,21 +165,59 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const doc = {
+    // Preparar dados para criar questão
+    // Garantir que cursoIds e imagemIds são arrays de strings válidas
+    const cursoIds = Array.isArray(body.cursoIds) 
+      ? body.cursoIds.filter((id: any) => typeof id === 'string' && id.length === 24)
+      : [];
+    
+    const imagemIds = Array.isArray(body.imagemIds) 
+      ? body.imagemIds.filter((id: any) => typeof id === 'string' && id.length === 24)
+      : [];
+
+    console.log('[POST /api/questoes] Criando questão:', {
+      userId,
+      tipo: parsed.data.tipo,
+      cursoIds,
+      imagemIds,
+      tagsCount: tags.length
+    });
+
+    const questaoData = {
       ...parsed.data,
       tags,
-      recursos: recursoIds, // references
-      cursoIds: Array.isArray(body.cursoIds) ? body.cursoIds : [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      cursoIds,
+      imagemIds,
     };
 
-    const db = await getDb();
-    void ensureIndexes();
-    const res = await db.collection("questoes").insertOne(doc);
-    // increment usage for linked resources
-    void incrementResourceUsage(recursoIds).catch(() => {});
-    return json({ id: res.insertedId.toString(), ...doc }, 201);
+    // Criar questão (validará ownership de cursos/imagens automaticamente)
+    try {
+      const questao = await QuestoesService.createQuestao(userId, questaoData);
+
+      // Incrementar uso de recursos vinculados (se houver)
+      if (recursoIds.length > 0) {
+        void incrementResourceUsage(recursoIds).catch(() => {});
+      }
+
+      return json(
+        {
+          id: questao._id?.toString(),
+          enunciado: questao.enunciado,
+          alternativas: questao.alternativas,
+          tags: questao.tags,
+          tipo: questao.tipo,
+          dificuldade: questao.dificuldade,
+          cursoIds: questao.cursoIds,
+        },
+        201
+      );
+    } catch (error: any) {
+      // Se houver erro de ownership mismatch, retornar 400
+      if (error.message?.includes("Owner mismatch")) {
+        return badRequest(error.message);
+      }
+      throw error;
+    }
   } catch (e) {
     return serverError(e);
   }
