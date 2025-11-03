@@ -30,9 +30,38 @@ export default function CorrecaoPage() {
     setFiles([]);
   };
 
-  // Iniciar correção (ainda não implementada)
+  // Iniciar correção
   const handleCorrection = async () => {
-    console.log("Correção automática iniciada (em breve).");
+    try {
+      // Criar FormData com os arquivos
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      // Enviar arquivos para o endpoint
+      const response = await fetch('/api/correcao', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao enviar arquivos para correção');
+      }
+
+      const data = await response.json();
+      console.log('Arquivos enviados com sucesso:', data);
+      
+      // Limpar arquivos após envio bem-sucedido
+      setFiles([]);
+
+      // TODO: Implementar feedback visual do sucesso
+      // TODO: Implementar redirecionamento para página de acompanhamento da correção
+
+    } catch (error) {
+      console.error('Erro durante o processo de correção:', error);
+      // TODO: Implementar feedback visual do erro
+    }
   };
 
   return (
