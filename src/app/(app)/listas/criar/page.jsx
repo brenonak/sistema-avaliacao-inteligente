@@ -61,7 +61,7 @@ export default function CriarListaPage() {
     if (cursoNome) {
       setFormData(prev => ({
         ...prev,
-        disciplina: decodeURIComponent(cursoNome),
+        nomeMateria: decodeURIComponent(cursoNome),
       }));
     }
   }, [cursoNome]);
@@ -145,10 +145,10 @@ export default function CriarListaPage() {
       }
 
       // Envia os IDs reais das questões
-      setQuestoes(selectedQuestoes.map(qId => {
+      const questoesIds = selectedQuestoes.map(qId => {
         const questao = questoes.find(q => (q._id || q.id) === qId);
         return questao?._id || qId;
-      }));
+      });
 
       const saveResponse = await fetch(`/api/cursos/${cursoId}/listas`, {
         method: 'POST',
@@ -157,6 +157,7 @@ export default function CriarListaPage() {
         },
         body: JSON.stringify({
           ...formData,
+          questoesIds,
         }),
       });
 
@@ -448,7 +449,7 @@ export default function CriarListaPage() {
                             }}
                           >
                             <Checkbox
-                              checked={false}
+                              checked={selectedQuestoes.includes(questaoId)}
                               tabIndex={-1}
                               disableRipple
                             />
