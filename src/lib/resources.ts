@@ -33,7 +33,8 @@ export async function getRecursosCollection(): Promise<Collection<Recurso>> {
 
 async function createIndexes(collection: Collection<Recurso>): Promise<void> {
   try {
-    // Garante que temos o índice básico por URL que é o mais importante
+    // Índice único por URL (mesma URL = mesmo recurso)
+    // Isso garante que não temos duplicatas de URLs mesmo entre usuários
     try {
       await collection.createIndex(
         { "url": 1 },
@@ -43,7 +44,17 @@ async function createIndexes(collection: Collection<Recurso>): Promise<void> {
       console.warn("Warning: Could not create/verify URL index:", e);
     }
 
-    // Tenta criar outros índices, mas não falha se der erro
+    // Índice para queries por usuário (multi-tenant)
+    try {
+      await collection.createIndex(
+        { "ownerId": 1, "createdAt": -1 },
+        { name: "ownerId_createdAt" }
+      );
+    } catch (e) {
+      console.warn("Warning: Could not create ownerId index:", e);
+    }
+
+    // Índice para queries de recursos mais usados
     try {
       await collection.createIndex(
         { "usage.refCount": -1, "updatedAt": -1 },
@@ -73,6 +84,11 @@ export async function upsertRecurso(recursoData: Partial<Recurso>, userId?: stri
   const collection = await getRecursosCollection();
   const now = new Date();
   
+  // Validações
+  if (!recursoData.url) {
+    throw new Error("URL do recurso é obrigatória");
+  }
+  
   // Se ownerId não foi fornecido e temos userId, converter para ObjectId
   const ownerId = recursoData.ownerId || (userId ? new ObjectId(userId) : undefined);
   
@@ -80,29 +96,58 @@ export async function upsertRecurso(recursoData: Partial<Recurso>, userId?: stri
     throw new Error("ownerId ou userId deve ser fornecido para criar recurso");
   }
   
-  const filter = { url: recursoData.url };
-  const update = {
-    $set: {
-      ...recursoData,
-      ownerId, // Sempre setar o ownerId
-      updatedAt: now,
-    },
-    $setOnInsert: {
-      usage: { refCount: 0 },
-      createdAt: now,
-      status: "active",
-    },
-  };
+  // Verificar se já existe um recurso com esta URL
+  const existingRecurso = await collection.findOne({ url: recursoData.url });
   
-  const options = { upsert: true, returnDocument: "after" as const };
-  
-  const result = await collection.findOneAndUpdate(filter, update as any, options);
-  
-  if (!result) {
-    throw new Error("Failed to upsert recurso");
+  if (existingRecurso) {
+    // Se já existe, apenas atualizar o updatedAt
+    // Nota: Não alteramos o ownerId de um recurso existente
+    const updateResult = await collection.findOneAndUpdate(
+      { url: recursoData.url },
+      { 
+        $set: { 
+          updatedAt: now,
+          // Atualizar outros campos se fornecidos
+          ...(recursoData.filename && { filename: recursoData.filename }),
+          ...(recursoData.mime && { mime: recursoData.mime }),
+          ...(recursoData.sizeBytes !== undefined && { sizeBytes: recursoData.sizeBytes }),
+          ...(recursoData.key && { key: recursoData.key }),
+        } 
+      },
+      { returnDocument: "after" }
+    );
+    
+    if (!updateResult) {
+      throw new Error("Failed to update existing recurso");
+    }
+    
+    console.log('[upsertRecurso] Recurso já existe, atualizado:', updateResult._id);
+    return updateResult;
   }
   
-  return result;
+  // Se não existe, criar novo recurso
+  const newRecurso: Recurso = {
+    provider: recursoData.provider || "vercel-blob",
+    url: recursoData.url,
+    key: recursoData.key || "",
+    filename: recursoData.filename || "unknown",
+    mime: recursoData.mime || "application/octet-stream",
+    sizeBytes: recursoData.sizeBytes || 0,
+    ownerId,
+    usage: { refCount: 0 },
+    createdAt: now,
+    updatedAt: now,
+    status: "active",
+  };
+  
+  const insertResult = await collection.insertOne(newRecurso);
+  
+  console.log('[upsertRecurso] Novo recurso criado:', insertResult.insertedId);
+  
+  return {
+    ...newRecurso,
+    _id: insertResult.insertedId,
+  };
 }
 
 export async function getTopRecursos(userId: string, limit: number = 10): Promise<Recurso[]> {
