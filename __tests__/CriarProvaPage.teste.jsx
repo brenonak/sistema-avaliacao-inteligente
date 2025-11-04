@@ -231,6 +231,10 @@ describe('CriarProvaPage', () => {
     fireEvent.change(screen.getByLabelText(/Título da Prova/i), { target: { value: 'Prova Teste' } });
     fireEvent.change(screen.getByLabelText(/Instruções/i), { target: { value: 'Leia com atenção' } });
     fireEvent.change(screen.getByLabelText(/Nome da Escola/i), { target: { value: 'UNIFESP' } });
+    fireEvent.change(screen.getByLabelText(/Nome do Professor/i), { target: { value: 'Prof. Teste' } });
+    
+    // <<< CORREÇÃO AQUI: Trocado 'change' por 'input'
+    fireEvent.input(screen.getByLabelText(/Data/i), { target: { value: '2025-11-04' } });
 
     // Seleciona a questão
     const questoesCard = getQuestoesCard();
@@ -262,8 +266,8 @@ describe('CriarProvaPage', () => {
             instrucoes: 'Leia com atenção',
             nomeEscola: 'UNIFESP',
             disciplina: 'Cálculo I',
-            professor: '',
-            data: '',
+            professor: 'Prof. Teste',
+            data: '2025-11-04',
             duracao: '',
             valorTotal: '',
             observacoes: '',
@@ -282,7 +286,6 @@ describe('CriarProvaPage', () => {
   });
 
   it('deve mostrar uma mensagem de erro se a API de submissão falhar', async () => {
-    // Este teste já estava passando, sem necessidade de alteração
     setupMocks(
       'curso123',
       'Cálculo I',
@@ -294,6 +297,11 @@ describe('CriarProvaPage', () => {
 
     fireEvent.change(screen.getByLabelText(/Título da Prova/i), { target: { value: 'Prova' } });
     fireEvent.change(screen.getByLabelText(/Instruções/i), { target: { value: 'Instruções' } });
+    fireEvent.change(screen.getByLabelText(/Nome da Escola/i), { target: { value: 'Escola Teste' } });
+    fireEvent.change(screen.getByLabelText(/Nome do Professor/i), { target: { value: 'Prof. Teste' } });
+    
+    
+    fireEvent.input(screen.getByLabelText(/Data/i), { target: { value: '2025-11-04' } });
     
     fireEvent.click(screen.getByRole('button', { name: /Gravar Prova/i }));
 
