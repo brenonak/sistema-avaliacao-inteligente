@@ -43,7 +43,17 @@ export async function GET(
       return NextResponse.json({ success: false, message: "Prova não encontrada neste curso" }, { status: 404 });
     }
 
-    // Enriquecer questões com URLs de recursos (imagens)
+    if (prova.data && typeof prova.data === 'string') {
+      try { //Conversão do campo data de "YYYY-MM-DD" para "DD/MM/YYYY"
+        const partes = prova.data.split('-');
+        if (partes.length === 3) {
+          prova.data = `${partes[2]}/${partes[1]}/${partes[0]}`; // Ex: "04/11/2025"
+        }
+      } catch (e) {
+        console.error("Erro ao formatar data:", e);
+      }
+    }
+
     const questoesComRecursos = await Promise.all(
       (prova.questoes || []).map(async (questao: any) => {
         if (!questao.recursos || questao.recursos.length === 0) {
@@ -60,7 +70,7 @@ export async function GET(
         return {
           ...questao,
           recursoUrls: recursosDocs.map(r => r.url).filter(Boolean),
-          recursosFileNames: recursosDocs.map(r => r.filename).filter(Boolean),
+          recursoFilenames: recursosDocs.map(r => r.filename).filter(Boolean),
         };
       })
     );
@@ -170,10 +180,10 @@ const latexTemplate = `Você é um assistente especialista em LaTeX. Sua **únic
 1. **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
 2. **SEM MARCAÇÃO:** NÃO use blocos de código Markdown no seu resultado.
 3. **ESCOPO:** NÃO inclua \\documentclass, \\begin{{document}}, \\begin{{questions}} ou \\end{{document}}. Não importe \\package{{}}. Faça apenas a inserção das questões.
-4. **Estrutura de Questão (CORRIGIDO):**
+4. **Estrutura de Questão:**
    * Comece cada questão com \\question.
    * Siga com o enunciado da questão.
-   * **Pontuação (CRÍTICO):** Se o campo pontuacao for maior que zero, adicione o comando \\points{{...}} **APÓS** o enunciado.
+   * **Pontuação (CRÍTICO):** Se o campo pontuacao for maior que zero, adicione o comando \\points{{...}} **IMEDIATAMENTE APÓS** o TEXTO do enunciado.  
    * O valor da pontuação deve usar VÍRGULA como separador decimal. Ex: "pontuacao": 1.5 deve virar \\points{{1,5}}. "pontuacao": 2 deve virar \\points{{2}}.
    * **Exemplo Correto:** \\question Este é o enunciado \\points{{1,5}}
 5. **Regras de Formatação por Tipo:**
@@ -183,10 +193,12 @@ const latexTemplate = `Você é um assistente especialista em LaTeX. Sua **únic
    * **Tipo 'proposicoes'**: Use o ambiente **\\begin{{somatoriochoices}} e \\end{{somatoriochoices}}**. Cada opção deve ser \\item <texto da alternativa>. Na linha abaixo de \\end{{somatoriochoices}} insira \\answerline.
    * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\\answerline** para o espaço de resposta.
 6. **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: $x^2$ ou $\\frac{{1}}{{2}}$) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando $\\frac{{numerador}}{{denominador}}$. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
-7. **Recursos (Imagens):** Se uma questão tiver imagens (nomes de arquivo em recursosFileNames), insira o seguinte código LaTeX **imediatamente após o enunciado da questão** para cada imagem:
-   \\begin{{center}}
-       \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}}
-   \\end{{center}}
+7. **Recursos (Imagens):**
+    * Se houver \`recursoFilenames\`, insira o bloco LaTeX da imagem **APÓS** o comando \`\\points{{...}}\` (ou após o enunciado, se não houver pontos).
+    * Para cada nome de arquivo, gere:
+        \\begin{{center}}
+            \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}}
+        \\end{{center}}
 8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
 
 **[JSON DA PROVA PARA CONVERSÃO]**
