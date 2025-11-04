@@ -722,7 +722,7 @@ export default function CursoDetalhesPage() {
               variant="contained"
               color="primary"
               startIcon={<Add />}
-            >Prova
+            >
               Criar Nova Prova
             </Button>
           </Link>
