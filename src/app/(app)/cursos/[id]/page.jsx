@@ -61,6 +61,8 @@ export default function CursoDetalhesPage() {
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
   // Estados para o diálogo de edição do curso
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -91,12 +93,26 @@ export default function CursoDetalhesPage() {
     fetchProvas();
   }, [cursoId]);
 
+  // Efeito para busca (DEBOUNCE)
+  useEffect(() => {
+    if (!openAddDialog) return;
+    
+    const timer = setTimeout(() => {
+      // Quando o usuário parar de digitar por 500ms, dispara uma NOVA busca (página 1)
+      fetchQuestoes(1, true);
+    }, 500); // 500ms de atraso
+
+    // Limpa o timer se o usuário digitar novamente
+    return () => clearTimeout(timer);
+  }, [searchQuery, openAddDialog]); // Roda quando a busca ou o dialog mudam
+
+
   const fetchCurso = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`/api/cursos/${cursoId}`);
+      const res = await fetch(`/api/cursos/${cursoId}`, { cache: 'no-store' });
       
       if (!res.ok) {
         if (res.status === 404) {
@@ -155,6 +171,48 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const fetchQuestoes = async (pageToFetch, isNewSearch = false) => {
+    // Evita buscas duplicadas se já estiver carregando
+    if (loadingQuestoes && !isNewSearch) return; 
+    
+    setLoadingQuestoes(true);
+
+    try {
+      // Monta a URL da API com paginação e busca
+      const url = `/api/questoes?page=${pageToFetch}&limit=20&search=${searchQuery}`;
+      const res = await fetch(url);
+      
+      if (!res.ok) throw new Error('Erro ao carregar questões');
+      
+      const data = await res.json();
+      const novasQuestoes = data.items || [];
+
+      // Filtra questões que já estão no curso
+      const questoesJaAdicionadas = curso.questoes?.map(q => q.id || q._id) || [];
+      const questoesFiltradas = novasQuestoes.filter(
+        q => !questoesJaAdicionadas.includes(q.id || q._id)
+      );
+
+      // Se for uma nova busca (ou página 1), substitui a lista
+      if (pageToFetch === 1 || isNewSearch) {
+        setQuestoesDisponiveis(questoesFiltradas);
+      } else {
+        // Se não, anexa os novos resultados à lista existente
+        setQuestoesDisponiveis(prev => [...prev, ...questoesFiltradas]);
+      }
+      
+      // Atualiza os controles de paginação
+      setPage(pageToFetch);
+      setHasMore((pageToFetch * 20) < data.total);
+
+    } catch (err) {
+      console.error('Erro ao buscar questões:', err);
+      alert('Erro ao carregar questões'); 
+    } finally {
+      setLoadingQuestoes(false);
+    }
+  };
+
   const handleDeleteProva = async (provaId) => {
     if (!confirm('Tem certeza que deseja excluir esta prova?')) return;
 
@@ -177,41 +235,53 @@ export default function CursoDetalhesPage() {
   };
 
   const handleExportLatex = async (provaId) => {
+    alert('Gerando arquivo LaTeX...');
+    
     try {
-      // TODO: Implementar chamada para endpoint de exportação LaTeX
-      // Por exemplo: const res = await fetch(`/api/gerar-prova?provaId=${provaId}&format=latex`);
-      alert(`Funcionalidade de exportar para LaTeX será implementada em breve para a prova ${provaId}`);
+      const res = await fetch(`/api/cursos/${cursoId}/provas/${provaId}/gerar-prova`);
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+        throw new Error(err.message || 'Falha ao gerar arquivo LaTeX no servidor');
+      }
+      
+      const data = await res.json();
+      
+      if (!data.success || !data.latexContent) {
+        throw new Error(data.message || 'A API não retornou o conteúdo do arquivo.');
+      }
+      
+      const blob = new Blob([data.latexContent], { 
+        type: 'text/x-latex;charset=utf-8' 
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', data.fileName); 
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
     } catch (error) {
       console.error('Erro ao exportar para LaTeX:', error);
-      alert('Erro ao exportar prova para LaTeX');
+      alert('Erro ao exportar prova para LaTeX: ');
+    } finally {
     }
   };
 
-  const handleOpenAddDialog = async () => {
+  const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
-    setLoadingQuestoes(true);
-    
-    try {
-      // Buscar todas as questões disponíveis
-      const res = await fetch('/api/questoes');
-      if (!res.ok) throw new Error('Erro ao carregar questões');
-      
-      const data = await res.json();
-      const todasQuestoes = data.items || [];
-      
-      // Filtrar questões que já estão no curso
-      const questoesJaAdicionadas = curso.questoes?.map(q => q.id || q._id) || [];
-      const questoesFiltradas = todasQuestoes.filter(
-        q => !questoesJaAdicionadas.includes(q.id || q._id)
-      );
-      
-      setQuestoesDisponiveis(questoesFiltradas);
-    } catch (error) {
-      console.error('Erro ao carregar questões:', error);
-      alert('Erro ao carregar questões disponíveis');
-    } finally {
-      setLoadingQuestoes(false);
-    }
+    setSearchQuery(''); // Reseta a busca
+    setSelectedQuestoes([]); // Reseta a seleção
+    setQuestoesDisponiveis([]); // Limpa a lista antiga
+    setHasMore(true); // Reseta a paginação
+    fetchQuestoes(1, true); // Busca a primeira página
+  };
+
+  const handleLoadMore = () => {
+    // Busca a próxima página
+    fetchQuestoes(page + 1, false);
   };
 
   const handleToggleQuestao = (questaoId) => {
@@ -961,7 +1031,7 @@ export default function CursoDetalhesPage() {
           Adicionar Questões Existentes
         </DialogTitle>
         <DialogContent>
-          {/* Barra de busca */}
+          {/*Barra de busca*/}
           <TextField
             placeholder="Buscar questões..."
             value={searchQuery}
@@ -984,57 +1054,73 @@ export default function CursoDetalhesPage() {
             }}
           />
 
-          {loadingQuestoes ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
+          {/*Lista de questões */}
+          <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+            {questoesDisponiveis.map((questao) => (
+              <ListItem
+                key={questao.id}
+                dense
+                component="div"
+                onClick={() => handleToggleQuestao(questao.id)}
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  mb: 1,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <Checkbox
+                  checked={selectedQuestoes.includes(questao.id)}
+                  tabIndex={-1}
+                  disableRipple
+                />
+                <ListItemText
+                  primary={questao.enunciado}
+                  secondaryTypographyProps={{ component: 'div' }}
+                  secondary={
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                      <Chip label={questao.tipo} size="small" />
+                      {questao.tags?.slice(0, 3).map((tag, idx) => (
+                        <Chip key={idx} label={tag} size="small" variant="outlined" />
+                      ))}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+
+          {/*Feedback de Carregamento */}
+          {loadingQuestoes && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
             </Box>
-          ) : filteredQuestoes.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
-              {questoesDisponiveis.length === 0 
-                ? 'Todas as questões já foram adicionadas ao curso.' 
-                : 'Nenhuma questão encontrada com os critérios de busca.'}
-            </Typography>
-          ) : (
-            <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-              {filteredQuestoes.map((questao) => (
-                <ListItem
-                  key={questao.id}
-                  dense
-                  component="div"
-                  onClick={() => handleToggleQuestao(questao.id)}
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    mb: 1,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                    },
-                  }}
-                >
-                  <Checkbox
-                    checked={selectedQuestoes.includes(questao.id)}
-                    tabIndex={-1}
-                    disableRipple
-                  />
-                  <ListItemText
-                    primary={questao.enunciado}
-                    secondaryTypographyProps={{ component: 'div' }}
-                    secondary={
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                        <Chip label={questao.tipo} size="small" />
-                        {questao.tags?.slice(0, 3).map((tag, idx) => (
-                          <Chip key={idx} label={tag} size="small" variant="outlined" />
-                        ))}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
           )}
 
+          {/* 4. Botão "Carregar Mais" (NOVO) */}
+          {hasMore && !loadingQuestoes && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+              <Button onClick={handleLoadMore}>
+                Carregar Mais
+              </Button>
+            </Box>
+          )}
+
+          {/*Mensagem de "Nada encontrado" ou "Fim da lista"*/}
+          {!hasMore && !loadingQuestoes && (
+            <Typography sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+              {questoesDisponiveis.length === 0
+                ? (searchQuery ? 'Nenhuma questão encontrada com essa busca.' : 'Nenhuma questão disponível para adicionar.')
+                : 'Todas as questões foram exibidas.'
+              }
+            </Typography>
+          )}
+
+          {/*Contagem de selecionadas) */}
           {selectedQuestoes.length > 0 && (
             <Typography variant="body2" sx={{ mt: 2, color: 'primary.main' }}>
               {selectedQuestoes.length} questão(ões) selecionada(s)
@@ -1106,326 +1192,338 @@ export default function CursoDetalhesPage() {
         fullWidth
       >
         <DialogTitle>Editar Prova</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            {/* Informações básicas */}
-            <TextField
-              fullWidth
-              required
-              label="Título da Prova"
-              value={editProvaData.titulo}
-              onChange={handleChangeEditProva('titulo')}
-              variant="outlined"
-              multiline
-              rows={2}
-            />
 
-            <TextField
-              fullWidth
-              required
-              label="Instruções"
-              value={editProvaData.instrucoes}
-              onChange={handleChangeEditProva('instrucoes')}
-              variant="outlined"
-              multiline
-              rows={3}
-            />
+        {editingProva && (
+          <>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                {/* Informações básicas */}
+                <TextField
+                  fullWidth
+                  required
+                  label="Título da Prova"
+                  value={editProvaData.titulo}
+                  onChange={handleChangeEditProva('titulo')}
+                  variant="outlined"
+                  multiline
+                  rows={2}
+                />
 
-            <TextField
-              fullWidth
-              label="Observações"
-              value={editProvaData.observacoes}
-              onChange={handleChangeEditProva('observacoes')}
-              variant="outlined"
-              multiline
-              rows={2}
-            />
+                <TextField
+                  fullWidth
+                  required
+                  label="Instruções"
+                  value={editProvaData.instrucoes}
+                  onChange={handleChangeEditProva('instrucoes')}
+                  variant="outlined"
+                  multiline
+                  rows={3}
+                />
 
-            <Divider sx={{ my: 1 }} />
+                <TextField
+                  fullWidth
+                  label="Observações"
+                  value={editProvaData.observacoes}
+                  onChange={handleChangeEditProva('observacoes')}
+                  variant="outlined"
+                  multiline
+                  rows={2}
+                />
 
-            {/* Dados do cabeçalho */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              Dados do Cabeçalho
-            </Typography>
+                <Divider sx={{ my: 1 }} />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="Nome da Escola/Instituição"
-                value={editProvaData.nomeEscola}
-                onChange={handleChangeEditProva('nomeEscola')}
-                variant="outlined"
-              />
+                {/* Dados do cabeçalho */}
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  Dados do Cabeçalho
+                </Typography>
 
-              <TextField
-                fullWidth
-                label="Disciplina"
-                value={editProvaData.disciplina}
-                onChange={handleChangeEditProva('disciplina')}
-                variant="outlined"
-              />
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Nome da Escola/Instituição"
+                    value={editProvaData.nomeEscola}
+                    onChange={handleChangeEditProva('nomeEscola')}
+                    variant="outlined"
+                  />
 
-              <TextField
-                fullWidth
-                label="Nome do Professor"
-                value={editProvaData.professor}
-                onChange={handleChangeEditProva('professor')}
-                variant="outlined"
-              />
+                  <TextField
+                    fullWidth
+                    label="Disciplina"
+                    value={editProvaData.disciplina}
+                    onChange={handleChangeEditProva('disciplina')}
+                    variant="outlined"
+                  />
 
-              <TextField
-                fullWidth
-                label="Data"
-                type="date"
-                value={editProvaData.data}
-                onChange={handleChangeEditProva('data')}
-                variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
+                  <TextField
+                    fullWidth
+                    label="Nome do Professor"
+                    value={editProvaData.professor}
+                    onChange={handleChangeEditProva('professor')}
+                    variant="outlined"
+                  />
 
-              <TextField
-                fullWidth
-                label="Duração"
-                value={editProvaData.duracao}
-                onChange={handleChangeEditProva('duracao')}
-                variant="outlined"
-              />
+                  <TextField
+                    fullWidth
+                    label="Data"
+                    type="date"
+                    value={editProvaData.data}
+                    onChange={handleChangeEditProva('data')}
+                    variant="outlined"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
 
-              <TextField
-                fullWidth
-                label="Valor Total"
-                value={editProvaData.valorTotal}
-                onChange={handleChangeEditProva('valorTotal')}
-                variant="outlined"
-              />
-            </Box>
+                  <TextField
+                    fullWidth
+                    label="Duração"
+                    value={editProvaData.duracao}
+                    onChange={handleChangeEditProva('duracao')}
+                    variant="outlined"
+                  />
 
-            <Divider sx={{ my: 1 }} />
+                  <TextField
+                    fullWidth
+                    label="Valor Total"
+                    value={editProvaData.valorTotal}
+                    onChange={handleChangeEditProva('valorTotal')}
+                    variant="outlined"
+                  />
+                </Box>
 
-            {/* Questões da prova */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              Questões da Prova
-            </Typography>
+                <Divider sx={{ my: 1 }} />
 
-            {(!curso.questoes || curso.questoes.length === 0) ? (
-              <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                Nenhuma questão cadastrada neste curso.
-              </Typography>
-            ) : (
-              <Box>
-                {/* Questões Selecionadas - Ordenáveis */}
-                {selectedQuestoesProva.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                        Questões Selecionadas ({selectedQuestoesProva.length})
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-                          Total:
-                        </Typography>
-                        <Chip
-                          label={`${calcularTotalPontosProva().toFixed(1)} pts`}
-                          size="small"
-                          color={
-                            editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal)
-                              ? 'warning'
-                              : 'success'
-                          }
-                          sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
-                        />
-                        {editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal) && (
-                          <Chip
-                            label={`+${(calcularTotalPontosProva() - parseFloat(editProvaData.valorTotal)).toFixed(1)} extra`}
-                            size="small"
-                            color="warning"
-                            variant="outlined"
-                            sx={{ height: 20, fontSize: '0.65rem' }}
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                    <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
-                      {selectedQuestoesProva.map((questaoId, index) => {
-                        const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
-                        if (!questao) return null;
+                {/* Questões da prova */}
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  Questões da Prova
+                </Typography>
 
-                        return (
-                          <ListItem
-                            key={`selected-${questaoId}`}
-                            sx={{
-                              border: 1,
-                              borderColor: 'primary.main',
-                              borderRadius: 1,
-                              mb: 1,
-                              bgcolor: 'background.paper',
-                              p: 1,
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            {/* Número da ordem */}
-                            <Box
-                              sx={{
-                                minWidth: 32,
-                                height: 32,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                bgcolor: 'primary.main',
-                                color: 'primary.contrastText',
-                                borderRadius: 1,
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem',
-                              }}
-                            >
-                              {index + 1}
-                            </Box>
-
-                            {/* Conteúdo da questão */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
-                                {questao.enunciado || 'Sem enunciado'}
-                              </Typography>
-                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                                {questao.tipo && (
-                                  <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                )}
-                                {questao.tags?.slice(0, 2).map((tag, idx) => (
-                                  <Chip 
-                                    key={`sel-tag-${questaoId}-${idx}`} 
-                                    label={tag} 
-                                    size="small" 
-                                    variant="outlined" 
-                                    sx={{ height: 20, fontSize: '0.7rem' }}
-                                  />
-                                ))}
-                              </Box>
-                            </Box>
-
-                            {/* Campo de pontuação */}
-                            <TextField
-                              type="number"
-                              label="Pts"
-                              value={questoesPontuacaoProva[questaoId] || ''}
-                              onChange={(e) => handleChangePontuacaoProva(questaoId, e.target.value)}
-                              inputProps={{
-                                min: 0,
-                                step: 0.5,
-                                style: { textAlign: 'center', fontSize: '0.85rem' }
-                              }}
-                              sx={{ width: 70 }}
+                {(!curso.questoes || curso.questoes.length === 0) ? (
+                  <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                    Nenhuma questão cadastrada neste curso.
+                  </Typography>
+                ) : (
+                  <Box>
+                    {/* Questões Selecionadas - Ordenáveis */}
+                    {selectedQuestoesProva.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            Questões Selecionadas ({selectedQuestoesProva.length})
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                              Total:
+                            </Typography>
+                            <Chip
+                              label={`${calcularTotalPontosProva().toFixed(1)} pts`}
                               size="small"
+                              color={
+                                editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal)
+                                  ? 'warning'
+                                  : 'success'
+                              }
+                              sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
                             />
-
-                            {/* Botões de controle */}
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                              <Button
+                            {editProvaData.valorTotal && calcularTotalPontosProva() > parseFloat(editProvaData.valorTotal) && (
+                              <Chip
+                                label={`+${(calcularTotalPontosProva() - parseFloat(editProvaData.valorTotal)).toFixed(1)} extra`}
                                 size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveUpProva(index);
-                                }}
-                                disabled={index === 0}
-                                sx={{ minWidth: 'auto', p: 0.25 }}
-                              >
-                                <ArrowUpward fontSize="small" />
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveDownProva(index);
-                                }}
-                                disabled={index === selectedQuestoesProva.length - 1}
-                                sx={{ minWidth: 'auto', p: 0.25 }}
-                              >
-                                <ArrowDownward fontSize="small" />
-                              </Button>
-                            </Box>
+                                color="warning"
+                                variant="outlined"
+                                sx={{ height: 20, fontSize: '0.65rem' }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                        <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
+                          {selectedQuestoesProva.map((questaoId, index) => {
+                            // Tenta encontrar na lista de questões JÁ SALVAS na prova (isso inclui questões que podem ter sido removidas do curso)
+                            let questao = editingProva.questoes.find(q => (q._id || q.id) === questaoId);
 
-                            <Button
-                              size="small"
-                              color="error"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveQuestaoProva(questaoId);
+                            // Se não encontrar (é uma questão NOVA, recém-adicionada), busca na lista principal de questões do CURSO.
+                            if (!questao) {
+                              questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                            }
+                            // Se não encontrar em NENHUM lugar (não deve acontecer), pula.
+                            if (!questao) return null;
+
+                            return (
+                              <ListItem
+                                key={`selected-${questaoId}`}
+                                sx={{
+                                  border: 1,
+                                  borderColor: 'primary.main',
+                                  borderRadius: 1,
+                                  mb: 1,
+                                  bgcolor: 'background.paper',
+                                  p: 1,
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                {/* Número da ordem */}
+                                <Box
+                                  sx={{
+                                    minWidth: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    borderRadius: 1,
+                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem',
+                                  }}
+                                >
+                                  {index + 1}
+                                </Box>
+
+                                {/* Conteúdo da questão */}
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
+                                    {questao.enunciado || 'Sem enunciado'}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip 
+                                        key={`sel-tag-${questaoId}-${idx}`} 
+                                        label={tag} 
+                                        size="small" 
+                                        variant="outlined" 
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+
+                                {/* Campo de pontuação */}
+                                <TextField
+                                  type="number"
+                                  label="Pts"
+                                  value={questoesPontuacaoProva[questaoId] || ''}
+                                  onChange={(e) => handleChangePontuacaoProva(questaoId, e.target.value)}
+                                  inputProps={{
+                                    min: 0,
+                                    step: 0.5,
+                                    style: { textAlign: 'center', fontSize: '0.85rem' }
+                                  }}
+                                  sx={{ width: 70 }}
+                                  size="small"
+                                />
+
+                                {/* Botões de controle */}
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveUpProva(index);
+                                    }}
+                                    disabled={index === 0}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowUpward fontSize="small" />
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveDownProva(index);
+                                    }}
+                                    disabled={index === selectedQuestoesProva.length - 1}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowDownward fontSize="small" />
+                                  </Button>
+                                </Box>
+
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveQuestaoProva(questaoId);
+                                  }}
+                                  sx={{ minWidth: 'auto', p: 0.5 }}
+                                >
+                                  <ClearIcon fontSize="small" />
+                                </Button>
+                              </ListItem>
+                            );
+                          })}
+                        </List>
+                      </Box>
+                    )}
+
+                    {/* Divider se houver questões selecionadas */}
+                    {selectedQuestoesProva.length > 0 && (
+                      <Divider sx={{ my: 1 }}>
+                        <Chip label="Questões Disponíveis" size="small" />
+                      </Divider>
+                    )}
+
+                    {/* Questões Disponíveis */}
+                    <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      {curso.questoes
+                        .filter(questao => !selectedQuestoesProva.includes(questao._id || questao.id))
+                        .map((questao) => {
+                          const questaoId = questao._id || questao.id;
+
+                          return (
+                            <ListItem
+                              key={questaoId}
+                              dense
+                              component="div"
+                              onClick={() => handleToggleQuestaoProva(questaoId)}
+                              sx={{
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover',
+                                },
                               }}
-                              sx={{ minWidth: 'auto', p: 0.5 }}
                             >
-                              <ClearIcon fontSize="small" />
-                            </Button>
-                          </ListItem>
-                        );
-                      })}
+                              <Checkbox
+                                checked={false}
+                                tabIndex={-1}
+                                disableRipple
+                              />
+                              <ListItemText
+                                primary={questao.enunciado || 'Sem enunciado'}
+                                secondaryTypographyProps={{ component: 'div' }}
+                                secondary={
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                    ))}
+                                  </Box>
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
                     </List>
                   </Box>
                 )}
-
-                {/* Divider se houver questões selecionadas */}
-                {selectedQuestoesProva.length > 0 && (
-                  <Divider sx={{ my: 1 }}>
-                    <Chip label="Questões Disponíveis" size="small" />
-                  </Divider>
-                )}
-
-                {/* Questões Disponíveis */}
-                <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                  {curso.questoes
-                    .filter(questao => !selectedQuestoesProva.includes(questao._id || questao.id))
-                    .map((questao) => {
-                      const questaoId = questao._id || questao.id;
-
-                      return (
-                        <ListItem
-                          key={questaoId}
-                          dense
-                          component="div"
-                          onClick={() => handleToggleQuestaoProva(questaoId)}
-                          sx={{
-                            cursor: 'pointer',
-                            '&:hover': {
-                              backgroundColor: 'action.hover',
-                            },
-                          }}
-                        >
-                          <Checkbox
-                            checked={false}
-                            tabIndex={-1}
-                            disableRipple
-                          />
-                          <ListItemText
-                            primary={questao.enunciado || 'Sem enunciado'}
-                            secondaryTypographyProps={{ component: 'div' }}
-                            secondary={
-                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                                {questao.tipo && (
-                                  <Chip label={questao.tipo} size="small" />
-                                )}
-                                {questao.tags?.slice(0, 2).map((tag, idx) => (
-                                  <Chip key={idx} label={tag} size="small" variant="outlined" />
-                                ))}
-                              </Box>
-                            }
-                          />
-                        </ListItem>
-                      );
-                    })}
-                </List>
               </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditProvaDialog(false)} disabled={loadingEditProva}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSaveEditProva} variant="contained" disabled={loadingEditProva}>
-            {loadingEditProva ? 'Salvando...' : 'Salvar Alterações'}
-          </Button>
-        </DialogActions>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenEditProvaDialog(false)} disabled={loadingEditProva}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEditProva} variant="contained" disabled={loadingEditProva}>
+                {loadingEditProva ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );
