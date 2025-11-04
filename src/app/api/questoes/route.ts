@@ -87,12 +87,22 @@ export async function GET(request: NextRequest) {
     const cursoParam = url.searchParams.get("curso");
     const cursoIds = cursoParam ? [cursoParam] : undefined;
 
+    // Parse busca por texto
+    const search = url.searchParams.get("search") || undefined;
+
+    // Parse ordenação
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const sortOrder = url.searchParams.get("sortOrder") || "desc";
+
     // Buscar questões do usuário com filtros
     const questoes = await QuestoesService.listQuestoes(userId, {
       tipo,
       dificuldade,
       tags,
       cursoIds,
+      search,
+      sortBy,
+      sortOrder: sortOrder as "asc" | "desc",
     });
 
     // Paginação (aplicada após buscar do DB)

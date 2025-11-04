@@ -15,16 +15,30 @@ import { getDb } from "../../lib/mongodb";
 export interface Questao {
   _id?: ObjectId;
   enunciado: string;
-  alternativas?: Array<{
-    texto: string;
-    correta: boolean;
-  }>;
-  gabarito?: string;
   tipo?: string;
   dificuldade?: string;
   tags?: string[];
   cursoIds?: ObjectId[];
   imagemIds?: ObjectId[];
+  // Campos específicos por tipo
+  alternativas?: Array<{
+    letra?: string;
+    texto: string;
+    correta: boolean;
+  }>;
+  gabarito?: string;
+  afirmacoes?: Array<{
+    texto: string;
+    correta: boolean;
+  }>;
+  proposicoes?: Array<{
+    valor: number;
+    texto: string;
+    correta: boolean;
+  }>;
+  respostaCorreta?: number;
+  margemErro?: number;
+  // Metadados
   ownerId: ObjectId;
   createdBy?: ObjectId;
   updatedBy?: ObjectId;
@@ -34,30 +48,56 @@ export interface Questao {
 
 export interface CreateQuestaoInput {
   enunciado: string;
-  alternativas?: Array<{
-    texto: string;
-    correta: boolean;
-  }>;
-  gabarito?: string;
   tipo?: string;
   dificuldade?: string;
   tags?: string[];
   cursoIds?: string[];
   imagemIds?: string[];
+  // Campos específicos por tipo
+  alternativas?: Array<{
+    letra?: string;
+    texto: string;
+    correta: boolean;
+  }>;
+  gabarito?: string;
+  afirmacoes?: Array<{
+    texto: string;
+    correta: boolean;
+  }>;
+  proposicoes?: Array<{
+    valor: number;
+    texto: string;
+    correta: boolean;
+  }>;
+  respostaCorreta?: number;
+  margemErro?: number;
 }
 
 export interface UpdateQuestaoInput {
   enunciado?: string;
-  alternativas?: Array<{
-    texto: string;
-    correta: boolean;
-  }>;
-  gabarito?: string;
   tipo?: string;
   dificuldade?: string;
   tags?: string[];
   cursoIds?: string[];
   imagemIds?: string[];
+  // Campos específicos por tipo
+  alternativas?: Array<{
+    letra?: string;
+    texto: string;
+    correta: boolean;
+  }>;
+  gabarito?: string;
+  afirmacoes?: Array<{
+    texto: string;
+    correta: boolean;
+  }>;
+  proposicoes?: Array<{
+    valor: number;
+    texto: string;
+    correta: boolean;
+  }>;
+  respostaCorreta?: number;
+  margemErro?: number;
 }
 
 /**
@@ -176,7 +216,7 @@ export async function createQuestao(
 /**
  * Lista todas as questões do usuário
  * @param userId - ID do usuário autenticado
- * @param filters - Filtros opcionais (cursoIds, tags, etc)
+ * @param filters - Filtros opcionais (cursoIds, tags, busca, ordenação, etc)
  * @returns Array de questões do usuário
  */
 export async function listQuestoes(
@@ -186,6 +226,9 @@ export async function listQuestoes(
     tags?: string[];
     tipo?: string;
     dificuldade?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
   }
 ): Promise<Questao[]> {
   const db = await getDb();
@@ -213,7 +256,22 @@ export async function listQuestoes(
     query.dificuldade = filters.dificuldade;
   }
 
-  const questoes = await collection.find(query).sort({ createdAt: -1 }).toArray();
+  // Busca textual no enunciado
+  if (filters?.search && filters.search.trim().length > 0) {
+    query.enunciado = { 
+      $regex: filters.search.trim(), 
+      $options: "i" // case-insensitive
+    };
+  }
+
+  // Definir ordenação
+  const sortBy = filters?.sortBy || "createdAt";
+  const sortOrder = filters?.sortOrder === "asc" ? 1 : -1;
+  
+  const sortOptions: any = {};
+  sortOptions[sortBy] = sortOrder;
+
+  const questoes = await collection.find(query).sort(sortOptions).toArray();
 
   return questoes;
 }
