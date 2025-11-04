@@ -25,6 +25,7 @@ import {
   Divider,
   Paper
 } from '@mui/material';
+import { FormControlLabel, Switch } from '@mui/material';
 import { 
   Add, 
   Edit, 
@@ -90,6 +91,31 @@ export default function CursoDetalhesPage() {
   });
   const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
   const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
+
+  // Estado e handlers para diálogo "Gerar Lista de Exercícios"
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
+  const [includeGabarito, setIncludeGabarito] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [listaToGenerate, setListaToGenerate] = useState(null);
+
+  const handleOpenGenerateDialog = (lista) => {
+    setListaToGenerate(lista);
+    setIncludeGabarito(false);
+    setOpenGenerateDialog(true);
+  };
+
+  const handleConfirmGenerate = async () => {
+    if (!listaToGenerate) return;
+    setGenerating(true);
+    try {
+      console.log("Gerando lista de exercícios");
+    } catch (err) {
+      console.error('Erro ao gerar lista:', err);
+      alert(err.message || 'Erro ao gerar lista. Tente novamente.');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   useEffect(() => {
     fetchCurso();
@@ -882,7 +908,7 @@ export default function CursoDetalhesPage() {
                       </IconButton>
                       <IconButton
                         color="success"
-                        onClick={() => handleGerarLista(lista.id)}
+                        onClick={() => handleOpenGenerateDialog(lista)}
                         title="Gerar Lista de Exercícios"
                       >
                         <PostAdd />
@@ -1566,6 +1592,43 @@ export default function CursoDetalhesPage() {
           <Button onClick={handleSaveEditProva} variant="contained" disabled={loadingEditProva}>
             {loadingEditProva ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para Gerar Lista de Exercícios */}
+      <Dialog
+        open={openGenerateDialog}
+        onClose={() => !generating && setOpenGenerateDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Gerar Lista de Exercícios</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.nomeMateria}".` : 'Você está prestes a gerar uma lista de exercícios.'}
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeGabarito}
+                onChange={(e) => setIncludeGabarito(e.target.checked)}
+                color="primary"
+                disabled={generating}
+              />
+            }
+            label="Incluir o gabarito"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Button onClick={() => setOpenGenerateDialog(false)} disabled={generating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmGenerate} variant="contained" disabled={generating}>
+              {generating ? 'Gerando...' : 'Confirmar'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </Box>
