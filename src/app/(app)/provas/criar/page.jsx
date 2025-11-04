@@ -276,7 +276,7 @@ export default function CriarProvaPage() {
       )}
 
       {/* Formulário */}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Informações da Prova */}
           <Card>
@@ -289,7 +289,7 @@ export default function CriarProvaPage() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     required
@@ -303,7 +303,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     required
@@ -317,7 +317,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <TextField
                     fullWidth
                     label="Observações"
@@ -344,7 +344,7 @@ export default function CriarProvaPage() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Nome da Escola/Instituição"
@@ -355,7 +355,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Disciplina"
@@ -366,7 +366,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Nome do Professor"
@@ -377,7 +377,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Data"
@@ -391,7 +391,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Duração"
@@ -402,7 +402,7 @@ export default function CriarProvaPage() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Valor Total"
