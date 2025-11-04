@@ -105,13 +105,49 @@ export default function CursoDetalhesPage() {
   };
 
   const handleConfirmGenerate = async () => {
+    // TODO: Arrumar a chamada para o endpoint de geração de lista, que atualmente não está encontrando a lista
     if (!listaToGenerate) return;
     setGenerating(true);
+    setError(null);
+
     try {
-      console.log("Gerando lista de exercícios");
+      const rawId = listaToGenerate.id || listaToGenerate._id || listaToGenerate._id?.$oid || listaToGenerate._id?.toString?.();
+      const listaId = rawId;
+      if (!listaId) throw new Error('ID da lista não disponível');
+
+      const url = `/api/cursos/${cursoId}/listas/gerar-lista?listaId=${encodeURIComponent(listaId)}`;
+
+      const resp = await fetch(url, { method: 'GET' });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.message || 'Falha ao gerar a lista');
+      }
+
+      // Se o endpoint retornou conteúdo LaTeX, oferecer download / abrir em nova aba
+      if (data.latexContent) {
+        const blob = new Blob([data.latexContent], { type: 'text/x-tex' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Tenta abrir em nova aba; se bloqueado, força download
+        const opened = window.open(blobUrl, '_blank');
+        if (!opened) {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = data.fileName || `lista_${Date.now()}.tex`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      }
+
+      alert(data.message || 'Lista gerada com sucesso.');
+      setOpenGenerateDialog(false);
+      setListaToGenerate(null);
     } catch (err) {
       console.error('Erro ao gerar lista:', err);
-      alert(err.message || 'Erro ao gerar lista. Tente novamente.');
+      const msg = err?.message || 'Erro ao gerar lista. Tente novamente.';
+      setError(msg);
+      alert(msg);
     } finally {
       setGenerating(false);
     }
@@ -899,13 +935,6 @@ export default function CursoDetalhesPage() {
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleOpenEditLista(lista)}
-                        title="Editar Lista"
-                      >
-                        <Edit />
-                      </IconButton>
                       <IconButton
                         color="success"
                         onClick={() => handleOpenGenerateDialog(lista)}
