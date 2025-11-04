@@ -61,6 +61,8 @@ export default function CursoDetalhesPage() {
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
   // Estados para o diálogo de edição do curso
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -90,6 +92,20 @@ export default function CursoDetalhesPage() {
     fetchCurso();
     fetchProvas();
   }, [cursoId]);
+
+  // Efeito para busca (DEBOUNCE)
+  useEffect(() => {
+    if (!openAddDialog) return;
+    
+    const timer = setTimeout(() => {
+      // Quando o usuário parar de digitar por 500ms, dispara uma NOVA busca (página 1)
+      fetchQuestoes(1, true);
+    }, 500); // 500ms de atraso
+
+    // Limpa o timer se o usuário digitar novamente
+    return () => clearTimeout(timer);
+  }, [searchQuery, openAddDialog]); // Roda quando a busca ou o dialog mudam
+
 
   const fetchCurso = async () => {
     try {
@@ -155,6 +171,49 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const fetchQuestoes = async (pageToFetch, isNewSearch = false) => {
+    // Evita buscas duplicadas se já estiver carregando
+    if (loadingQuestoes && !isNewSearch) return; 
+    
+    setLoadingQuestoes(true);
+
+    try {
+      // Monta a URL da API com paginação e busca
+      const url = `/api/questoes?page=${pageToFetch}&limit=20&search=${searchQuery}`;
+      const res = await fetch(url);
+      
+      if (!res.ok) throw new Error('Erro ao carregar questões');
+      
+      const data = await res.json();
+      const novasQuestoes = data.items || [];
+
+      // Filtra questões que já estão no curso
+      const questoesJaAdicionadas = curso.questoes?.map(q => q.id || q._id) || [];
+      const questoesFiltradas = novasQuestoes.filter(
+        q => !questoesJaAdicionadas.includes(q.id || q._id)
+      );
+
+      // Se for uma nova busca (ou página 1), substitui a lista
+      if (pageToFetch === 1 || isNewSearch) {
+        setQuestoesDisponiveis(questoesFiltradas);
+      } else {
+        // Se não, anexa os novos resultados à lista existente
+        setQuestoesDisponiveis(prev => [...prev, ...questoesFiltradas]);
+      }
+      
+      // Atualiza os controles de paginação
+      setPage(pageToFetch);
+      // Ex: (Página 2 * Limite 20) = 40. Se total for 35, 'hasMore' = false.
+      setHasMore((pageToFetch * 20) < data.total);
+
+    } catch (err) {
+      console.error('Erro ao buscar questões:', err);
+      alert('Erro ao carregar questões'); 
+    } finally {
+      setLoadingQuestoes(false);
+    }
+  };
+
   const handleDeleteProva = async (provaId) => {
     if (!confirm('Tem certeza que deseja excluir esta prova?')) return;
 
@@ -187,31 +246,18 @@ export default function CursoDetalhesPage() {
     }
   };
 
-  const handleOpenAddDialog = async () => {
+  const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
-    setLoadingQuestoes(true);
-    
-    try {
-      // Buscar todas as questões disponíveis
-      const res = await fetch('/api/questoes');
-      if (!res.ok) throw new Error('Erro ao carregar questões');
-      
-      const data = await res.json();
-      const todasQuestoes = data.items || [];
-      
-      // Filtrar questões que já estão no curso
-      const questoesJaAdicionadas = curso.questoes?.map(q => q.id || q._id) || [];
-      const questoesFiltradas = todasQuestoes.filter(
-        q => !questoesJaAdicionadas.includes(q.id || q._id)
-      );
-      
-      setQuestoesDisponiveis(questoesFiltradas);
-    } catch (error) {
-      console.error('Erro ao carregar questões:', error);
-      alert('Erro ao carregar questões disponíveis');
-    } finally {
-      setLoadingQuestoes(false);
-    }
+    setSearchQuery(''); // Reseta a busca
+    setSelectedQuestoes([]); // Reseta a seleção
+    setQuestoesDisponiveis([]); // Limpa a lista antiga
+    setHasMore(true); // Reseta a paginação
+    fetchQuestoes(1, true); // Busca a primeira página
+  };
+
+  const handleLoadMore = () => {
+    // Busca a próxima página, não é uma nova busca
+    fetchQuestoes(page + 1, false);
   };
 
   const handleToggleQuestao = (questaoId) => {
@@ -961,7 +1007,7 @@ export default function CursoDetalhesPage() {
           Adicionar Questões Existentes
         </DialogTitle>
         <DialogContent>
-          {/* Barra de busca */}
+          {/*Barra de busca*/}
           <TextField
             placeholder="Buscar questões..."
             value={searchQuery}
@@ -984,57 +1030,73 @@ export default function CursoDetalhesPage() {
             }}
           />
 
-          {loadingQuestoes ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
+          {/*Lista de questões */}
+          <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+            {questoesDisponiveis.map((questao) => (
+              <ListItem
+                key={questao.id}
+                dense
+                component="div"
+                onClick={() => handleToggleQuestao(questao.id)}
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  mb: 1,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+              >
+                <Checkbox
+                  checked={selectedQuestoes.includes(questao.id)}
+                  tabIndex={-1}
+                  disableRipple
+                />
+                <ListItemText
+                  primary={questao.enunciado}
+                  secondaryTypographyProps={{ component: 'div' }}
+                  secondary={
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                      <Chip label={questao.tipo} size="small" />
+                      {questao.tags?.slice(0, 3).map((tag, idx) => (
+                        <Chip key={idx} label={tag} size="small" variant="outlined" />
+                      ))}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+
+          {/*Feedback de Carregamento */}
+          {loadingQuestoes && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
             </Box>
-          ) : filteredQuestoes.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
-              {questoesDisponiveis.length === 0 
-                ? 'Todas as questões já foram adicionadas ao curso.' 
-                : 'Nenhuma questão encontrada com os critérios de busca.'}
-            </Typography>
-          ) : (
-            <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-              {filteredQuestoes.map((questao) => (
-                <ListItem
-                  key={questao.id}
-                  dense
-                  component="div"
-                  onClick={() => handleToggleQuestao(questao.id)}
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    mb: 1,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                    },
-                  }}
-                >
-                  <Checkbox
-                    checked={selectedQuestoes.includes(questao.id)}
-                    tabIndex={-1}
-                    disableRipple
-                  />
-                  <ListItemText
-                    primary={questao.enunciado}
-                    secondaryTypographyProps={{ component: 'div' }}
-                    secondary={
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                        <Chip label={questao.tipo} size="small" />
-                        {questao.tags?.slice(0, 3).map((tag, idx) => (
-                          <Chip key={idx} label={tag} size="small" variant="outlined" />
-                        ))}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
           )}
 
+          {/* 4. Botão "Carregar Mais" (NOVO) */}
+          {hasMore && !loadingQuestoes && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+              <Button onClick={handleLoadMore}>
+                Carregar Mais
+              </Button>
+            </Box>
+          )}
+
+          {/*Mensagem de "Nada encontrado" ou "Fim da lista"*/}
+          {!hasMore && !loadingQuestoes && (
+            <Typography sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+              {questoesDisponiveis.length === 0
+                ? (searchQuery ? 'Nenhuma questão encontrada com essa busca.' : 'Nenhuma questão disponível para adicionar.')
+                : 'Todas as questões foram exibidas.'
+              }
+            </Typography>
+          )}
+
+          {/*Contagem de selecionadas) */}
           {selectedQuestoes.length > 0 && (
             <Typography variant="body2" sx={{ mt: 2, color: 'primary.main' }}>
               {selectedQuestoes.length} questão(ões) selecionada(s)
