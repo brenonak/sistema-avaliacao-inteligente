@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react'; // 1. IMPORTAR 'useState'
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { 
   Container, 
   Box, 
@@ -15,53 +16,91 @@ import {
   FormControlLabel, 
   Checkbox,
   Autocomplete,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 
 export default function PaginaCadastro() {
 
-    // Estados para controlar os campos do formulário
-    const [nome, setNome] = useState('');
-    const [papel, setPapel] = useState(''); // Ex: 'professor' ou 'aluno'
-    const [instituicao, setInstituicao] = useState('');
-    const [curso, setCurso] = useState('');
-    const [areasInteresse, setAreasInteresse] = useState([]); // Para o Autocomplete
-    const [foto, setFoto] = useState(null); // Para o upload
-    const [nomeArquivoFoto, setNomeArquivoFoto] = useState("");
+  // O 'status' pode ser: 'loading', 'authenticated', 'unauthenticated'
+  const { data: session, status } = useSession();
 
-    const [loading, setLoading] = useState(false);
+  // Estados para controlar os campos do formulário
+  const [nome, setNome] = useState('');
+  const [papel, setPapel] = useState(''); // Ex: 'professor' ou 'aluno'
+  const [instituicao, setInstituicao] = useState('');
+  const [curso, setCurso] = useState('');
+  const [areasInteresse, setAreasInteresse] = useState([]); // Para o Autocomplete
+  const [foto, setFoto] = useState(null); // Para o upload
+  const [nomeArquivoFoto, setNomeArquivoFoto] = useState("");
 
-    // Handler para a seleção de foto
-    const handleFotoChange = (event) => {
-        if (event.target.files && event.target.files[0]) {
-        const arquivo = event.target.files[0];
-        setFoto(arquivo);
-        setNomeArquivoFoto(arquivo.name);
-        }
-    };
+  const [loading, setLoading] = useState(false);
 
-    // Placeholder para a Task #169 (Integrar API)
-    // Esta função garante que o formulário é funcional (controlado)
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        setLoading(true);
+  // Usar useEffect PARA PRÉ-PREENCHER O FORMULÁRIO
+  useEffect(() => {
+    // Apenas pré-preencha se a sessão estiver carregada E autenticada
+    if (status === 'authenticated' && session?.user) {
+      
+      // Pré-preenche o nome (Google dá isso)
+      if (session.user.name) {
+        setNome(session.user.name);
+      }
+      
+      // Logar os dados que temos na sessão
+      console.log("Task #168: Sessão carregada.", session.user);
+    }
+  }, [session, status]); 
 
-        // Mostra todos os dados coletados no console
-        console.log("Task #167: Dados do formulário para envio (simulado):", { 
-            nome, 
-            papel, 
-            instituicao, 
-            curso,
-            areasInteresse,
-            foto // O arquivo em si
-        });
-        
-        // A chamada de API real (Task #169) substituirá este 'setTimeout'
-        setTimeout(() => {
-        console.log("Simulação de 'Salvo!'");
-        setLoading(false);
-        }, 1500);
-};
+
+
+  // Handler para a seleção de foto
+  const handleFotoChange = (event) => {
+      if (event.target.files && event.target.files[0]) {
+      const arquivo = event.target.files[0];
+      setFoto(arquivo);
+      setNomeArquivoFoto(arquivo.name);
+      }
+  };
+
+  // Placeholder para a Task #169 (Integrar API)
+  // Esta função garante que o formulário é funcional (controlado)
+  const handleSubmit = (event) => {
+      event.preventDefault();
+      setLoading(true);
+
+      // Mostra todos os dados coletados no console
+      console.log("Task #167: Dados do formulário para envio (simulado):", { 
+          nome, 
+          papel, 
+          instituicao, 
+          curso,
+          areasInteresse,
+          foto // O arquivo em si
+      });
+      
+      // A chamada de API real (Task #169) substituirá este 'setTimeout'
+      setTimeout(() => {
+      console.log("Simulação de 'Salvo!'");
+      setLoading(false);
+      }, 1500);
+  };
+
+  // Estado de Loading (Enquanto a sessão carrega)
+  if (status === 'loading') {
+    return (
+      <Container 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '100vh' 
+        }}
+      >
+        <CircularProgress />
+      </Container>
+    );
+  }
+
 
   return (
     <Container 
