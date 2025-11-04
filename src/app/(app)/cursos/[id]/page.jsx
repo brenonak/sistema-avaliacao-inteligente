@@ -112,7 +112,7 @@ export default function CursoDetalhesPage() {
       setLoading(true);
       setError(null);
       
-      const res = await fetch(`/api/cursos/${cursoId}`);
+      const res = await fetch(`/api/cursos/${cursoId}`, { cache: 'no-store' });
       
       if (!res.ok) {
         if (res.status === 404) {
