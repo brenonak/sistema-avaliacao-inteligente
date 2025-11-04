@@ -164,6 +164,26 @@ export default function CriarProvaPage() {
 
     if (!formData.instrucoes.trim()) {
       setError('As instruções são obrigatórias');
+      return;      
+    }
+
+    if (!formData.nomeEscola.trim()) {
+      setError('O nome da instituição é obrigatório');
+      return;
+    }
+
+    if (!formData.disciplina.trim()) {
+      setError('O nome da disciplina é obrigatório');
+      return;
+    }
+
+    if (!formData.professor.trim()) {
+      setError('O nome do Professor é obrigatório');
+      return;
+    }
+
+    if (!formData.data) { // .trim() não é necessário para o campo 'date'
+      setError('A data da prova é obrigatória');
       return;
     }
 
@@ -352,6 +372,7 @@ export default function CriarProvaPage() {
                     value={formData.nomeEscola}
                     onChange={handleChange('nomeEscola')}
                     variant="outlined"
+                    required
                   />
                 </Grid>
 
@@ -363,6 +384,7 @@ export default function CriarProvaPage() {
                     value={formData.disciplina}
                     onChange={handleChange('disciplina')}
                     variant="outlined"
+                    required
                   />
                 </Grid>
 
@@ -374,6 +396,7 @@ export default function CriarProvaPage() {
                     value={formData.professor}
                     onChange={handleChange('professor')}
                     variant="outlined"
+                    required
                   />
                 </Grid>
 
@@ -388,6 +411,7 @@ export default function CriarProvaPage() {
                     InputLabelProps={{
                       shrink: true,
                     }}
+                    required
                   />
                 </Grid>
 
