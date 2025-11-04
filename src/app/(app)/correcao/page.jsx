@@ -47,15 +47,10 @@ export default function CorrecaoPage() {
       // Simulação de requisição assíncrona -> substituir por chamada real à API quando disponível
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Exemplo de como enviar files para backend (descomente e ajuste a rota quando implementar)
-      // const formData = new FormData();
-      // files.forEach((f) => formData.append("files", f));
-      // const res = await fetch("/api/correcao", { method: "POST", body: formData });
-      // if (!res.ok) throw new Error("Falha ao iniciar correção");
-
-      console.log("Correção feita com sucesso");
+      // TODO: Componentizar os pop-ups da galeria para reutilizá-los no lugar das alerts
+      alert("Correção concluída com sucesso!");
     } catch (err) {
-      console.error("Erro ao efetuar a correção:", err);
+      alert("Ocorreu um erro durante a correção. Tente novamente.");
     } finally {
       setLoading(false);
     }
