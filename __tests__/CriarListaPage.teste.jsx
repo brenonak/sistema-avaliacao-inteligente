@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import CriarProvaPage from '../src/app/(app)/provas/criar/page'; 
+import CriarListaPage from '../src/app/(app)/listas/criar/page'; 
 
 // --- Mocks Globais ---
 
@@ -48,7 +48,8 @@ const setupMocks = (cursoId, cursoNome, questoesResponse, submitResponse) => {
         json: () => Promise.resolve(questoesResponse),
       });
     }
-    if (url.includes(`/api/cursos/${cursoId}/provas`) && submitResponse) {
+    // [MODIFICADO] Endpoint de submissão alterado para /listas
+    if (url.includes(`/api/cursos/${cursoId}/listas`) && submitResponse) {
       return new Promise(resolve => {
         setTimeout(() => {
             if (submitResponse.ok) {
@@ -69,11 +70,12 @@ const setupMocks = (cursoId, cursoNome, questoesResponse, submitResponse) => {
   });
 };
 
-
+// --- Helpers de Seleção (adaptados do seu teste de Prova) ---
 
 // Encontra o Card que contém as listas de questões
 const getQuestoesCard = () => {
-  return screen.getByText('Questões da Prova').closest('.MuiCard-root');
+  // [MODIFICADO] Texto do título do Card
+  return screen.getByText('Questões da Lista').closest('.MuiCard-root');
 };
 
 // Encontra a LISTA de questões selecionadas (que vem DEPOIS do título)
@@ -90,21 +92,28 @@ const getDisponiveisList = (card) => {
 
 // --- Testes ---
 
-describe('CriarProvaPage', () => {
+describe('CriarListaPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    fetch.mockClear();
   });
 
-  it('deve renderizar a página, carregar e exibir as questões disponíveis', async () => {
+  it('deve renderizar, carregar questões e preencher nome da matéria do curso', async () => {
     setupMocks(
       'curso123',
       'Cálculo I',
       { items: [mockQuestao1, mockQuestao2] }
     );
-    render(<CriarProvaPage />);
-    expect(screen.getByRole('heading', { name: /Criar Nova Prova/i })).toBeInTheDocument();
+    render(<CriarListaPage />);
+    
+    // Verifica cabeçalho
+    expect(screen.getByRole('heading', { name: /Criar Nova Lista de Exercícios/i })).toBeInTheDocument();
     expect(screen.getByText(/Curso: Cálculo I/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Disciplina/i)).toHaveValue('Cálculo I');
+    
+    // [MODIFICADO] Verifica se o nome da matéria foi preenchido automaticamente
+    expect(screen.getByLabelText(/Nome da Matéria/i)).toHaveValue('Cálculo I');
+    
+    // Verifica loading
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
 
     // Espera as questões carregarem
@@ -113,13 +122,13 @@ describe('CriarProvaPage', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  it('deve permitir ao usuário selecionar, remover e definir pontuação para questões', async () => {
+  it('deve permitir ao usuário selecionar e remover questões', async () => {
     setupMocks(
       'curso123',
       'Cálculo I',
       { items: [mockQuestao1, mockQuestao2] }
     );
-    render(<CriarProvaPage />);
+    render(<CriarListaPage />);
     
     // 1. Espera as questões carregarem e acha o Card
     await screen.findByText(mockQuestao1.enunciado);
@@ -135,20 +144,17 @@ describe('CriarProvaPage', () => {
     
     const q1Item = await within(selecionadasList).findByText(mockQuestao1.enunciado);
     expect(q1Item).toBeInTheDocument();
+    // [MODIFICADO] Verifica se o número da ordem (1) está visível
+    expect(within(q1Item.closest('li')).getByText('1')).toBeInTheDocument();
 
     // 4. ESPERA ela desaparecer da lista de "Disponíveis"
     await waitFor(() => {
       expect(within(disponiveisList).queryByText(mockQuestao1.enunciado)).not.toBeInTheDocument();
     });
 
-    // --- 5. Definir pontuação ---
+    // --- 5. Remover a Questão 1 ---
     const q1ListItem = q1Item.closest('li');
-    const pontosInput = within(q1ListItem).getByLabelText(/Pontos/i);
-    fireEvent.change(pontosInput, { target: { value: '2.5' } });
-    
-    expect(await screen.findByText(/2\.5 pts/)).toBeInTheDocument(); // Espera o total atualizar
-
-    // --- 6. Remover a Questão 1 ---
+    // Usando getByTestId no ícone, assim como no seu teste de referência
     const removeButton = within(q1ListItem).getByTestId('ClearIcon');
     fireEvent.click(removeButton);
 
@@ -167,21 +173,20 @@ describe('CriarProvaPage', () => {
       'Cálculo I',
       { items: [mockQuestao1, mockQuestao2] }
     );
-    render(<CriarProvaPage />);
+    render(<CriarListaPage />);
     await screen.findByText(mockQuestao1.enunciado); // Espera carregar
     
     const questoesCard = getQuestoesCard();
     const disponiveisList = getDisponiveisList(questoesCard);
 
-    // Seleciona as duas questões
+    // Seleciona as duas questões (Q1, depois Q2)
     fireEvent.click(within(disponiveisList).getByText(mockQuestao1.enunciado));
-    await screen.findByText(/Questões Selecionadas \(1\)/); // Espera Q1 entrar
+    await screen.findByText(/Questões Selecionadas \(1\)/); 
     fireEvent.click(within(disponiveisList).getByText(mockQuestao2.enunciado));
-    await screen.findByText(/Questões Selecionadas \(2\)/); // Espera Q2 entrar
+    await screen.findByText(/Questões Selecionadas \(2\)/); 
 
     const selecionadasList = getSelecionadasList(questoesCard);
     
-    // ESPERA os 2 'listitem' aparecerem
     let listItems = await within(selecionadasList).findAllByRole('listitem');
 
     // Ordem inicial: [Q1, Q2]
@@ -193,26 +198,36 @@ describe('CriarProvaPage', () => {
     fireEvent.click(moveUpButtonQ2);
 
     // Ordem nova: [Q2, Q1]
-    listItems = within(selecionadasList).getAllByRole('listitem'); // Agora pode ser síncrono
+    listItems = within(selecionadasList).getAllByRole('listitem');
     expect(within(listItems[0]).getByText(mockQuestao2.enunciado)).toBeInTheDocument();
     expect(within(listItems[1]).getByText(mockQuestao1.enunciado)).toBeInTheDocument();
+
+    // --- Mover Q2 (agora item 0) para Baixo ---
+    const moveDownButtonQ2 = within(listItems[0]).getByTestId('ArrowDownwardIcon');
+    fireEvent.click(moveDownButtonQ2);
+
+    // Ordem nova: [Q1, Q2]
+    listItems = within(selecionadasList).getAllByRole('listitem');
+    expect(within(listItems[0]).getByText(mockQuestao1.enunciado)).toBeInTheDocument();
+    expect(within(listItems[1]).getByText(mockQuestao2.enunciado)).toBeInTheDocument();
   });
 
-  it('deve mostrar um erro de validação se o título não for preenchido', async () => {
+  it('deve mostrar um erro de validação se o nome da matéria não for preenchido', async () => {
     setupMocks('curso123', 'Cálculo I', { items: [] });
-    render(<CriarProvaPage />);
+    render(<CriarListaPage />);
 
+    // [MODIFICADO] Apaga o valor pré-preenchido
+    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: ' ' } });
     
-    const submitButton = screen.getByRole('button', { name: /Gravar Prova/i });
+    const submitButton = screen.getByRole('button', { name: /Gravar Lista/i });
     fireEvent.click(submitButton);
 
-    
-    const alertText = await screen.findByText(/O título da prova é obrigatório/i);
+    // [MODIFICADO] Mensagem de erro específica da Lista
+    const alertText = await screen.findByText(/O nome da matéria é obrigatório/i);
     expect(alertText).toBeInTheDocument();
     
-    
     expect(fetch).not.toHaveBeenCalledWith(
-        expect.stringContaining('/provas'),
+        expect.stringContaining('/listas'), // Verifica se não chamou o endpoint de /listas
         expect.any(Object)
     );
   });
@@ -221,65 +236,50 @@ describe('CriarProvaPage', () => {
     setupMocks(
       'curso123',
       'Cálculo I',
-      { items: [mockQuestao1] },
+      { items: [mockQuestao1, mockQuestao2] },
       { ok: true, data: { message: 'Sucesso' } }
     );
-    render(<CriarProvaPage />);
+    render(<CriarListaPage />);
     await screen.findByText(mockQuestao1.enunciado); // Espera carregar
 
     // Preenche o formulário
-    fireEvent.change(screen.getByLabelText(/Título da Prova/i), { target: { value: 'Prova Teste' } });
-    fireEvent.change(screen.getByLabelText(/Instruções/i), { target: { value: 'Leia com atenção' } });
-    fireEvent.change(screen.getByLabelText(/Nome da Escola/i), { target: { value: 'UNIFESP' } });
-    fireEvent.change(screen.getByLabelText(/Nome do Professor/i), { target: { value: 'Prof. Teste' } });
+    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: 'Lista Teste' } });
+    fireEvent.change(screen.getByLabelText(/Nome da Escola\/Instituição/i), { target: { value: 'UNIFESP' } });
     
-    // <<< CORREÇÃO AQUI: Trocado 'change' por 'input'
-    fireEvent.input(screen.getByLabelText(/Data/i), { target: { value: '2025-11-04' } });
-
-    // Seleciona a questão
+    // Seleciona questões (Q2 e depois Q1, para testar a ordem de submissão)
     const questoesCard = getQuestoesCard();
     const disponiveisList = getDisponiveisList(questoesCard);
-    fireEvent.click(within(disponiveisList).getByText(mockQuestao1.enunciado));
-
-    // ESPERA ela aparecer na lista de "Selecionadas" e define pontos
+    fireEvent.click(within(disponiveisList).getByText(mockQuestao2.enunciado));
     await screen.findByText(/Questões Selecionadas \(1\)/);
-    const selecionadasList = getSelecionadasList(questoesCard);
-    const q1Item = await within(selecionadasList).findByText(mockQuestao1.enunciado);
-    const q1ListItem = q1Item.closest('li');
-
-    fireEvent.change(within(q1ListItem).getByLabelText(/Pontos/i), { target: { value: '10' } });
-
+    fireEvent.click(within(disponiveisList).getByText(mockQuestao1.enunciado));
+    await screen.findByText(/Questões Selecionadas \(2\)/);
+    
     // Submete o formulário
-    const submitButton = screen.getByRole('button', { name: /Gravar Prova/i });
+    const submitButton = screen.getByRole('button', { name: /Gravar Lista/i });
     fireEvent.click(submitButton);
 
-    // Verifica o estado de loading e a chamada ao fetch
-    expect(await screen.findByRole('button', { name: /Gravando Prova/i })).toBeDisabled();
+    // Verifica o estado de loading
+    expect(await screen.findByRole('button', { name: /Gravando Lista.../i })).toBeDisabled();
 
+    // [MODIFICADO] Verifica a chamada ao fetch com os dados da LISTA
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/cursos/curso123/provas',
+        '/api/cursos/curso123/listas', // Endpoint correto
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
-            titulo: 'Prova Teste',
-            instrucoes: 'Leia com atenção',
-            nomeEscola: 'UNIFESP',
-            disciplina: 'Cálculo I',
-            professor: 'Prof. Teste',
-            data: '2025-11-04',
-            duracao: '',
-            valorTotal: '',
-            observacoes: '',
-            questoesSelecionadas: [mockQuestao1._id],
-            questoesPontuacao: { [mockQuestao1._id]: 10 },
+            nomeMateria: 'Lista Teste',
+            questoesIds: [mockQuestao2._id, mockQuestao1._id],
+            nomeInstituicao: 'UNIFESP',
+            // A ordem de seleção foi Q2, depois Q1.
+             
           }),
         })
       );
     });
 
     // Verifica a mensagem de sucesso e o redirecionamento
-    expect(await screen.findByText(/Prova salva com sucesso!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Lista salva com sucesso!/i)).toBeInTheDocument();
     await waitFor(() => {
       expect(mockRouter.push).toHaveBeenCalledWith('/cursos/curso123');
     });
@@ -292,21 +292,20 @@ describe('CriarProvaPage', () => {
       { items: [mockQuestao1] },
       { ok: false, data: { message: 'Erro interno do servidor' } } 
     );
-    render(<CriarProvaPage />);
+    render(<CriarListaPage />);
     await screen.findByText(mockQuestao1.enunciado);
 
-    fireEvent.change(screen.getByLabelText(/Título da Prova/i), { target: { value: 'Prova' } });
-    fireEvent.change(screen.getByLabelText(/Instruções/i), { target: { value: 'Instruções' } });
-    fireEvent.change(screen.getByLabelText(/Nome da Escola/i), { target: { value: 'Escola Teste' } });
-    fireEvent.change(screen.getByLabelText(/Nome do Professor/i), { target: { value: 'Prof. Teste' } });
+    // Preenche dados mínimos
+    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: 'Lista com erro' } });
+    fireEvent.click(screen.getByText(mockQuestao1.enunciado));
+    await screen.findByText(/Questões Selecionadas \(1\)/);
     
-    
-    fireEvent.input(screen.getByLabelText(/Data/i), { target: { value: '2025-11-04' } });
-    
-    fireEvent.click(screen.getByRole('button', { name: /Gravar Prova/i }));
+    // Submete
+    fireEvent.click(screen.getByRole('button', { name: /Gravar Lista/i }));
 
+    // Verifica o erro
     expect(await screen.findByText(/Erro interno do servidor/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Gravar Prova/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Gravar Lista/i })).not.toBeDisabled();
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 });

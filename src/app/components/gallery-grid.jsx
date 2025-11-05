@@ -45,7 +45,7 @@ export function GalleryGrid() {
     try {
       // Adicionar um timestamp para evitar cache
       const timestamp = Date.now();
-      const response = await fetch(`/api/recursos?_t=${timestamp}`);
+      const response = await fetch(`/api/galeria?_t=${timestamp}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -53,38 +53,32 @@ export function GalleryGrid() {
         throw new Error(data.error || "Failed to fetch images");
       }
       
-      // Validar se temos os dados esperados
-      if (!Array.isArray(data.items)) {
+      // Validar se temos os dados esperados da API /api/galeria
+      if (!Array.isArray(data.images)) {
         console.error("Invalid response format:", data);
         throw new Error("Invalid response format");
       }
       
-      // Mapear os recursos do banco para o formato esperado pela galeria
-      // e garantir que não haja duplicatas usando Set com URLs
+      // As imagens já vêm no formato correto da API /api/galeria
+      // Apenas garantir que não haja duplicatas usando Set com URLs
       const uniqueUrls = new Set();
-      const uniqueImages = data.items
-        .filter(resource => {
-          // Validar se o recurso tem uma URL válida
-          if (!resource?.url || typeof resource.url !== 'string') {
-            console.warn('Invalid resource:', resource);
+      const uniqueImages = data.images
+        .filter(image => {
+          // Validar se a imagem tem uma URL válida
+          if (!image?.url || typeof image.url !== 'string') {
+            console.warn('Invalid image:', image);
             return false;
           }
           
           // Verificar duplicatas
-          if (uniqueUrls.has(resource.url)) {
-            console.warn('Duplicate URL found:', resource.url);
+          if (uniqueUrls.has(image.url)) {
+            console.warn('Duplicate URL found:', image.url);
             return false;
           }
           
-          uniqueUrls.add(resource.url);
+          uniqueUrls.add(image.url);
           return true;
-        })
-        .map(resource => ({
-          url: resource.url,
-          pathname: resource.filename || 'Sem nome',
-          uploadedAt: resource.updatedAt || resource.createdAt || new Date().toISOString(),
-          size: resource.sizeBytes || 0
-        }));
+        });
 
       setImages(uniqueImages);
     } catch (error) {

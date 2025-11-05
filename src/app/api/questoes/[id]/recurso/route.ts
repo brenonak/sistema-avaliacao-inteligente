@@ -4,6 +4,7 @@ import { getDb } from "../../../../../lib/mongodb";
 import { json, notFound, badRequest, serverError } from "../../../../../lib/http";
 import { upload } from "@vercel/blob/client";
 import { upsertRecurso, incrementResourceUsage } from "../../../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../../../lib/auth-helpers";
 
 function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -15,6 +16,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     // Aguardar params antes de acessar suas propriedades
     const { id } = await params;
     const questaoId = oid(id);
@@ -51,7 +57,7 @@ export async function POST(
       handleUploadUrl: '/api/blob/upload',
     });
 
-    // Criar o documento recurso
+    // Criar o documento recurso (vinculado ao usuário)
     const recursoData = {
       provider: "vercel-blob" as const,
       url: blob.url,
@@ -61,7 +67,7 @@ export async function POST(
       sizeBytes: file.size,
     };
 
-    const recurso = await upsertRecurso(recursoData);
+    const recurso = await upsertRecurso(recursoData, userId);
     const recursoId = recurso._id?.toString();
 
     if (!recursoId) {

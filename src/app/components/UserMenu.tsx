@@ -100,10 +100,17 @@ export default function UserMenu() {
           <Typography variant="caption" color="text.secondary" noWrap>
             {session.user?.email}
           </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }} noWrap>
+            ID: {(session.user as any)?.id || 'N/A'}
+          </Typography>
         </Box>
         
         <MenuItem onClick={handleDashboard}>
           Dashboard
+        </MenuItem>
+        
+        <MenuItem onClick={() => { handleClose(); router.push("/debug-auth"); }}>
+          Debug Auth
         </MenuItem>
         
         <MenuItem onClick={handleSignOut}>

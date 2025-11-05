@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 
 const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_API_KEY,
@@ -10,8 +11,17 @@ const model = new ChatGoogleGenerativeAI({
   maxOutputTokens: 2048,
 });
 
+/**
+ * POST /api/ai/revisar-questao
+ * Revisa questão usando IA (requer autenticação)
+ */
 export async function POST(req: Request) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const body = await req.json();
     const { enunciado, alternativas, afirmacoes, proposicoes, gabarito } = body;
 

@@ -33,7 +33,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 
-export default function CriarProvaPage() {
+export default function CriarListaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cursoId = searchParams.get('cursoId');
@@ -45,29 +45,23 @@ export default function CriarProvaPage() {
 
   // Campos do formulário
   const [formData, setFormData] = useState({
-    titulo: '',
-    instrucoes: '',
-    nomeEscola: '',
-    disciplina: '',
-    professor: '',
-    data: '',
-    duracao: '',
-    valorTotal: '',
-    observacoes: '',
+    nomeMateria: '',
+    questoesIds: [],
+    nomeInstituicao: '',
+
   });
 
   // Estado para questões do curso
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
-  const [questoesPontuacao, setQuestoesPontuacao] = useState({}); // { questaoId: pontos }
 
   useEffect(() => {
     // Pré-preencher o nome da disciplina com o nome do curso, se disponível
     if (cursoNome) {
       setFormData(prev => ({
         ...prev,
-        disciplina: decodeURIComponent(cursoNome),
+        nomeMateria: decodeURIComponent(cursoNome),
       }));
     }
   }, [cursoNome]);
@@ -129,61 +123,14 @@ export default function CriarProvaPage() {
   // Remover questão da seleção
   const handleRemoveQuestao = (id) => {
     setSelectedQuestoes((prev) => prev.filter(q => q !== id));
-    // Remover também a pontuação
-    setQuestoesPontuacao((prev) => {
-      const newPontuacao = { ...prev };
-      delete newPontuacao[id];
-      return newPontuacao;
-    });
-  };
-
-  // Atualizar pontuação de uma questão
-  const handleChangePontuacao = (questaoId, valor) => {
-    const pontos = parseFloat(valor) || 0;
-    setQuestoesPontuacao((prev) => ({
-      ...prev,
-      [questaoId]: pontos,
-    }));
-  };
-
-  // Calcular total de pontos
-  const calcularTotalPontos = () => {
-    return selectedQuestoes.reduce((total, qId) => {
-      return total + (questoesPontuacao[qId] || 0);
-    }, 0);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validação básica
-    if (!formData.titulo.trim()) {
-      setError('O título da prova é obrigatório');
-      return;
-    }
-
-    if (!formData.instrucoes.trim()) {
-      setError('As instruções são obrigatórias');
-      return;      
-    }
-
-    if (!formData.nomeEscola.trim()) {
-      setError('O nome da instituição é obrigatório');
-      return;
-    }
-
-    if (!formData.disciplina.trim()) {
-      setError('O nome da disciplina é obrigatório');
-      return;
-    }
-
-    if (!formData.professor.trim()) {
-      setError('O nome do Professor é obrigatório');
-      return;
-    }
-
-    if (!formData.data) { // .trim() não é necessário para o campo 'date'
-      setError('A data da prova é obrigatória');
+    if (!formData.nomeMateria.trim()) {
+      setError('O nome da matéria é obrigatório');
       return;
     }
 
@@ -192,48 +139,39 @@ export default function CriarProvaPage() {
 
     try {
       if (!cursoId) {
-        setError('É necessário estar em um curso para criar uma prova');
+        setError('É necessário estar em um curso para criar uma lista');
         setLoading(false);
         return;
       }
 
       // Envia os IDs reais das questões
-      const questoesSelecionadas = selectedQuestoes.map(qId => {
+      const questoesIds = selectedQuestoes.map(qId => {
         const questao = questoes.find(q => (q._id || q.id) === qId);
         return questao?._id || qId;
       });
 
-      // Preparar pontuações usando os IDs reais
-      const pontuacoes = {};
-      selectedQuestoes.forEach(qId => {
-        const questao = questoes.find(q => (q._id || q.id) === qId);
-        const realId = questao?._id || qId;
-        pontuacoes[realId] = questoesPontuacao[qId] || 0;
-      });
-
-      const saveResponse = await fetch(`/api/cursos/${cursoId}/provas`, {
+      const saveResponse = await fetch(`/api/cursos/${cursoId}/listas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          questoesSelecionadas, // Contém os _id reais
-          questoesPontuacao: pontuacoes, // Pontuação por questão
+          questoesIds,
         }),
       });
 
       if (!saveResponse.ok) {
         const errorData = await saveResponse.json();
-        throw new Error(errorData.message || 'Erro ao salvar prova');
+        throw new Error(errorData.message || 'Erro ao salvar lista');
       }
 
       setSuccess(true);
 
       router.push(`/cursos/${cursoId}`);
     } catch (err) {
-      console.error('Erro ao criar prova:', err);
-      setError(err.message || 'Erro ao criar prova. Tente novamente.');
+      console.error('Erro ao criar lista:', err);
+      setError(err.message || 'Erro ao criar lista. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -270,7 +208,7 @@ export default function CriarProvaPage() {
             <Assignment sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
             <Box>
               <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                Criar Nova Prova
+                Criar Nova Lista de Exercícios
               </Typography>
               {cursoNome && (
                 <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
@@ -291,14 +229,14 @@ export default function CriarProvaPage() {
 
       {success && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Prova salva com sucesso! Redirecionando...
+          Lista salva com sucesso! Redirecionando...
         </Alert>
       )}
 
       {/* Formulário */}
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* Informações da Prova */}
+          {/* Informações da Lista */}
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -309,41 +247,14 @@ export default function CriarProvaPage() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid xs={12}>
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     required
-                    label="Título da Prova"
-                    placeholder="Ex: Prova Bimestral - Matemática"
-                    value={formData.titulo}
-                    onChange={handleChange('titulo')}
-                    variant="outlined"
-                    multiline
-                    rows={4}
-                  />
-                </Grid>
-
-                <Grid xs={12}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Instruções"
-                    placeholder="Ex: Leia atentamente cada questão antes de responder. Use caneta azul ou preta..."
-                    value={formData.instrucoes}
-                    onChange={handleChange('instrucoes')}
-                    variant="outlined"
-                    multiline
-                    rows={4}
-                  />
-                </Grid>
-
-                <Grid xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Observações"
-                    placeholder="Ex: Prova sem consulta. Calculadora permitida..."
-                    value={formData.observacoes}
-                    onChange={handleChange('observacoes')}
+                    label="Nome da Matéria"
+                    placeholder="Ex: Matemática"
+                    value={formData.nomeMateria}
+                    onChange={handleChange('nomeMateria')}
                     variant="outlined"
                     multiline
                     rows={4}
@@ -353,7 +264,7 @@ export default function CriarProvaPage() {
             </CardContent>
           </Card>
 
-          {/* Cabeçalho da Prova */}
+          {/* Cabeçalho da Lista */}
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -364,75 +275,13 @@ export default function CriarProvaPage() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid xs={12} md={6}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Nome da Escola/Instituição"
                     placeholder="Ex: Universidade Federal de São Paulo"
-                    value={formData.nomeEscola}
-                    onChange={handleChange('nomeEscola')}
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Disciplina"
-                    placeholder="Ex: Cálculo I"
-                    value={formData.disciplina}
-                    onChange={handleChange('disciplina')}
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nome do Professor"
-                    placeholder="Ex: Prof. Dr. João Silva"
-                    value={formData.professor}
-                    onChange={handleChange('professor')}
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Data"
-                    type="date"
-                    value={formData.data}
-                    onChange={handleChange('data')}
-                    variant="outlined"
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    required
-                  />
-                </Grid>
-
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Duração"
-                    placeholder="Ex: 2 horas"
-                    value={formData.duracao}
-                    onChange={handleChange('duracao')}
-                    variant="outlined"
-                  />
-                </Grid>
-
-                <Grid xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Valor Total"
-                    placeholder="Ex: 10,0 pontos"
-                    value={formData.valorTotal}
-                    onChange={handleChange('valorTotal')}
+                    value={formData.nomeInstituicao}
+                    onChange={handleChange('nomeInstituicao')}
                     variant="outlined"
                   />
                 </Grid>
@@ -440,13 +289,13 @@ export default function CriarProvaPage() {
             </CardContent>
           </Card>
 
-          {/* Questões da Prova */}
+          {/* Questões da Lista */}
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Description sx={{ mr: 1, color: 'primary.main' }} />
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Questões da Prova
+                  Questões da Lista
                 </Typography>
               </Box>
 
@@ -467,28 +316,6 @@ export default function CriarProvaPage() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                           Questões Selecionadas ({selectedQuestoes.length})
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            Total de Pontos:
-                          </Typography>
-                          <Chip
-                            label={`${calcularTotalPontos().toFixed(1)} pts`}
-                            color={
-                              formData.valorTotal && calcularTotalPontos() > parseFloat(formData.valorTotal)
-                                ? 'warning'
-                                : 'success'
-                            }
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                          {formData.valorTotal && calcularTotalPontos() > parseFloat(formData.valorTotal) && (
-                            <Chip
-                              label={`+${(calcularTotalPontos() - parseFloat(formData.valorTotal)).toFixed(1)} pts extra`}
-                              size="small"
-                              color="warning"
-                              variant="outlined"
-                            />
-                          )}
-                        </Box>
                       </Box>
                       <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1 }}>
                         {selectedQuestoes.map((questaoId, index) => {
@@ -550,21 +377,6 @@ export default function CriarProvaPage() {
                                   ))}
                                 </Box>
                               </Box>
-
-                              {/* Campo de pontuação */}
-                              <TextField
-                                type="number"
-                                label="Pontos"
-                                value={questoesPontuacao[questaoId] || ''}
-                                onChange={(e) => handleChangePontuacao(questaoId, e.target.value)}
-                                inputProps={{
-                                  min: 0,
-                                  step: 0.5,
-                                  style: { textAlign: 'center' }
-                                }}
-                                sx={{ width: 80 }}
-                                size="small"
-                              />
 
                               {/* Botões de controle */}
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -637,7 +449,7 @@ export default function CriarProvaPage() {
                             }}
                           >
                             <Checkbox
-                              checked={false}
+                              checked={selectedQuestoes.includes(questaoId)}
                               tabIndex={-1}
                               disableRipple
                             />
@@ -691,7 +503,7 @@ export default function CriarProvaPage() {
               startIcon={loading ? <CircularProgress size={20} /> : <Save />}
               disabled={loading}
             >
-              {loading ? 'Gravando Prova...' : 'Gravar Prova'}
+              {loading ? 'Gravando Lista...' : 'Gravar Lista'}
             </Button>
           </Box>
         </Box>
