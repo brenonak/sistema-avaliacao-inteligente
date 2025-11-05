@@ -9,6 +9,7 @@ import {
   Divider,
   Button,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -16,6 +17,7 @@ import FileItem from "../../components/FileItem";
 
 export default function CorrecaoPage() {
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -27,12 +29,31 @@ export default function CorrecaoPage() {
   };
 
   const handleClearFiles = () => {
+    if (loading) return;
     setFiles([]);
   };
 
   // Iniciar correção (ainda não implementada)
   const handleCorrection = async () => {
-    console.log("Correção automática iniciada (em breve).");
+    // validação básica
+    if (files.length === 0) {
+      setError("Adicione pelo menos um arquivo para iniciar a correção.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Simulação de requisição assíncrona -> substituir por chamada real à API quando disponível
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // TODO: Componentizar os pop-ups da galeria para reutilizá-los no lugar das alerts
+      alert("Correção concluída com sucesso!");
+    } catch (err) {
+      alert("Ocorreu um erro durante a correção. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -70,6 +91,7 @@ export default function CorrecaoPage() {
           component="label"
           variant="contained"
           startIcon={<CloudUploadIcon />}
+          disabled={loading}
         >
           Adicionar imagem/PDF
           <input
@@ -78,6 +100,7 @@ export default function CorrecaoPage() {
             multiple
             hidden
             onChange={handleFileChange}
+            disabled={loading}
           />
         </Button>
       </Tooltip>
@@ -100,7 +123,6 @@ export default function CorrecaoPage() {
               />
             ))}
 
-
             <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
               {/* BOTÃO DE "CORRIGIR" */}
               <Button
@@ -108,10 +130,11 @@ export default function CorrecaoPage() {
                 variant="contained"
                 color="primary"
                 fullWidth
-                startIcon={<AutoAwesomeIcon />}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AutoAwesomeIcon />}
                 onClick={handleCorrection}
+                disabled={loading}
               >
-                Corrigir
+                {loading ? "Corrigindo..." : "Corrigir"}
               </Button>
 
               {/* BOTÃO DE "LIMPAR" */}
@@ -128,6 +151,7 @@ export default function CorrecaoPage() {
                     borderColor: "primary.main",
                   },
                 }}
+                disabled={loading}
               >
                 Limpar
               </Button>
