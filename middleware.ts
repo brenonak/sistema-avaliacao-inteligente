@@ -44,13 +44,14 @@ export async function middleware(request: NextRequest) {
     console.log(`[Middleware] Pathname: ${pathname}`);
     console.log(`[Middleware] URL completa: ${request.url}`);
     
-    // Permitir acesso à landing page sem autenticação
-    if (pathname === "/") {
-      console.log(`[Middleware] ✅ Landing page - permitindo sem autenticação`);
+    // Rotas públicas - permitir sem qualquer verificação
+    const publicPaths = ["/", "/login"];
+    if (publicPaths.includes(pathname)) {
+      console.log(`[Middleware] ✅ Rota pública - permitindo sem autenticação: ${pathname}`);
       return NextResponse.next();
     }
     
-    // Permitir acesso a /cadastro e /api/profile sem verificação completa
+    // Permitir acesso a /cadastro e /api/profile (mas exigem autenticação)
     if (pathname === "/cadastro" || pathname.startsWith("/api/profile")) {
       console.log(`[Middleware] ✅ Rota de cadastro/profile - verificação básica`);
       // Ainda precisa estar autenticado
@@ -130,18 +131,20 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Configuração do matcher - intercepta quase todas as rotas, exceto estáticos e API auth
+// Configuração do matcher - intercepta rotas específicas, excluindo públicas
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (NextAuth API routes)
+     * - / (root - landing page)
+     * - /login (página de login)
+     * - /api/auth (NextAuth API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public files
+     * - arquivos estáticos com extensão
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\..*|static).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|login$|^/$).*)",
   ],
 };
 
