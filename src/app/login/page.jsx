@@ -6,6 +6,8 @@ import { Box, Button, Typography, Container, Paper, CircularProgress } from "@mu
 import GoogleIcon from "@mui/icons-material/Google";
 import { useState, Suspense } from "react";
 
+export const dynamic = 'force-dynamic';
+
 function LoginContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
