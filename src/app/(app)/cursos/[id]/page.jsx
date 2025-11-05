@@ -107,7 +107,6 @@ export default function CursoDetalhesPage() {
   };
 
   const handleConfirmGenerate = async () => {
-    // TODO: Arrumar a chamada para o endpoint de geração de lista, que atualmente não está encontrando a lista
     if (!listaToGenerate) return;
     setGenerating(true);
     setError(null);
@@ -117,7 +116,7 @@ export default function CursoDetalhesPage() {
       const listaId = rawId;
       if (!listaId) throw new Error('ID da lista não disponível');
 
-      const url = `/api/cursos/${cursoId}/listas/gerar-lista?listaId=${encodeURIComponent(listaId)}`;
+      const url = `/api/cursos/${cursoId}/listas/${listaId}/gerar-lista?includeGabarito=${includeGabarito}`;
 
       const resp = await fetch(url, { method: 'GET' });
       const data = await resp.json().catch(() => ({}));
