@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Roboto } from 'next/font/google';
 import { createTheme, responsiveFontSizes, ThemeProvider, alpha } from '@mui/material/styles';
 import { Analytics } from "@vercel/analytics/next"; // Adicionando a importação do Analytics
+import AuthProvider from './components/AuthProvider';
 
 
 let customTheme = createTheme({
@@ -16,12 +17,12 @@ let customTheme = createTheme({
   palette: {
     // Cores principais
     primary: {
-      main: '#000000', // preto
+      main: '#1e1e1e', // preto
       contrastText: '#ffffff',
     },
     secondary: {
       main: '#ffffff', // branco
-      contrastText: '#000000',
+      contrastText: '#1e1e1e',
     },
 
     // Cores de fundo
@@ -32,7 +33,7 @@ let customTheme = createTheme({
 
     // Cores de texto
     text: {
-      primary: '#000000',
+      primary: '#1e1e1e',
       secondary: '#4f4f4f', // cinza escuro
       disabled: '#9e9e9e', // cinza claro
     },
@@ -40,7 +41,7 @@ let customTheme = createTheme({
     // Cores de ação e divisores
     divider: '#e0e0e0',
     action: {
-      active: '#000000',
+      active: '#1e1e1e',
       hover: '#f0f0f0',
       selected: '#e0e0e0',
       disabled: '#c7c7c7',
@@ -67,10 +68,10 @@ let customTheme = createTheme({
         mode: 'dark',
         primary: {
           main: '#ffffff',
-          contrastText: '#000000',
+          contrastText: '#1e1e1e',
         },
         secondary: {
-          main: '#000000',
+          main: '#1e1e1e',
           contrastText: '#ffffff',
         },
         background: {
@@ -95,7 +96,7 @@ let customTheme = createTheme({
           contrastText: '#000000',
         },
         header: {
-          main: alpha('#000000', 0.80),
+          main: alpha('#1e1e1e', 0.95),
         },
         sidebar: {
           main: '#1e1e1e',
@@ -107,6 +108,7 @@ let customTheme = createTheme({
 
 customTheme = responsiveFontSizes(customTheme);
 
+
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
   subsets: ['latin'],
@@ -117,15 +119,17 @@ const roboto = Roboto({
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-br" className={roboto.variable}>
-      {/* Removido as classes do Geist do body */}
       <body className="antialiased">
         <AppRouterCacheProvider>
           <ThemeProvider theme={customTheme}>
-            {children}
-            <Analytics /> {/* Adicionando o componente Analytics antes de fechar o body */}
+            <AuthProvider> 
+              {children}
+              <Analytics />
+            </AuthProvider> 
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
     </html>
   );
 }
+

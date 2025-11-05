@@ -7,18 +7,21 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import SchoolIcon from '@mui/icons-material/School';
+import CollectionsIcon from '@mui/icons-material/Collections';
+import DescriptionIcon from '@mui/icons-material/Description';
 import HomeIcon from '@mui/icons-material/Home';
-import MessageIcon from '@mui/icons-material/Message';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import GradingIcon from '@mui/icons-material/Grading';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Header from './Header';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
+import Link from 'next/link';
 
-const drawerWidth = 240;
+const drawerWidth = 220;
 const collapsedWidth = 60;
 
 export default function Overlay({ content }) {
@@ -29,10 +32,12 @@ export default function Overlay({ content }) {
   };
 
   const sidebarItems = [
-    { text: 'Início', icon: <HomeIcon /> },
-    { text: 'Mensagens', icon: <MessageIcon /> },
-    { text: 'Atividades', icon: <EventNoteIcon /> },
-    { text: 'Métricas', icon: <BarChartIcon /> },
+    { text: 'Início', icon: <HomeIcon />, link: '/dashboard' },
+    { text: 'Cursos', icon: <SchoolIcon />, link: '/cursos' },
+    { text: 'Correção', icon: <GradingIcon />, link: '/correcao' },
+    { text: 'Galeria', icon: <CollectionsIcon />, link: '/galeria' },
+    { text: 'Questões', icon: <DescriptionIcon />, link: '/questoes' },
+    { text: 'Criar Questão', icon: <NoteAddIcon />, link: '/questoes/criar' },
   ];
 
 
@@ -89,10 +94,12 @@ export default function Overlay({ content }) {
         <Divider />
 
         <Box sx={{ overflowX: 'hidden', overflowY: 'auto' }}>
-          <List sx={{padding: 0}}>
-            {sidebarItems.map(({ text, icon }) => (
+          <List sx={{ padding: 0 }}>
+            {sidebarItems.map(({ text, icon, link }) => (
               <ListItem key={text} disablePadding sx={{ display: 'block' }}>
                 <ListItemButton
+                  component={Link}
+                  href={link}
                   sx={{
                     minHeight: 48,
                     justifyContent: open ? 'initial' : 'center',

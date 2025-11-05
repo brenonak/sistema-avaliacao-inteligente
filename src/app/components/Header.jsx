@@ -74,70 +74,6 @@ const Header = () => {
               Sistema Acadêmico
             </Typography>
           </Button>
-          <Button
-            component={Link}
-            href="/cursos"
-            sx={{
-              color: 'text.primary',
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              },
-              transition: 'background-color 0ms ease, color 0ms ease',
-            }}
-          >
-            Cursos
-          </Button>
-          <Button
-            component={Link}
-            href="/galeria"
-            sx={{
-              color: 'text.primary',
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              },
-              transition: 'background-color 0ms ease, color 0ms ease',
-            }}
-          >
-            Galeria
-          </Button>
-          <Button
-            component={Link}
-            href="/questoes"
-            sx={{
-              color: 'text.primary',
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              },
-              transition: 'background-color 0ms ease, color 0ms ease',
-            }}
-          >
-            Questões
-          </Button>
-          <Button
-            component={Link}
-            href="/questoes/criar"
-            sx={{
-              color: 'text.primary',
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              },
-              transition: 'background-color 0ms ease, color 0ms ease',
-            }}
-          >
-            Criar
-          </Button>
         </Box>
         <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
           <HeaderThemeSelector />
@@ -164,6 +100,20 @@ const Header = () => {
             disableScrollLock={true}
           >
             {settings.map((setting) => {
+              if (setting === 'Perfil') {
+                return (
+                  <MenuItem 
+                    key={setting} 
+                    onClick={handleCloseUserMenu}
+                    component={Link} // Usa o Link do Next.js
+                    href="/perfil/cadastro" // Define o destino
+                    sx={{ width: '100%' }}
+                  >
+                    <Typography sx={{ textAlign: 'center', width: '100%' }}>{setting}</Typography>
+                  </MenuItem>
+                );
+              }
+                
               // Verifica se o item atual é "Sair"
               if (setting === 'Sair') {
                 return (

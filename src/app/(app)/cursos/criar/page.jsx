@@ -24,10 +24,46 @@ export default function CriarCursoPage() {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [loading, setLoading] = useState(false);
+  const [previewCodigo, setPreviewCodigo] = useState('');
+  const [previewSlug, setPreviewSlug] = useState('');
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Atualizar preview quando o nome mudar
+  const handleNomeChange = (e) => {
+    const novoNome = e.target.value;
+    setNome(novoNome);
+    
+    if (novoNome.trim()) {
+      const nomeFormatado = novoNome.trim();
+      
+      // Gerar código preview
+      const codigo = nomeFormatado
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, '')
+        .replace(/\s+/g, '')
+        .substring(0, 10);
+      
+      // Gerar slug preview
+      const slug = nomeFormatado
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      setPreviewCodigo(codigo);
+      setPreviewSlug(slug);
+    } else {
+      setPreviewCodigo('');
+      setPreviewSlug('');
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,9 +73,30 @@ export default function CriarCursoPage() {
       return;
     }
 
+    // Gerar código e slug a partir do nome
+    const nomeFormatado = nome.trim();
+    const codigo = nomeFormatado
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, '') // Remove caracteres especiais
+      .replace(/\s+/g, '') // Remove espaços
+      .substring(0, 10); // Limita a 10 caracteres
+
+    const slug = nomeFormatado
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+      .replace(/\s+/g, '-') // Substitui espaços por hífens
+      .replace(/-+/g, '-') // Remove hífens duplicados
+      .replace(/^-|-$/g, ''); // Remove hífens no início/fim
+
     const payload = {
-      nome: nome.trim(),
-      descricao: descricao.trim(),
+      nome: nomeFormatado,
+      codigo: codigo,
+      slug: slug,
+      descricao: descricao.trim() || undefined,
     };
 
     try {
@@ -113,12 +170,27 @@ export default function CriarCursoPage() {
           id="nome"
           label="Nome do Curso"
           value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          onChange={handleNomeChange}
           fullWidth
           required
           sx={{ mb: 3 }}
           helperText="Nome obrigatório"
         />
+
+        {/* Preview do Código e Slug */}
+        {previewCodigo && (
+          <Box sx={{ mb: 3, p: 2, backgroundColor: 'action.hover', borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Identificadores gerados automaticamente:
+            </Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+              <strong>Código:</strong> {previewCodigo}
+            </Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+              <strong>Slug:</strong> {previewSlug}
+            </Typography>
+          </Box>
+        )}
 
         {/* Descrição */}
         <TextField

@@ -32,3 +32,6 @@ export async function getDb(): Promise<Db> {
   }
   return db;
 }
+
+// Export clientPromise para uso com MongoDBAdapter do Next-Auth
+export { clientPromise };

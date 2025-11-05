@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { landingContent } from '../../constants/landingContent';
 import Image from 'next/image';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import NextLink from 'next/link';
 
 export default function HeroSection() {
   const { titlePrefix, titleHighlight, subtitle, ctaButton } = landingContent.hero;
@@ -65,6 +66,8 @@ export default function HeroSection() {
           </Typography>
           
           <Button
+            component={NextLink} 
+            href="/login" 
             variant="contained"
             size="large"
             disableElevation
