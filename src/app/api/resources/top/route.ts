@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTopRecursos } from "../../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "10");
     
@@ -16,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const recursos = await getTopRecursos(limit);
+    const recursos = await getTopRecursos(userId, limit);
     
     // Return only the necessary fields
     const response = recursos.map(recurso => ({

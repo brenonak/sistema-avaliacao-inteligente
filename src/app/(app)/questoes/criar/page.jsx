@@ -29,7 +29,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../../components/FileItem';
 import AIButton from '../../../components/AIButton';
-import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
 import ImageUploadSection from '../../../components/ImageUploadSection';
 
@@ -438,10 +437,17 @@ useEffect(() => {
       ...recursosExistentes.map((r) => r.id) // Existentes: enviar ID diretamente
     ];
 
+    // Coletar IDs das imagens para vincular à questão
+    const imagemIds = [
+      ...recursosNovos.map((r) => r.resourceId).filter(Boolean), // IDs dos novos recursos
+      ...recursosExistentes.map((r) => r.id) // IDs dos recursos existentes
+    ];
+
     console.log('[handleSubmit] Recursos enviados:', {
       novos: recursosNovos.length,
       existentes: recursosExistentes.length,
       total: todosOsRecursos.length,
+      imagemIds: imagemIds,
       idsExistentes: recursosExistentes.map(r => r.id)
     });
 
@@ -450,7 +456,8 @@ useEffect(() => {
       tipo,
       enunciado,
       tags: cleanTags,
-      recursos: todosOsRecursos, // Array misto de URLs (novos) e IDs (existentes)
+      recursos: todosOsRecursos, // Array misto de URLs (novos) e IDs (existentes) - para incrementar refCount
+      imagemIds: imagemIds, // IDs das imagens para vincular à questão
       cursoIds: cursoId ? [cursoId] : [], // Adiciona o cursoId se vier de um curso
     };
 
@@ -541,32 +548,40 @@ useEffect(() => {
     width: 1,
   });
 
-  // upload para Vercel Blob e registro opcional no backend local
+  // upload para Vercel Blob via servidor (mais confiável)
   const uploadSingleFile = async (file) => {
-    const blob = await upload(file.name, file, {
-      access: 'public',
-      handleUploadUrl: '/api/blob/upload',
-      clientPayload: JSON.stringify({ originalFilename: file.name, timestamp: Date.now() })
-    });
-
-    // Fallback de registro no desenvolvimento local
     try {
-      await fetch('/api/resources/register', {
+      console.log('[uploadSingleFile] Iniciando upload direto de:', file.name, 'tamanho:', file.size);
+      
+      // Criar FormData para enviar o arquivo
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Enviar para o servidor
+      const response = await fetch('/api/blob/upload-direct', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: blob.url,
-          key: blob.pathname,
-          filename: file.name,
-          mime: file.type,
-          sizeBytes: file.size
-        })
+        body: formData,
       });
-    } catch (_) {
-      // silencioso em produção
-    }
 
-    return { name: file.name, size: file.size, url: blob.url, type: file.type };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.details || `Erro HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[uploadSingleFile] Upload concluído:', data.url, 'resourceId:', data.resourceId);
+
+      return { 
+        name: file.name, 
+        size: file.size, 
+        url: data.url, 
+        type: file.type,
+        resourceId: data.resourceId // ID do recurso no MongoDB
+      };
+    } catch (error) {
+      console.error('[uploadSingleFile] Erro no upload:', error);
+      throw new Error(`Falha ao enviar arquivo ${file.name}: ${error.message || 'Erro desconhecido'}`);
+    }
   };
 
   // manipula seleção de arquivos (sem upload imediato)

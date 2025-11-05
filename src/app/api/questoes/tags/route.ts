@@ -1,14 +1,23 @@
-import { getDb } from "../../../../lib/mongodb";
+import { NextResponse } from "next/server";
 import { json, serverError } from "../../../../lib/http";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
+import * as QuestoesService from "../../../../services/db/questoes.service";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/questoes/tags
+ * Lista tags únicas das questões do usuário autenticado
+ */
 export async function GET() {
   try {
-    const db = await getDb();
-    
-    // Buscar todas as tags únicas das questões
-    const tags = await db.collection("questoes").distinct("tags");
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
+    // Buscar tags únicas das questões do usuário
+    const tags = await QuestoesService.getQuestaoTags(userId);
     
     // Filtrar tags válidas e ordenar alfabeticamente
     const validTags = tags
@@ -16,7 +25,7 @@ export async function GET() {
       .map(tag => tag.trim().toLowerCase())
       .sort();
     
-    // Remover duplicatas (caso existam)
+    // Remover duplicatas
     const uniqueTags = Array.from(new Set(validTags));
     
     return json({ tags: uniqueTags });

@@ -2,6 +2,18 @@ import { z } from "zod";
 
 export const TipoQuestao = z.enum(["dissertativa", "alternativa", "afirmacoes", "proposicoes", "numerica"]);
 
+// Schema para completar perfil do usuário
+export const CompleteProfileSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  papel: z.enum(["professor", "aluno"], {
+    message: "Papel deve ser 'professor' ou 'aluno'"
+  }),
+  instituicao: z.string().optional(),
+  curso: z.string().optional(),
+  areasInteresse: z.array(z.string()).optional().default([]),
+  profileCompleted: z.boolean().default(true),
+});
+
 export const AlternativaSchema = z.object({
   letra: z.string().min(1),
   texto: z.string().min(1),
@@ -126,9 +138,11 @@ export type QuestaoUpdate = z.infer<typeof QuestaoUpdateSchema>;
 
 export const CursoSchema = z.object({
   nome: z.string().min(3, "Nome obrigatório"),
+  codigo: z.string().min(1, "Código obrigatório"),
+  slug: z.string().min(1, "Slug obrigatório"),
   descricao: z.string().optional(),
 });
 export const CursoCreateSchema = CursoSchema;
-export const CursoUpdateSchema = CursoSchema.partial();
+export const CursoUpdateSchema = CursoSchema.omit({ codigo: true, slug: true }).partial();
 export type CursoCreate = z.infer<typeof CursoCreateSchema>;
 export type CursoUpdate = z.infer<typeof CursoUpdateSchema>;

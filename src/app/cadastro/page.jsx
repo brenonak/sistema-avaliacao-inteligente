@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { 
   Container, 
   Box, 
@@ -17,90 +18,82 @@ import {
   Checkbox,
   Autocomplete,
   Chip,
-  CircularProgress
+  Alert
 } from '@mui/material';
 
 export default function PaginaCadastro() {
+    const { data: session } = useSession();
+    const router = useRouter();
 
-  // O 'status' pode ser: 'loading', 'authenticated', 'unauthenticated'
-  const { data: session, status } = useSession();
+    // Estados para controlar os campos do formulário
+    const [nome, setNome] = useState('');
+    const [papel, setPapel] = useState(''); // Ex: 'professor' ou 'aluno'
+    const [instituicao, setInstituicao] = useState('');
+    const [curso, setCurso] = useState('');
+    const [areasInteresse, setAreasInteresse] = useState([]); // Para o Autocomplete
+    const [foto, setFoto] = useState(null); // Para o upload
+    const [nomeArquivoFoto, setNomeArquivoFoto] = useState("");
 
-  // Estados para controlar os campos do formulário
-  const [nome, setNome] = useState('');
-  const [papel, setPapel] = useState(''); // Ex: 'professor' ou 'aluno'
-  const [instituicao, setInstituicao] = useState('');
-  const [curso, setCurso] = useState('');
-  const [areasInteresse, setAreasInteresse] = useState([]); // Para o Autocomplete
-  const [foto, setFoto] = useState(null); // Para o upload
-  const [nomeArquivoFoto, setNomeArquivoFoto] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-  const [loading, setLoading] = useState(false);
+    // Pré-preencher nome com dados da sessão
+    useEffect(() => {
+        if (session?.user?.name) {
+            setNome(session.user.name);
+        }
+    }, [session]);
 
-  // Usar useEffect PARA PRÉ-PREENCHER O FORMULÁRIO
-  useEffect(() => {
-    // Apenas pré-preencha se a sessão estiver carregada E autenticada
-    if (status === 'authenticated' && session?.user) {
-      
-      // Pré-preenche o nome (Google dá isso)
-      if (session.user.name) {
-        setNome(session.user.name);
-      }
-      
-      // Logar os dados que temos na sessão
-      console.log("Task #168: Sessão carregada.", session.user);
-    }
-  }, [session, status]); 
+    // Handler para a seleção de foto
+    const handleFotoChange = (event) => {
+        if (event.target.files && event.target.files[0]) {
+        const arquivo = event.target.files[0];
+        setFoto(arquivo);
+        setNomeArquivoFoto(arquivo.name);
+        }
+    };
 
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setLoading(true);
+        setError('');
 
+        try {
+            // Preparar dados para envio
+            const profileData = {
+                nome: nome.trim(),
+                papel,
+                instituicao: instituicao.trim() || undefined,
+                curso: curso.trim() || undefined,
+                areasInteresse: areasInteresse.length > 0 ? areasInteresse : undefined,
+                profileCompleted: true
+            };
 
-  // Handler para a seleção de foto
-  const handleFotoChange = (event) => {
-      if (event.target.files && event.target.files[0]) {
-      const arquivo = event.target.files[0];
-      setFoto(arquivo);
-      setNomeArquivoFoto(arquivo.name);
-      }
-  };
+            // Enviar para API
+            const response = await fetch('/api/profile/complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(profileData),
+            });
 
-  // Placeholder para a Task #169 (Integrar API)
-  // Esta função garante que o formulário é funcional (controlado)
-  const handleSubmit = (event) => {
-      event.preventDefault();
-      setLoading(true);
+            const data = await response.json();
 
-      // Mostra todos os dados coletados no console
-      console.log("Task #167: Dados do formulário para envio (simulado):", { 
-          nome, 
-          papel, 
-          instituicao, 
-          curso,
-          areasInteresse,
-          foto // O arquivo em si
-      });
-      
-      // A chamada de API real (Task #169) substituirá este 'setTimeout'
-      setTimeout(() => {
-      console.log("Simulação de 'Salvo!'");
-      setLoading(false);
-      }, 1500);
-  };
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao salvar perfil');
+            }
 
-  // Estado de Loading (Enquanto a sessão carrega)
-  if (status === 'loading') {
-    return (
-      <Container 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '100vh' 
-        }}
-      >
-        <CircularProgress />
-      </Container>
-    );
-  }
-
+            console.log('Perfil salvo com sucesso:', data);
+            
+            // Redirecionar para dashboard com parâmetro para forçar refresh do cache
+            router.push('/dashboard?refreshProfile=1');
+        } catch (err) {
+            console.error('Erro ao salvar perfil:', err);
+            setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
+            setLoading(false);
+        }
+    };
 
   return (
     <Container 
@@ -140,6 +133,13 @@ export default function PaginaCadastro() {
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
           
+            {/* Mensagem de erro */}
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
+
             {/* Campo Nome Completo */}
             <TextField
             label="Nome Completo"
@@ -148,8 +148,6 @@ export default function PaginaCadastro() {
             fullWidth
             required
             margin="normal"
-            // (Nota: A Task #168 - 'Obter Dados Iniciais' -
-            //  vai modificar o valor inicial deste 'useState')
             />
 
             {/* Campo Papel (Professor/Aluno) */}

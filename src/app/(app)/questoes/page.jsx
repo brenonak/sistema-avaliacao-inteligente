@@ -88,24 +88,8 @@ export default function ListarQuestoesPage() {
         setTotalPages(data.total ? Math.ceil(data.total / limit) : 1);
         setTotalQuestoes(data.total || 0);
         
-        // Para cada questão, se houver recurso por ID, buscar a URL
-        const itemsWithResourceUrl = await Promise.all(
-          items.map(async (q) => {
-            try {
-              const firstResourceId = Array.isArray(q.recursos) && q.recursos.length > 0 ? q.recursos[0] : null;
-              if (!firstResourceId) return q;
-              const r = await fetch(`/api/resources/${firstResourceId}`);
-              if (!r.ok) return q;
-              const rjson = await r.json();
-              const url = rjson?.resource?.url;
-              if (!url) return q;
-              return { ...q, recursoUrl: url };
-            } catch (_) {
-              return q;
-            }
-          })
-        );
-        setQuestoes(itemsWithResourceUrl);
+        // As imagens agora vêm populadas no campo 'imagens' da API
+        setQuestoes(items);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
       } finally {
@@ -463,21 +447,27 @@ export default function ListarQuestoesPage() {
               <Typography variant="h6" component="p" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
                 {questao.enunciado}
               </Typography>
-              {/* Exibir recurso associado (imagem) se houver */}
-              {questao.recursoUrl && (
-                <Box
-                  component="img"
-                  src={questao.recursoUrl}
-                  alt="Recurso da questão"
-                  sx={{
-                    width: '100%',
-                    maxHeight: 300,
-                    objectFit: 'contain',
-                    borderRadius: 1,
-                    mb: 2,
-                    backgroundColor: 'background.default'
-                  }}
-                />
+              {/* Exibir imagens associadas se houver */}
+              {Array.isArray(questao.imagens) && questao.imagens.length > 0 && (
+                <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {questao.imagens.map((imagem, imgIdx) => (
+                    <Box
+                      key={imagem.id || imgIdx}
+                      component="img"
+                      src={imagem.url}
+                      alt={imagem.filename || `Imagem ${imgIdx + 1} da questão`}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 300,
+                        objectFit: 'contain',
+                        borderRadius: 1,
+                        backgroundColor: 'background.default',
+                        border: 1,
+                        borderColor: 'divider'
+                      }}
+                    />
+                  ))}
+                </Box>
               )}
               
               {/* Exibir tipo da questão */}

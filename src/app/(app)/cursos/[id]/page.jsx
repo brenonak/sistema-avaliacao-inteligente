@@ -1085,21 +1085,27 @@ export default function CursoDetalhesPage() {
                         {index + 1}. {questao.enunciado}
                       </Typography>
                       
-                      {/* Exibir recurso associado (imagem) se houver */}
-                      {questao.recursoUrl && (
-                        <Box
-                          component="img"
-                          src={questao.recursoUrl}
-                          alt="Recurso da questão"
-                          sx={{
-                            width: '100%',
-                            maxHeight: 300,
-                            objectFit: 'contain',
-                            borderRadius: 1,
-                            mb: 2,
-                            backgroundColor: 'background.default'
-                          }}
-                        />
+                      {/* Exibir imagens associadas se houver */}
+                      {Array.isArray(questao.imagens) && questao.imagens.length > 0 && (
+                        <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {questao.imagens.map((imagem, imgIdx) => (
+                            <Box
+                              key={imagem.id || imgIdx}
+                              component="img"
+                              src={imagem.url}
+                              alt={imagem.filename || `Imagem ${imgIdx + 1} da questão`}
+                              sx={{
+                                width: '100%',
+                                maxHeight: 300,
+                                objectFit: 'contain',
+                                borderRadius: 1,
+                                backgroundColor: 'background.default',
+                                border: 1,
+                                borderColor: 'divider'
+                              }}
+                            />
+                          ))}
+                        </Box>
                       )}
                       
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
