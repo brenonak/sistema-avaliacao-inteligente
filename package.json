@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@auth/mongodb-adapter": "^3.11.1",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -32,6 +33,8 @@
     "lucide-react": "^0.469.0",
     "mongodb": "^6.19.0",
     "next": "15.5.3",
+    "next-auth": "^4.24.13",
+    "nodemailer": "^7.0.10",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tw-animate-css": "^1.4.0",

@@ -49,18 +49,22 @@ export default function CardOptionsButton({ cursoId, onDelete, cursoNome, cursoD
       });
 
       if (!res.ok) {
-        throw new Error('Erro ao excluir curso');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao excluir curso');
       }
 
       setOpenDeleteDialog(false);
       
-      // Chama callback se fornecido
+      // Chama callback se fornecido para atualizar a lista
       if (onDelete) {
         onDelete(cursoId);
       }
+      
+      // Feedback de sucesso
+      alert('Curso excluído com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir curso:', error);
-      alert('Erro ao excluir curso. Tente novamente.');
+      alert(error.message || 'Erro ao excluir curso. Tente novamente.');
     } finally {
       setLoading(false);
     }

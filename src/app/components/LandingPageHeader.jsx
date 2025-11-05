@@ -3,7 +3,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken, alpha} from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
-import NextLink from 'next/link'; // Importe o Link do Next.js
+import NextLink from 'next/link';
 
 const LandingPageHeader = () => {
   const { logoText, links, buttons } = landingContent.header;
@@ -14,7 +14,7 @@ const LandingPageHeader = () => {
       color="transparent"
       elevation={0}
       sx={{
-        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.75), 
+        backgroundColor: 'var(--mui-palette-header-main)',
         backdropFilter: 'blur(10px)',
         borderBottom: 1,
         borderColor: 'divider',
@@ -92,24 +92,10 @@ const LandingPageHeader = () => {
 
           {/* *** BOTÕES DE AÇÃO *** */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            
             <Button
               component={NextLink} 
-              href="/dashboard"    
-              variant="text"
-              color="inherit"
-              sx={{ 
-                textTransform: 'none', 
-                fontWeight: 600,
-                // 4. ARREDONDAMENTO NO BOTÃO "ENTRAR"
-                borderRadius: '24px', 
-                px: 2, // Adiciona um pouco de padding lateral
-              }}
-            >
-              {buttons.login}
-            </Button>
-            <Button
-              component={NextLink} 
-              href="/dashboard"    
+              href="/login"    
               variant="contained"
               disableElevation
               sx={{ 
@@ -118,13 +104,13 @@ const LandingPageHeader = () => {
                 backgroundColor: 'accent.dark',
                 color: 'white', 
                 '&:hover': {
-                  backgroundColor: (theme) => darken(theme.palette.accent.dark, 0.15),
+                  backgroundColor: 'accent.main',
                 },
-                // 5. ARREDONDAMENTO NO BOTÃO "CRIAR CONTA"
+                // ARREDONDAMENTO NO BOTÃO "CRIAR CONTA"
                 borderRadius: '24px', 
               }}
             >
-              {buttons.signup}
+              {buttons.login}
             </Button>
           </Box>
         </Toolbar>

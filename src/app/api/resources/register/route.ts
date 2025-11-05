@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertRecurso } from "../../../../lib/resources";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const body = await request.json();
     
     // Validate required fields
@@ -25,8 +31,8 @@ export async function POST(request: NextRequest) {
       sizeBytes: body.sizeBytes || 0,
     };
 
-    // Upsert the resource
-    const recurso = await upsertRecurso(recursoData);
+    // Upsert the resource with userId
+    const recurso = await upsertRecurso(recursoData, userId);
 
     return NextResponse.json({
       success: true,
