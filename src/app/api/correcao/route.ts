@@ -9,7 +9,7 @@ import { ObjectId } from "mongodb";
 
 // O que esperamos que a IA nos retorne (simples)
 interface QuestaoAIOutput {
-  tipo: "alternativa" | "proposicoes" | "dissertativa" | "outro";
+  tipo: "multipla escolha" | "verdadeiro e falso" | "dissertativa" | "resposta numérica" | "proposicoes multiplas(somatório)";
   enunciado: string;
   alternativas: string[]; // IA só retorna um array de strings
   proposicoes: string[];  // IA só retorna um array de strings
