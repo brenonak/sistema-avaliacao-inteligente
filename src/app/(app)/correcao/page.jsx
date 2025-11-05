@@ -9,6 +9,7 @@ import {
   Divider,
   Button,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -16,6 +17,7 @@ import FileItem from "../../components/FileItem";
 
 export default function CorrecaoPage() {
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -27,6 +29,7 @@ export default function CorrecaoPage() {
   };
 
   const handleClearFiles = () => {
+    if (loading) return;
     setFiles([]);
   };
 
@@ -99,6 +102,7 @@ export default function CorrecaoPage() {
           component="label"
           variant="contained"
           startIcon={<CloudUploadIcon />}
+          disabled={loading}
         >
           Adicionar imagem/PDF
           <input
@@ -107,6 +111,7 @@ export default function CorrecaoPage() {
             multiple
             hidden
             onChange={handleFileChange}
+            disabled={loading}
           />
         </Button>
       </Tooltip>
@@ -129,7 +134,6 @@ export default function CorrecaoPage() {
               />
             ))}
 
-
             <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
               {/* BOTÃO DE "CORRIGIR" */}
               <Button
@@ -137,10 +141,11 @@ export default function CorrecaoPage() {
                 variant="contained"
                 color="primary"
                 fullWidth
-                startIcon={<AutoAwesomeIcon />}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AutoAwesomeIcon />}
                 onClick={handleCorrection}
+                disabled={loading}
               >
-                Corrigir
+                {loading ? "Corrigindo..." : "Corrigir"}
               </Button>
 
               {/* BOTÃO DE "LIMPAR" */}
@@ -157,6 +162,7 @@ export default function CorrecaoPage() {
                     borderColor: "primary.main",
                   },
                 }}
+                disabled={loading}
               >
                 Limpar
               </Button>

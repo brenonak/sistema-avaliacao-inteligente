@@ -17,12 +17,12 @@ let customTheme = createTheme({
   palette: {
     // Cores principais
     primary: {
-      main: '#000000', // preto
+      main: '#1e1e1e', // preto
       contrastText: '#ffffff',
     },
     secondary: {
       main: '#ffffff', // branco
-      contrastText: '#000000',
+      contrastText: '#1e1e1e',
     },
 
     // Cores de fundo
@@ -33,7 +33,7 @@ let customTheme = createTheme({
 
     // Cores de texto
     text: {
-      primary: '#000000',
+      primary: '#1e1e1e',
       secondary: '#4f4f4f', // cinza escuro
       disabled: '#9e9e9e', // cinza claro
     },
@@ -41,7 +41,7 @@ let customTheme = createTheme({
     // Cores de ação e divisores
     divider: '#e0e0e0',
     action: {
-      active: '#000000',
+      active: '#1e1e1e',
       hover: '#f0f0f0',
       selected: '#e0e0e0',
       disabled: '#c7c7c7',
@@ -68,10 +68,10 @@ let customTheme = createTheme({
         mode: 'dark',
         primary: {
           main: '#ffffff',
-          contrastText: '#000000',
+          contrastText: '#1e1e1e',
         },
         secondary: {
-          main: '#000000',
+          main: '#1e1e1e',
           contrastText: '#ffffff',
         },
         background: {
