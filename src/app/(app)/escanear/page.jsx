@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 import {
   Container,
   Box,
@@ -11,6 +12,7 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
+  Snackbar,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -31,7 +33,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileItem from "../../components/FileItem"; // Assumindo que este componente existe
 
 export default function CorrecaoPage() {
+  const router = useRouter();
   const [files, setFiles] = useState([]);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   
   // --- ESTADOS ---
   const [extractedQuestoes, setExtractedQuestoes] = useState([]);
@@ -152,6 +156,107 @@ export default function CorrecaoPage() {
      );
   };
 
+  // Handler para salvar as questões extraídas
+  const handleSaveQuestoes = async () => {
+    if (extractedQuestoes.length === 0) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Processa e salva cada questão individualmente
+      const savePromises = extractedQuestoes.map(async (questao, index) => {
+        // Validações básicas
+        if (!questao.enunciado?.trim()) {
+          throw new Error(`Questão ${index + 1}: Enunciado não pode estar vazio`);
+        }
+
+        // Validações específicas por tipo
+        if (questao.tipo === 'alternativa') {
+          if (questao.alternativas.some(a => !a.texto?.trim())) {
+            throw new Error(`Questão ${index + 1}: Todas as alternativas devem ser preenchidas`);
+          }
+          if (!questao.alternativas.some(a => a.correta)) {
+            throw new Error(`Questão ${index + 1}: Uma alternativa deve ser marcada como correta`);
+          }
+        }
+
+        // Prepara o payload base
+        const basePayload = {
+          tipo: questao.tipo,
+          enunciado: questao.enunciado.trim(),
+          tags: questao.tags?.map(tag => tag.trim()).filter(Boolean) || [],
+          recursos: [], // Se houver recursos, adicionar aqui
+          cursoIds: [], // Se houver curso relacionado, adicionar aqui
+        };
+
+        // Adiciona campos específicos baseado no tipo
+        let payload;
+        if (questao.tipo === 'alternativa') {
+          payload = {
+            ...basePayload,
+            alternativas: questao.alternativas.map((a, i) => ({
+              letra: String.fromCharCode(65 + i), // Converte 0 -> 'A', 1 -> 'B', etc.
+              texto: a.texto.trim(),
+              correta: !!a.correta,
+            })),
+          };
+        } else if (questao.tipo === 'proposicoes') {
+          payload = {
+            ...basePayload,
+            proposicoes: questao.proposicoes.map((p, index) => ({
+              valor: Math.pow(2, index),
+              texto: p.texto.trim(),
+              correta: !!p.correta,
+            })),
+          };
+        } else {
+          // Outros tipos de questão podem ser adicionados aqui
+          payload = basePayload;
+        }
+
+        // Envia para a API
+        const response = await fetch('/api/questoes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err?.error || `Falha ao salvar questão ${index + 1} (HTTP ${response.status})`);
+        }
+
+        return response.json();
+      });
+
+      // Aguarda todas as questões serem salvas
+      await Promise.all(savePromises);
+      
+      // Limpa o estado após salvar com sucesso
+      setExtractedQuestoes([]);
+      setError(null);
+      setFiles([]);
+      
+      // Feedback de sucesso usando Snackbar
+      setSnackbar({ 
+        open: true, 
+        message: 'Questões salvas com sucesso!', 
+        severity: 'success' 
+      });
+      
+    } catch (err) {
+      console.error('Erro ao salvar questões:', err);
+      setSnackbar({
+        open: true,
+        message: err.message || 'Erro ao salvar as questões',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // --- NOVO HANDLER ---
   // Para definir qual alternativa é a CORRETA
   const handleCorretaChange = (qIndex, alternativaIndexCorreta) => {
@@ -190,7 +295,7 @@ export default function CorrecaoPage() {
         component="h1"
         sx={{ mb: 4, fontWeight: "bold", color: "text.primary", textAlign: "center" }}
       >
-        Correção Automática
+        Escanear Provas
       </Typography>
 
       {/* --- SEÇÃO DE UPLOAD --- */}
@@ -407,6 +512,21 @@ export default function CorrecaoPage() {
           
         </Container>
       )}
+
+      {/* Snackbar para feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
