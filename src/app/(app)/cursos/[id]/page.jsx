@@ -25,10 +25,12 @@ import {
   Divider,
   Paper
 } from '@mui/material';
+import { FormControlLabel, Switch } from '@mui/material';
 import { 
   Add, 
   Edit, 
   Delete, 
+  PostAdd,
   ArrowBack, 
   Search, 
   Clear,
@@ -55,6 +57,10 @@ export default function CursoDetalhesPage() {
   const [provas, setProvas] = useState([]);
   const [loadingProvas, setLoadingProvas] = useState(false);
   
+  // Estados para listas de exercícios
+  const [exercícios, setExercícios] = useState([]);
+  const [loadingExercícios, setLoadingExercícios] = useState(false);
+
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [questoesDisponiveis, setQuestoesDisponiveis] = useState([]);
@@ -88,9 +94,71 @@ export default function CursoDetalhesPage() {
   const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
   const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
 
+  // Estado e handlers para diálogo "Gerar Lista de Exercícios"
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
+  const [includeGabarito, setIncludeGabarito] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [listaToGenerate, setListaToGenerate] = useState(null);
+
+  const handleOpenGenerateDialog = (lista) => {
+    setListaToGenerate(lista);
+    setIncludeGabarito(false);
+    setOpenGenerateDialog(true);
+  };
+
+  const handleConfirmGenerate = async () => {
+    // TODO: Arrumar a chamada para o endpoint de geração de lista, que atualmente não está encontrando a lista
+    if (!listaToGenerate) return;
+    setGenerating(true);
+    setError(null);
+
+    try {
+      const rawId = listaToGenerate.id || listaToGenerate._id || listaToGenerate._id?.$oid || listaToGenerate._id?.toString?.();
+      const listaId = rawId;
+      if (!listaId) throw new Error('ID da lista não disponível');
+
+      const url = `/api/cursos/${cursoId}/listas/gerar-lista?listaId=${encodeURIComponent(listaId)}`;
+
+      const resp = await fetch(url, { method: 'GET' });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.message || 'Falha ao gerar a lista');
+      }
+
+      // Se o endpoint retornou conteúdo LaTeX, oferecer download / abrir em nova aba
+      if (data.latexContent) {
+        const blob = new Blob([data.latexContent], { type: 'text/x-tex' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Tenta abrir em nova aba; se bloqueado, força download
+        const opened = window.open(blobUrl, '_blank');
+        if (!opened) {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = data.fileName || `lista_${Date.now()}.tex`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+      }
+
+      alert(data.message || 'Lista gerada com sucesso.');
+      setOpenGenerateDialog(false);
+      setListaToGenerate(null);
+    } catch (err) {
+      console.error('Erro ao gerar lista:', err);
+      const msg = err?.message || 'Erro ao gerar lista. Tente novamente.';
+      setError(msg);
+      alert(msg);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   useEffect(() => {
     fetchCurso();
     fetchProvas();
+    fetchExercícios();
   }, [cursoId]);
 
   // Efeito para busca (DEBOUNCE)
@@ -213,6 +281,21 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const fetchExercícios = async () => {
+    try {
+      setLoadingExercícios(true);
+      const res = await fetch(`/api/cursos/${cursoId}/listas`);
+      if (!res.ok) throw new Error('Erro ao carregar listas');
+      const data = await res.json();
+      setExercícios(data.items || []);
+    } catch (err) {
+      console.error('Erro ao buscar listas:', err);
+      setExercícios([]);
+    } finally {
+      setLoadingExercícios(false);
+    }
+  };
+
   const handleDeleteProva = async (provaId) => {
     if (!confirm('Tem certeza que deseja excluir esta prova?')) return;
 
@@ -234,6 +317,27 @@ export default function CursoDetalhesPage() {
     }
   };
 
+  const handleDeleteLista = async (listaId) => {
+    if (!confirm('Tem certeza que deseja excluir esta lista de exercícios?')) return;
+
+    try {
+      const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao excluir lista');
+      }
+
+      alert('Lista excluída com sucesso!');
+      fetchExercícios();
+    } catch (error) {
+      console.error('Erro ao excluir lista:', error);
+      alert(error.message || 'Erro ao excluir lista');
+    }
+  }
+
   const handleExportLatex = async (provaId) => {
     alert('Gerando arquivo LaTeX...');
     
@@ -244,7 +348,7 @@ export default function CursoDetalhesPage() {
         const err = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
         throw new Error(err.message || 'Falha ao gerar arquivo LaTeX no servidor');
       }
-      
+
       const data = await res.json();
       
       if (!data.success || !data.latexContent) {
@@ -269,6 +373,9 @@ export default function CursoDetalhesPage() {
     } finally {
     }
   };
+
+  const handleGerarLista = async (listaId) => {
+  }
 
   const handleOpenAddDialog = () => {
     setOpenAddDialog(true);
@@ -468,6 +575,9 @@ export default function CursoDetalhesPage() {
     
     setOpenEditProvaDialog(true);
   };
+
+  const handleOpenEditLista = async (lista) => {
+  }
 
   const handleChangeEditProva = (field) => (event) => {
     setEditProvaData({
@@ -820,6 +930,92 @@ export default function CursoDetalhesPage() {
                         color="error"
                         onClick={() => handleDeleteProva(prova.id)}
                         title="Excluir prova"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      {/* Exercícios do Curso */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+            Listas de Exercícios ({exercícios.length})
+          </Typography>
+          <Link href={`/listas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+            >
+              Criar Nova Lista de Exercícios
+            </Button>
+          </Link>
+        </Box>
+        {loadingExercícios ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : exercícios.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Description sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+              Nenhuma lista de exercícios criada ainda.
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Crie uma lista de exercícios para este curso.
+            </Typography>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {exercícios.map((lista, index) => (
+              <Card key={lista.id || index} sx={{ backgroundColor: 'background.paper' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                        {lista.nomeMateria}
+                      </Typography>
+
+                      {lista.nomeInstituicao && (
+                        <Box sx={{ display: 'inline-block'}}>
+                          <Chip 
+                            label={`Instituição: ${lista.nomeInstituicao}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                      )}
+
+                      {/* Mostrar informações sobre questões */}
+                      {lista.questoesIds && lista.questoesIds.length > 0 && (
+                        <Box sx={{ mt: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                              Questões: {lista.questoesIds.length}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                      <IconButton
+                        color="success"
+                        onClick={() => handleOpenGenerateDialog(lista)}
+                        title="Gerar Lista de Exercícios"
+                      >
+                        <PostAdd />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteLista(lista.id)}
+                        title="Excluir lista"
                       >
                         <Delete />
                       </IconButton>
@@ -1524,6 +1720,43 @@ export default function CursoDetalhesPage() {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Dialog para Gerar Lista de Exercícios */}
+      <Dialog
+        open={openGenerateDialog}
+        onClose={() => !generating && setOpenGenerateDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Gerar Lista de Exercícios</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.nomeMateria}".` : 'Você está prestes a gerar uma lista de exercícios.'}
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeGabarito}
+                onChange={(e) => setIncludeGabarito(e.target.checked)}
+                color="primary"
+                disabled={generating}
+              />
+            }
+            label="Incluir o gabarito"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Button onClick={() => setOpenGenerateDialog(false)} disabled={generating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmGenerate} variant="contained" disabled={generating}>
+              {generating ? 'Gerando...' : 'Confirmar'}
+            </Button>
+          </Box>
+        </DialogActions>
       </Dialog>
     </Box>
   );
