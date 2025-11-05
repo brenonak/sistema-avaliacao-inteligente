@@ -44,8 +44,14 @@ export async function middleware(request: NextRequest) {
     console.log(`[Middleware] Pathname: ${pathname}`);
     console.log(`[Middleware] URL completa: ${request.url}`);
     
+    // AUTENTICAÇÃO DESABILITADA - Permitir acesso a todas as páginas sem login
+    console.log(`[Middleware] ✅ Autenticação desabilitada - permitindo acesso sem verificação: ${pathname}`);
+    return NextResponse.next();
+    
+    /* AUTENTICAÇÃO COMENTADA - Para reativar, descomente este bloco
+    
     // Rotas públicas - permitir sem qualquer verificação
-    const publicPaths = ["/", "/login"];
+    const publicPaths = ["/", "/login", "/dashboard"];
     if (publicPaths.includes(pathname)) {
       console.log(`[Middleware] ✅ Rota pública - permitindo sem autenticação: ${pathname}`);
       return NextResponse.next();
@@ -121,6 +127,8 @@ export async function middleware(request: NextRequest) {
     // Token válido e perfil completo, permitir acesso
     console.log(`[Middleware] ✅ Perfil completo - permitindo acesso a ${pathname}`);
     return NextResponse.next();
+    
+    FIM DO BLOCO COMENTADO */
   } catch (error) {
     // Log do erro mas permite a requisição continuar
     console.error("[Middleware] ❌ ERRO CRÍTICO no middleware:", error);
