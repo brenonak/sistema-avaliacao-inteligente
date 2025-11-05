@@ -3,6 +3,10 @@
  * 
  * Protege rotas sensíveis que exigem login via Google.
  * 
+ * IMPORTANTE: Este middleware roda no Edge Runtime da Vercel, que não suporta
+ * conexões diretas ao MongoDB. A verificação de profileCompleted é feita
+ * via token JWT e validações nas próprias páginas.
+ * 
  * ROTAS PROTEGIDAS (matcher):
  * - /cursos - Listagem de cursos (agora protegida - multi-tenant)
  * - /cursos/* - Todas as sub-rotas de cursos
@@ -24,102 +28,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { MongoClient, ObjectId } from "mongodb";
 
 console.log("[Middleware] 🚀 Middleware carregado e ativo!");
 
 // Validar variáveis de ambiente críticas no carregamento
 if (!process.env.AUTH_SECRET) {
   console.error("[Middleware] ❌ ERRO: AUTH_SECRET não configurado!");
-}
-if (!process.env.MONGODB_URI) {
-  console.error("[Middleware] ❌ ERRO: MONGODB_URI não configurado!");
-}
-if (!process.env.MONGODB_DB) {
-  console.error("[Middleware] ❌ ERRO: MONGODB_DB não configurado!");
-}
-
-// Cache para verificação de perfil (evita queries repetidas)
-const profileCache = new Map<string, { completed: boolean, timestamp: number }>();
-const CACHE_DURATION = 30000; // 30 segundos (reduzido para atualizar mais rápido)
-
-async function isProfileCompleted(userId: string, forceRefresh: boolean = false): Promise<boolean> {
-  console.log(`[isProfileCompleted] Verificando userId: ${userId}, forceRefresh: ${forceRefresh}`);
-  
-  // Validar userId
-  if (!userId) {
-    console.error("[isProfileCompleted] ❌ userId inválido (vazio)");
-    return true; // Permitir acesso para evitar bloqueios
-  }
-  
-  // Se forceRefresh, limpar cache
-  if (forceRefresh) {
-    profileCache.delete(userId);
-    console.log(`[isProfileCompleted] 🗑️ Cache limpo para forceRefresh`);
-  }
-  
-  // Verificar cache
-  const cached = profileCache.get(userId);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`[isProfileCompleted] ⚡ Cache hit - completed: ${cached.completed}`);
-    return cached.completed;
-  }
-  
-  console.log(`[isProfileCompleted] 💾 Cache miss - consultando banco...`);
-
-  // Buscar no banco
-  let client: MongoClient | null = null;
-  try {
-    // Validar que temos as variáveis de ambiente
-    if (!process.env.MONGODB_URI || !process.env.MONGODB_DB) {
-      console.error("[isProfileCompleted] ❌ Variáveis de ambiente MongoDB não configuradas");
-      return true; // Permitir acesso para evitar bloqueios
-    }
-
-    // Validar formato do ObjectId
-    if (!ObjectId.isValid(userId)) {
-      console.error(`[isProfileCompleted] ❌ userId não é um ObjectId válido: ${userId}`);
-      return true; // Permitir acesso para evitar bloqueios
-    }
-
-    client = new MongoClient(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
-      connectTimeoutMS: 5000,
-    });
-    
-    await client.connect();
-    const db = client.db(process.env.MONGODB_DB);
-    
-    console.log(`[isProfileCompleted] Buscando user com _id: ${userId}`);
-    const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(userId) 
-    });
-
-    console.log(`[isProfileCompleted] User encontrado:`, user ? `email: ${user.email}` : 'null');
-    console.log(`[isProfileCompleted] profileCompleted no banco:`, user?.profileCompleted);
-    
-    const completed = user?.profileCompleted === true;
-    
-    // Atualizar cache
-    profileCache.set(userId, { completed, timestamp: Date.now() });
-    console.log(`[isProfileCompleted] ✅ Cache atualizado - completed: ${completed}`);
-    
-    return completed;
-  } catch (error) {
-    console.error("[isProfileCompleted] ❌ Erro ao verificar perfil:", error);
-    // Em caso de erro, assumir que está completo para não bloquear
-    return true;
-  } finally {
-    // Garantir que a conexão seja fechada
-    if (client) {
-      try {
-        await client.close();
-        console.log("[isProfileCompleted] 🔌 Conexão MongoDB fechada");
-      } catch (closeError) {
-        console.error("[isProfileCompleted] ❌ Erro ao fechar conexão:", closeError);
-      }
-    }
-  }
 }
 
 export async function middleware(request: NextRequest) {
@@ -133,6 +47,25 @@ export async function middleware(request: NextRequest) {
     // Permitir acesso à landing page sem autenticação
     if (pathname === "/") {
       console.log(`[Middleware] ✅ Landing page - permitindo sem autenticação`);
+      return NextResponse.next();
+    }
+    
+    // Permitir acesso a /cadastro e /api/profile sem verificação completa
+    if (pathname === "/cadastro" || pathname.startsWith("/api/profile")) {
+      console.log(`[Middleware] ✅ Rota de cadastro/profile - verificação básica`);
+      // Ainda precisa estar autenticado
+      const token = await getToken({
+        req: request,
+        secret: process.env.AUTH_SECRET,
+      });
+      
+      if (!token) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        console.log(`[Middleware] ❌ Sem token - redirecionando para login`);
+        return NextResponse.redirect(loginUrl);
+      }
+      
       return NextResponse.next();
     }
     
@@ -162,47 +95,26 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Verificar se o perfil está completo
+    // Verificar se o userId existe
     const userId = token.id as string;
     
     if (!userId) {
       console.error(`[Middleware] ❌ ERRO: userId não encontrado no token!`);
       console.error(`[Middleware] Token completo:`, JSON.stringify(token, null, 2));
-      return NextResponse.next(); // Permitir acesso para evitar loop
+      // Redirecionar para login se não tiver userId
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
     }
     
-    // Verificar se há parâmetro para forçar refresh do cache (após completar cadastro)
-    const forceRefresh = request.nextUrl.searchParams.has('refreshProfile');
-    
-    console.log(`[Middleware] 🔍 Verificando profileCompleted para userId: ${userId}`);
-    const profileCompleted = await isProfileCompleted(userId, forceRefresh);
-    console.log(`[Middleware] 📊 profileCompleted = ${profileCompleted}`);
+    // Verificar profileCompleted do token (atualizado via callback do NextAuth)
+    const profileCompleted = token.profileCompleted === true;
+    console.log(`[Middleware] 📊 profileCompleted (do token) = ${profileCompleted}`);
 
-    // Se perfil incompleto e NÃO está tentando acessar /cadastro ou API de profile
-    if (!profileCompleted && pathname !== "/cadastro" && !pathname.startsWith("/api/profile")) {
+    // Se perfil incompleto, redirecionar para /cadastro
+    if (!profileCompleted) {
       console.log(`[Middleware] 🔄 Perfil incompleto - REDIRECIONANDO ${pathname} -> /cadastro`);
       const cadastroUrl = new URL("/cadastro", request.url);
       return NextResponse.redirect(cadastroUrl);
-    }
-    
-    // Se está acessando /cadastro
-    if (pathname === "/cadastro") {
-      if (!profileCompleted) {
-        // Perfil incompleto: permitir acesso ao cadastro
-        console.log(`[Middleware] ✅ Permitindo acesso a /cadastro (perfil incompleto)`);
-        return NextResponse.next();
-      } else {
-        // Perfil completo: redirecionar para dashboard
-        console.log(`[Middleware] 🔄 Perfil completo - REDIRECIONANDO /cadastro -> /dashboard`);
-        const dashboardUrl = new URL("/dashboard", request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-    }
-    
-    // Se está acessando API de profile, permitir
-    if (pathname.startsWith("/api/profile")) {
-      console.log(`[Middleware] ✅ Permitindo acesso a API ${pathname}`);
-      return NextResponse.next();
     }
     
     // Token válido e perfil completo, permitir acesso
@@ -232,3 +144,6 @@ export const config = {
     "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\..*|static).*)",
   ],
 };
+
+// Configuração do runtime - explicitamente usar Edge Runtime
+export const runtime = 'edge';

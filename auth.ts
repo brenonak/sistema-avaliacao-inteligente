@@ -82,12 +82,18 @@ export const authOptions: NextAuthOptions = {
     },
     
     // Callback de JWT: incluir userId no token
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       // Na primeira vez que o JWT é criado (após login)
       if (user) {
         token.id = user.id;
-        token.isProfileComplete = (user as any).isProfileComplete;
-        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}`);
+        token.profileCompleted = (user as any).profileCompleted || false;
+        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}, profileCompleted: ${token.profileCompleted}`);
+      }
+      
+      // Permitir atualização do token quando o perfil é completado
+      if (trigger === "update" && session?.profileCompleted !== undefined) {
+        token.profileCompleted = session.profileCompleted;
+        console.log(`[Auth] JWT atualizado - profileCompleted: ${token.profileCompleted}`);
       }
       
       // Incluir provider info
@@ -103,7 +109,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         (session.user as any).id = token.id as string;
         (session as any).provider = token.provider;
-        (session.user as any).isProfileComplete = token.isProfileComplete;
+        (session.user as any).profileCompleted = token.profileCompleted || false;
       }
       return session;
     },
