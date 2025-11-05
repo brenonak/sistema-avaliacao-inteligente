@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!_id) return badRequest("id inválido");
     
     const body = await request.json();
-    const { titulo, instrucoes, nomeEscola, disciplina, professor, data, duracao, valorTotal, observacoes, questoesSelecionadas } = body;
+    const { titulo, instrucoes, nomeEscola, disciplina, professor, data, duracao, valorTotal, observacoes, questoesSelecionadas, questoesPontuacao } = body;
     
     if (!titulo || !instrucoes) {
       return badRequest("Título e instruções são obrigatórios");
@@ -32,9 +32,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     let questoes: Document[] = [];
     if (questoesIds.length > 0) {
-      questoes = await db.collection("questoes")
+      // Buscar todas as questões do banco
+      const questoesFromDb = await db.collection("questoes")
         .find({ _id: { $in: questoesIds }, cursoIds: id })
         .toArray();
+      
+      // Reorganizar questões na ordem em que foram selecionadas e adicionar pontuação
+      questoes = questoesIds.map(qId => {
+        const questao = questoesFromDb.find(q => q._id.equals(qId));
+        if (!questao) return null;
+        
+        // Adicionar pontuação à questão
+        const pontuacao = questoesPontuacao?.[qId.toString()] || 0;
+        return {
+          ...questao,
+          pontuacao
+        };
+      }).filter(Boolean); // Remove questões não encontradas
     }
     
     // Criar documento da prova

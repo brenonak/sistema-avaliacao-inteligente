@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
+import { getUserIdOrUnauthorized } from "../../../lib/auth-helpers";
 
 dotenv.config({ path: `.env.local` }); 
 
-
+/**
+ * POST /api/gerar-prova
+ * Gera prova em PDF usando as questões do usuário (requer autenticação)
+ */
 export async function POST(request: NextRequest) {
   try {
-    console.log("Recebida requisição para gerar prova com Gemini...");
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
+    console.log(`Gerando prova para usuário ${userId}...`);
 
     const client = new MongoClient(process.env.MONGODB_URI!); 
     let provaJson;
@@ -22,9 +31,9 @@ export async function POST(request: NextRequest) {
       const questoesCollection = database.collection("questoes");
       const recursosCollection = database.collection("recursos");
 
-      // Buscar as 5 questões mais recentes
+      // Buscar as 5 questões mais recentes DO USUÁRIO
       const questoesDaProva = await questoesCollection
-        .find()
+        .find({ ownerId: new ObjectId(userId) })
         .sort({ _id: -1 })
         .limit(5)
         .toArray();

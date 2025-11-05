@@ -9,6 +9,7 @@ export interface Recurso {
   filename: string;
   mime: string;
   sizeBytes: number;
+  ownerId: ObjectId; // ID do usuário que fez o upload
   usage: { refCount: number };
   createdAt: Date;
   updatedAt: Date;
@@ -32,7 +33,8 @@ export async function getRecursosCollection(): Promise<Collection<Recurso>> {
 
 async function createIndexes(collection: Collection<Recurso>): Promise<void> {
   try {
-    // Garante que temos o índice básico por URL que é o mais importante
+    // Índice único por URL (mesma URL = mesmo recurso)
+    // Isso garante que não temos duplicatas de URLs mesmo entre usuários
     try {
       await collection.createIndex(
         { "url": 1 },
@@ -42,7 +44,17 @@ async function createIndexes(collection: Collection<Recurso>): Promise<void> {
       console.warn("Warning: Could not create/verify URL index:", e);
     }
 
-    // Tenta criar outros índices, mas não falha se der erro
+    // Índice para queries por usuário (multi-tenant)
+    try {
+      await collection.createIndex(
+        { "ownerId": 1, "createdAt": -1 },
+        { name: "ownerId_createdAt" }
+      );
+    } catch (e) {
+      console.warn("Warning: Could not create ownerId index:", e);
+    }
+
+    // Índice para queries de recursos mais usados
     try {
       await collection.createIndex(
         { "usage.refCount": -1, "updatedAt": -1 },
@@ -68,39 +80,83 @@ async function createIndexes(collection: Collection<Recurso>): Promise<void> {
   }
 }
 
-export async function upsertRecurso(recursoData: Partial<Recurso>): Promise<Recurso> {
+export async function upsertRecurso(recursoData: Partial<Recurso>, userId?: string): Promise<Recurso> {
   const collection = await getRecursosCollection();
   const now = new Date();
   
-  const filter = { url: recursoData.url };
-  const update = {
-    $set: {
-      ...recursoData,
-      updatedAt: now,
-    },
-    $setOnInsert: {
-      usage: { refCount: 0 },
-      createdAt: now,
-      status: "active",
-    },
-  };
-  
-  const options = { upsert: true, returnDocument: "after" as const };
-  
-  const result = await collection.findOneAndUpdate(filter, update as any, options);
-  
-  if (!result) {
-    throw new Error("Failed to upsert recurso");
+  // Validações
+  if (!recursoData.url) {
+    throw new Error("URL do recurso é obrigatória");
   }
   
-  return result;
+  // Se ownerId não foi fornecido e temos userId, converter para ObjectId
+  const ownerId = recursoData.ownerId || (userId ? new ObjectId(userId) : undefined);
+  
+  if (!ownerId) {
+    throw new Error("ownerId ou userId deve ser fornecido para criar recurso");
+  }
+  
+  // Verificar se já existe um recurso com esta URL
+  const existingRecurso = await collection.findOne({ url: recursoData.url });
+  
+  if (existingRecurso) {
+    // Se já existe, apenas atualizar o updatedAt
+    // Nota: Não alteramos o ownerId de um recurso existente
+    const updateResult = await collection.findOneAndUpdate(
+      { url: recursoData.url },
+      { 
+        $set: { 
+          updatedAt: now,
+          // Atualizar outros campos se fornecidos
+          ...(recursoData.filename && { filename: recursoData.filename }),
+          ...(recursoData.mime && { mime: recursoData.mime }),
+          ...(recursoData.sizeBytes !== undefined && { sizeBytes: recursoData.sizeBytes }),
+          ...(recursoData.key && { key: recursoData.key }),
+        } 
+      },
+      { returnDocument: "after" }
+    );
+    
+    if (!updateResult) {
+      throw new Error("Failed to update existing recurso");
+    }
+    
+    console.log('[upsertRecurso] Recurso já existe, atualizado:', updateResult._id);
+    return updateResult;
+  }
+  
+  // Se não existe, criar novo recurso
+  const newRecurso: Recurso = {
+    provider: recursoData.provider || "vercel-blob",
+    url: recursoData.url,
+    key: recursoData.key || "",
+    filename: recursoData.filename || "unknown",
+    mime: recursoData.mime || "application/octet-stream",
+    sizeBytes: recursoData.sizeBytes || 0,
+    ownerId,
+    usage: { refCount: 0 },
+    createdAt: now,
+    updatedAt: now,
+    status: "active",
+  };
+  
+  const insertResult = await collection.insertOne(newRecurso);
+  
+  console.log('[upsertRecurso] Novo recurso criado:', insertResult.insertedId);
+  
+  return {
+    ...newRecurso,
+    _id: insertResult.insertedId,
+  };
 }
 
-export async function getTopRecursos(limit: number = 10): Promise<Recurso[]> {
+export async function getTopRecursos(userId: string, limit: number = 10): Promise<Recurso[]> {
   const collection = await getRecursosCollection();
   
+  // SEMPRE filtrar por ownerId (multi-tenant)
+  // Ordenar por refCount (decrescente) e depois por data de atualização
   return await collection
-    .find({ status: { $ne: "orphan" } })
+    .find({ ownerId: new ObjectId(userId) })
     .sort({ "usage.refCount": -1, "updatedAt": -1 })
     .limit(limit)
     .toArray();

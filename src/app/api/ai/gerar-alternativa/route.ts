@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { getUserIdOrUnauthorized } from "../../../../lib/auth-helpers";
 
 const model = new ChatGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_API_KEY,
@@ -10,10 +11,18 @@ const model = new ChatGoogleGenerativeAI({
   maxOutputTokens: 2048,
 });
 
+/**
+ * POST /api/ai/gerar-alternativa
+ * Gera alternativas incorretas (distratores) usando IA (requer autenticação)
+ */
 export async function POST(req: Request) {
   try {
+    // Validar sessão e obter userId
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
     const body = await req.json();
-    // MODIFICAÇÃO: 'quantidade' agora é um campo obrigatório vindo do frontend.
     const { enunciado, alternativaCorreta, tags, quantidade } = body;
 
     if (!enunciado || !alternativaCorreta) {

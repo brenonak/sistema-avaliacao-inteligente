@@ -29,7 +29,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { styled } from '@mui/material/styles';
 import FileItem from '../../../components/FileItem';
 import AIButton from '../../../components/AIButton';
-import { upload } from "@vercel/blob/client";
 import { set } from 'zod';
 import ImageUploadSection from '../../../components/ImageUploadSection';
 
@@ -67,7 +66,8 @@ function CriarQuestaoForm() {
   const [gabarito, setGabarito] = useState('');
   const [palavrasChave, setPalavrasChave] = useState('');
 
-  const [arquivos, setArquivos] = useState([]);
+  const [arquivos, setArquivos] = useState([]); // Novos arquivos para upload
+  const [recursosExistentes, setRecursosExistentes] = useState([]); // Recursos já no blob { id, url, name }
   const [uploadedFiles, setUploadedFiles] = useState([]); // { name, size, url, type }
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -376,6 +376,7 @@ useEffect(() => {
     setGabarito('');
     setPalavrasChave('');
     setArquivos([]);
+    setRecursosExistentes([]);
     setUploadedFiles([]);
     setRespostaNumerica('');
     setMargemErro('');
@@ -412,15 +413,15 @@ useEffect(() => {
       return;
     }
 
-    // realiza upload dos arquivos selecionados (se houver)
-    let recursos = [];
+    // realiza upload dos NOVOS arquivos selecionados (se houver)
+    let recursosNovos = [];
     if (arquivos.length > 0) {
       try {
         for (const file of arquivos) {
           const uploaded = await uploadSingleFile(file);
-          recursos.push(uploaded);
+          recursosNovos.push(uploaded);
         }
-        setUploadedFiles(recursos);
+        setUploadedFiles(recursosNovos);
       } catch (e) {
         console.error('Erro ao enviar anexos:', e);
         setSnackbar({ open: true, message: 'Falha ao enviar arquivos. Tente novamente.', severity: 'error' });
@@ -429,12 +430,34 @@ useEffect(() => {
       }
     }
 
+    // Combinar URLs dos novos recursos + IDs dos recursos existentes
+    // A API aceita tanto URLs quanto IDs - enviar IDs é mais eficiente
+    const todosOsRecursos = [
+      ...recursosNovos.map((r) => r.url), // Novos: enviar URL
+      ...recursosExistentes.map((r) => r.id) // Existentes: enviar ID diretamente
+    ];
+
+    // Coletar IDs das imagens para vincular à questão
+    const imagemIds = [
+      ...recursosNovos.map((r) => r.resourceId).filter(Boolean), // IDs dos novos recursos
+      ...recursosExistentes.map((r) => r.id) // IDs dos recursos existentes
+    ];
+
+    console.log('[handleSubmit] Recursos enviados:', {
+      novos: recursosNovos.length,
+      existentes: recursosExistentes.length,
+      total: todosOsRecursos.length,
+      imagemIds: imagemIds,
+      idsExistentes: recursosExistentes.map(r => r.id)
+    });
+
     // monta o payload no formato esperado pela API
     const basePayload = {
       tipo,
       enunciado,
       tags: cleanTags,
-      recursos: recursos.map((r) => r.url),
+      recursos: todosOsRecursos, // Array misto de URLs (novos) e IDs (existentes) - para incrementar refCount
+      imagemIds: imagemIds, // IDs das imagens para vincular à questão
       cursoIds: cursoId ? [cursoId] : [], // Adiciona o cursoId se vier de um curso
     };
 
@@ -525,48 +548,64 @@ useEffect(() => {
     width: 1,
   });
 
-  // upload para Vercel Blob e registro opcional no backend local
+  // upload para Vercel Blob via servidor (mais confiável)
   const uploadSingleFile = async (file) => {
-    const blob = await upload(file.name, file, {
-      access: 'public',
-      handleUploadUrl: '/api/blob/upload',
-      clientPayload: JSON.stringify({ originalFilename: file.name, timestamp: Date.now() })
-    });
-
-    // Fallback de registro no desenvolvimento local
     try {
-      await fetch('/api/resources/register', {
+      console.log('[uploadSingleFile] Iniciando upload direto de:', file.name, 'tamanho:', file.size);
+      
+      // Criar FormData para enviar o arquivo
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Enviar para o servidor
+      const response = await fetch('/api/blob/upload-direct', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: blob.url,
-          key: blob.pathname,
-          filename: file.name,
-          mime: file.type,
-          sizeBytes: file.size
-        })
+        body: formData,
       });
-    } catch (_) {
-      // silencioso em produção
-    }
 
-    return { name: file.name, size: file.size, url: blob.url, type: file.type };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.details || `Erro HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[uploadSingleFile] Upload concluído:', data.url, 'resourceId:', data.resourceId);
+
+      return { 
+        name: file.name, 
+        size: file.size, 
+        url: data.url, 
+        type: file.type,
+        resourceId: data.resourceId // ID do recurso no MongoDB
+      };
+    } catch (error) {
+      console.error('[uploadSingleFile] Erro no upload:', error);
+      throw new Error(`Falha ao enviar arquivo ${file.name}: ${error.message || 'Erro desconhecido'}`);
+    }
   };
 
   // manipula seleção de arquivos (sem upload imediato)
-  const handleFileChange = (eventOrFiles) => {
+  const handleFileChange = (eventOrFiles, existingResources = null) => {
+    // Se são recursos existentes (do banco de imagens frequentes)
+    if (existingResources && Array.isArray(existingResources)) {
+      console.log('[handleFileChange] Adicionando recursos existentes:', existingResources);
+      setRecursosExistentes((prev) => [...prev, ...existingResources]);
+      return;
+    }
+
+    // Caso contrário, são novos arquivos para upload
     let files = [];
 
     // Se chamado por evento de input file
     if (eventOrFiles?.target?.files) {
       files = Array.from(eventOrFiles.target.files);
     } else if (Array.isArray(eventOrFiles)) {
-      // Se chamado com o banco de imagens frequentes
       files = eventOrFiles;
     }
 
     if (files.length === 0) return;
 
+    console.log('[handleFileChange] Adicionando novos arquivos:', files.length);
     setArquivos((prev) => [...prev, ...files]);
   };
 
@@ -984,16 +1023,52 @@ useEffect(() => {
           handleFileChange={handleFileChange}
         />
 
-        {/* Lista de arquivos adicionados */}
+        {/* Lista de NOVOS arquivos adicionados (para upload) */}
         {arquivos.map((file, index) => (
           <FileItem
-            key={index}
+            key={`novo-${index}`}
             file={file}
             onExclude={(f) => {
               setArquivos((prev) => prev.filter((x) => x !== f));
             }}
           />
         ))}
+
+        {/* Lista de recursos EXISTENTES do banco */}
+        {recursosExistentes.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+              Imagens do banco:
+            </Typography>
+            {recursosExistentes.map((recurso, i) => (
+              <Box key={`existente-${recurso.id}-${i}`} sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1, 
+                mb: 1,
+                p: 1,
+                backgroundColor: 'action.hover',
+                borderRadius: 1
+              }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+                  📷 {recurso.name}
+                </Typography>
+                <a href={recurso.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.875rem' }}>
+                  visualizar
+                </a>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setRecursosExistentes((prev) => prev.filter((r) => r.id !== recurso.id));
+                  }}
+                  color="error"
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Arquivos enviados (links) */}
         {uploadedFiles.length > 0 && (
@@ -1002,7 +1077,7 @@ useEffect(() => {
               Arquivos enviados:
             </Typography>
             {uploadedFiles.map((f, i) => (
-              <Box key={`${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Box key={`enviado-${f.url}-${i}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>{f.name}</Typography>
                 <a href={f.url} target="_blank" rel="noreferrer">abrir</a>
               </Box>

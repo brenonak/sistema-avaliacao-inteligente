@@ -100,6 +100,20 @@ const Header = () => {
             disableScrollLock={true}
           >
             {settings.map((setting) => {
+              if (setting === 'Perfil') {
+                return (
+                  <MenuItem 
+                    key={setting} 
+                    onClick={handleCloseUserMenu}
+                    component={Link} // Usa o Link do Next.js
+                    href="/perfil/cadastro" // Define o destino
+                    sx={{ width: '100%' }}
+                  >
+                    <Typography sx={{ textAlign: 'center', width: '100%' }}>{setting}</Typography>
+                  </MenuItem>
+                );
+              }
+                
               // Verifica se o item atual é "Sair"
               if (setting === 'Sair') {
                 return (
