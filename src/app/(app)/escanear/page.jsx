@@ -164,8 +164,10 @@ export default function CorrecaoPage() {
     setError(null);
 
     try {
+      console.log('Iniciando salvamento de questões:', extractedQuestoes);
+
       // Processa e salva cada questão individualmente
-      const savePromises = extractedQuestoes.map(async (questao, index) => {
+      for (const [index, questao] of extractedQuestoes.entries()) {
         // Validações básicas
         if (!questao.enunciado?.trim()) {
           throw new Error(`Questão ${index + 1}: Enunciado não pode estar vazio`);
@@ -173,29 +175,29 @@ export default function CorrecaoPage() {
 
         // Validações específicas por tipo
         if (questao.tipo === 'alternativa') {
-          if (questao.alternativas.some(a => !a.texto?.trim())) {
+          if (questao.alternativas?.some(a => !a.texto?.trim())) {
             throw new Error(`Questão ${index + 1}: Todas as alternativas devem ser preenchidas`);
           }
-          if (!questao.alternativas.some(a => a.correta)) {
+          if (!questao.alternativas?.some(a => a.correta)) {
             throw new Error(`Questão ${index + 1}: Uma alternativa deve ser marcada como correta`);
           }
         }
 
         // Prepara o payload base
         const basePayload = {
-          tipo: questao.tipo,
+          tipo: questao.tipo || 'alternativa', // Tipo padrão se não especificado
           enunciado: questao.enunciado.trim(),
-          tags: questao.tags?.map(tag => tag.trim()).filter(Boolean) || [],
+          tags: Array.isArray(questao.tags) ? questao.tags.map(tag => tag.trim()).filter(Boolean) : [],
           recursos: [], // Se houver recursos, adicionar aqui
           cursoIds: [], // Se houver curso relacionado, adicionar aqui
         };
 
         // Adiciona campos específicos baseado no tipo
         let payload;
-        if (questao.tipo === 'alternativa') {
+        if (questao.tipo === 'alternativa' || !questao.tipo) { // Se não tiver tipo, assume alternativa
           payload = {
             ...basePayload,
-            alternativas: questao.alternativas.map((a, i) => ({
+            alternativas: (questao.alternativas || []).map((a, i) => ({
               letra: String.fromCharCode(65 + i), // Converte 0 -> 'A', 1 -> 'B', etc.
               texto: a.texto.trim(),
               correta: !!a.correta,
@@ -204,36 +206,38 @@ export default function CorrecaoPage() {
         } else if (questao.tipo === 'proposicoes') {
           payload = {
             ...basePayload,
-            proposicoes: questao.proposicoes.map((p, index) => ({
+            proposicoes: (questao.proposicoes || []).map((p, index) => ({
               valor: Math.pow(2, index),
               texto: p.texto.trim(),
               correta: !!p.correta,
             })),
           };
         } else {
-          // Outros tipos de questão podem ser adicionados aqui
           payload = basePayload;
         }
+
+        console.log(`Salvando questão ${index + 1}:`, payload);
 
         // Envia para a API
         const response = await fetch('/api/questoes', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(payload),
         });
 
+        const responseData = await response.json();
+
         if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err?.error || `Falha ao salvar questão ${index + 1} (HTTP ${response.status})`);
+          console.error(`Erro ao salvar questão ${index + 1}:`, responseData);
+          throw new Error(responseData.error || `Falha ao salvar questão ${index + 1} (HTTP ${response.status})`);
         }
 
-        return response.json();
-      });
+        console.log(`Questão ${index + 1} salva com sucesso:`, responseData);
+      }
 
-      // Aguarda todas as questões serem salvas
-      await Promise.all(savePromises);
-      
-      // Limpa o estado após salvar com sucesso
+      // Se chegou aqui, todas as questões foram salvas com sucesso
       setExtractedQuestoes([]);
       setError(null);
       setFiles([]);
@@ -502,12 +506,22 @@ export default function CorrecaoPage() {
           ))}
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <Button variant="outlined" onClick={handleClearFiles}>
+            <Button 
+              variant="outlined" 
+              onClick={handleClearFiles}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
-             <Button variant="contained" color="primary">
-               Salvar Questões (Ainda não implementado)
-             </Button>
+            <Button 
+              variant="contained" 
+              color="primary"
+              onClick={handleSaveQuestoes}
+              disabled={isLoading || extractedQuestoes.length === 0}
+              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
+            >
+              {isLoading ? "Salvando..." : "Salvar Questões"}
+            </Button>
           </Box>
           
         </Container>
