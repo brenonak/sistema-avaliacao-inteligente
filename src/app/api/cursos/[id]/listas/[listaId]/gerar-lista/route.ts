@@ -58,15 +58,16 @@ function generateGabaritoLatex(lista: any): string {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string, listaId: string } }
+    { params }: { params: Promise<{ id: string, listaId: string }> }
 ) {
     try {
         const { searchParams } = new URL(request.url);
         const includeGabarito = searchParams.get('includeGabarito') === 'true';
 
-        console.log(`Recebida requisição para gerar lista: ${params.listaId} (Gabarito: ${includeGabarito})`);
+        const resolvedParams = await params;
+        console.log(`Recebida requisição para gerar lista: ${resolvedParams.listaId} (Gabarito: ${includeGabarito})`);
 
-        const { id: cursoId, listaId } = params;
+        const { id: cursoId, listaId } = resolvedParams;
         const _id = oid(listaId);
 
         if (!_id) {

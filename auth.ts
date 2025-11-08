@@ -82,12 +82,18 @@ export const authOptions: NextAuthOptions = {
     },
     
     // Callback de JWT: incluir userId no token
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       // Na primeira vez que o JWT é criado (após login)
       if (user) {
         token.id = user.id;
-        token.isProfileComplete = (user as any).isProfileComplete;
-        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}`);
+        token.profileCompleted = (user as any).profileCompleted || false;
+        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}, profileCompleted: ${token.profileCompleted}`);
+      }
+      
+      // Permitir atualização do token quando o perfil é completado
+      if (trigger === "update" && session?.profileCompleted !== undefined) {
+        token.profileCompleted = session.profileCompleted;
+        console.log(`[Auth] JWT atualizado - profileCompleted: ${token.profileCompleted}`);
       }
       
       // Incluir provider info
@@ -103,18 +109,38 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         (session.user as any).id = token.id as string;
         (session as any).provider = token.provider;
-        (session.user as any).isProfileComplete = token.isProfileComplete;
+        (session.user as any).profileCompleted = token.profileCompleted || false;
       }
       return session;
     },
     
     // Callback de redirect: redireciona após autenticação
     async redirect({ url, baseUrl }) {
-      // Esta nova lógica é neutra. Ela permite que a sua Task #172 (middleware)
-      // controle o redirecionamento, tratando corretamente os URLs.
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl; // Padrão seguro
+      console.log(`[Auth] Redirect callback - url: ${url}, baseUrl: ${baseUrl}`);
+      
+      // Se é uma URL relativa, combinar com baseUrl
+      if (url.startsWith("/")) {
+        const redirectUrl = `${baseUrl}${url}`;
+        console.log(`[Auth] Redirecionando para URL relativa: ${redirectUrl}`);
+        return redirectUrl;
+      }
+      
+      // Se a URL é da mesma origem, permitir
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(baseUrl);
+        if (urlObj.origin === baseUrlObj.origin) {
+          console.log(`[Auth] Redirecionando para mesma origem: ${url}`);
+          return url;
+        }
+      } catch (e) {
+        console.error(`[Auth] Erro ao processar URLs:`, e);
+      }
+      
+      // Caso padrão: redirecionar para dashboard
+      const defaultUrl = `${baseUrl}/dashboard`;
+      console.log(`[Auth] Redirecionando para URL padrão: ${defaultUrl}`);
+      return defaultUrl;
     },
   },
   

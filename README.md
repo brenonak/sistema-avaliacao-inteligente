@@ -9,7 +9,7 @@ Uma plataforma web que permite aos professores criar, gerar estatísticas e corr
 
 ## Status do Projeto
 
-- **Fase Atual:** Sprint 3 
+- **Fase Atual:** Sprint 3 deploy
 - **Tasks:**
     - Enunciados
     - Landing Page
