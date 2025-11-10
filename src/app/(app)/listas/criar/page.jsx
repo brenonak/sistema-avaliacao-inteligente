@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import {
   Box,
   Typography,
@@ -33,7 +35,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 
-export default function CriarListaPage() {
+function CriarListaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cursoId = searchParams.get('cursoId');
@@ -45,7 +47,7 @@ export default function CriarListaPage() {
 
   // Campos do formulário
   const [formData, setFormData] = useState({
-    nomeMateria: '',
+    tituloLista: '',
     questoesIds: [],
     nomeInstituicao: '',
 
@@ -55,16 +57,6 @@ export default function CriarListaPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
-
-  useEffect(() => {
-    // Pré-preencher o nome da disciplina com o nome do curso, se disponível
-    if (cursoNome) {
-      setFormData(prev => ({
-        ...prev,
-        nomeMateria: decodeURIComponent(cursoNome),
-      }));
-    }
-  }, [cursoNome]);
 
   // Buscar questões do curso
   useEffect(() => {
@@ -129,7 +121,7 @@ export default function CriarListaPage() {
     e.preventDefault();
 
     // Validação básica
-    if (!formData.nomeMateria.trim()) {
+    if (!formData.tituloLista.trim()) {
       setError('O nome da matéria é obrigatório');
       return;
     }
@@ -251,10 +243,10 @@ export default function CriarListaPage() {
                   <TextField
                     fullWidth
                     required
-                    label="Nome da Matéria"
-                    placeholder="Ex: Matemática"
-                    value={formData.nomeMateria}
-                    onChange={handleChange('nomeMateria')}
+                    label="Conteúdo da Lista"
+                    placeholder="Ex: Integrais e Derivadas"
+                    value={formData.tituloLista}
+                    onChange={handleChange('tituloLista')}
                     variant="outlined"
                     multiline
                     rows={4}
@@ -509,5 +501,17 @@ export default function CriarListaPage() {
         </Box>
       </form>
     </Box>
+  );
+}
+
+export default function CriarListaPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <CriarListaContent />
+    </Suspense>
   );
 }

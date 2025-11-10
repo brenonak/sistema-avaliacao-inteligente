@@ -86,7 +86,7 @@ export const authOptions: NextAuthOptions = {
     },
     
     // Callback de JWT: incluir userId no token
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       // Na primeira vez que o JWT é criado (após login)
       if (user) {
         token.id = user.id;
@@ -116,11 +116,31 @@ export const authOptions: NextAuthOptions = {
     
     // Callback de redirect: redireciona após autenticação
     async redirect({ url, baseUrl }) {
-      // Esta nova lógica é neutra. Ela permite que a sua Task #172 (middleware)
-      // controle o redirecionamento, tratando corretamente os URLs.
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl; // Padrão seguro
+      console.log(`[Auth] Redirect callback - url: ${url}, baseUrl: ${baseUrl}`);
+      
+      // Se é uma URL relativa, combinar com baseUrl
+      if (url.startsWith("/")) {
+        const redirectUrl = `${baseUrl}${url}`;
+        console.log(`[Auth] Redirecionando para URL relativa: ${redirectUrl}`);
+        return redirectUrl;
+      }
+      
+      // Se a URL é da mesma origem, permitir
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(baseUrl);
+        if (urlObj.origin === baseUrlObj.origin) {
+          console.log(`[Auth] Redirecionando para mesma origem: ${url}`);
+          return url;
+        }
+      } catch (e) {
+        console.error(`[Auth] Erro ao processar URLs:`, e);
+      }
+      
+      // Caso padrão: redirecionar para dashboard
+      const defaultUrl = `${baseUrl}/dashboard`;
+      console.log(`[Auth] Redirecionando para URL padrão: ${defaultUrl}`);
+      return defaultUrl;
     },
   },
   

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import {
   Box,
   Typography,
@@ -33,7 +35,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 
-export default function CriarProvaPage() {
+function CriarProvaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cursoId = searchParams.get('cursoId');
@@ -691,11 +693,23 @@ export default function CriarProvaPage() {
               startIcon={loading ? <CircularProgress size={20} /> : <Save />}
               disabled={loading}
             >
-              {loading ? 'Gravando Prova...' : 'Gravar Prova'}
+                            {loading ? 'Gravando Prova...' : 'Gravar Prova'}
             </Button>
           </Box>
         </Box>
       </form>
     </Box>
+  );
+}
+
+export default function CriarProvaPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <CriarProvaContent />
+    </Suspense>
   );
 }

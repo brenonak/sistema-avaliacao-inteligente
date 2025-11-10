@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { 
   Box, 
   Typography, 

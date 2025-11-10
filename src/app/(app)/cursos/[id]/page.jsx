@@ -94,6 +94,16 @@ export default function CursoDetalhesPage() {
   const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
   const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
 
+  //Estados para o diálogo de edição de lista de exercícios
+  const [openEditListaDialog, setOpenEditListaDialog] = useState(false);
+  const [editingLista, setEditingLista] = useState(null);
+  const [loadingEditLista, setLoadingEditLista] = useState(false);
+  const [editListaData, setEditListaData] = useState({
+    tituloLista: '',
+    nomeInstituicao: '',
+  });
+  const [selectedQuestoesLista, setSelectedQuestoesLista] = useState([]); // Apenas os IDs
+
   // Estado e handlers para diálogo "Gerar Lista de Exercícios"
   const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
   const [includeGabarito, setIncludeGabarito] = useState(false);
@@ -575,9 +585,6 @@ export default function CursoDetalhesPage() {
     setOpenEditProvaDialog(true);
   };
 
-  const handleOpenEditLista = async (lista) => {
-  }
-
   const handleChangeEditProva = (field) => (event) => {
     setEditProvaData({
       ...editProvaData,
@@ -696,6 +703,105 @@ export default function CursoDetalhesPage() {
       alert(error.message || 'Erro ao atualizar prova. Tente novamente.');
     } finally {
       setLoadingEditProva(false);
+    }
+  };
+
+  const handleOpenEditLista = async (lista) => {
+    setEditingLista(lista); // Armazena a lista original
+    
+    // Define os dados dos campos do formulário
+    setEditListaData({
+      tituloLista: lista.tituloLista || '',
+      nomeInstituicao: lista.nomeInstituicao || '',
+    });
+    
+    // Preenche as questões selecionadas (são apenas IDs)
+    setSelectedQuestoesLista(lista.questoesIds || []);
+    
+    setOpenEditListaDialog(true);
+  };
+
+  const handleChangeEditLista = (field) => (event) => {
+    setEditListaData({
+      ...editListaData,
+      [field]: event.target.value,
+    });
+  };
+
+  const handleToggleQuestaoLista = (questaoId) => {
+    setSelectedQuestoesLista((prev) => {
+      if (prev.includes(questaoId)) {
+        return prev.filter(q => q !== questaoId);
+      } else {
+        return [...prev, questaoId];
+      }
+    });
+  };
+
+  // Mover questão para cima na ordem (edição de lista)
+  const handleMoveUpLista = (index) => {
+    if (index === 0) return;
+    setSelectedQuestoesLista((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  };
+
+  // Mover questão para baixo na ordem (edição de lista)
+  const handleMoveDownLista = (index) => {
+    if (index === selectedQuestoesLista.length - 1) return;
+    setSelectedQuestoesLista((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
+  };
+
+  // Remover questão da seleção (edição de lista)
+  const handleRemoveQuestaoLista = (questaoId) => {
+    setSelectedQuestoesLista((prev) => prev.filter(q => q !== questaoId));
+  };
+
+  const handleSaveEditLista = async () => {
+    if (!editListaData.tituloLista.trim()) {
+      alert('O nome da matéria é obrigatório');
+      return;
+    }
+
+    setLoadingEditLista(true);
+    try {
+      // Diferente das provas, aqui SÓ precisamos enviar os IDs
+      const questoesIds = selectedQuestoesLista.map(qId => {
+        const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+        return questao?._id || qId;
+      });
+
+      const res = await fetch(`/api/cursos/${cursoId}/listas/${editingLista.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...editListaData, // tituloLista, nomeInstituicao
+          questoesIds,       // O array de IDs
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao atualizar lista');
+      }
+
+      alert('Lista atualizada com sucesso!');
+      setOpenEditListaDialog(false);
+      setEditingLista(null);
+      fetchExercícios(); // Re-busca as listas
+    } catch (error) {
+      console.error('Erro ao atualizar lista:', error);
+      alert(error.message || 'Erro ao atualizar lista. Tente novamente.');
+    } finally {
+      setLoadingEditLista(false);
     }
   };
 
@@ -979,7 +1085,7 @@ export default function CursoDetalhesPage() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                        {lista.nomeMateria}
+                        {lista.tituloLista}
                       </Typography>
 
                       {lista.nomeInstituicao && (
@@ -1005,9 +1111,16 @@ export default function CursoDetalhesPage() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                       <IconButton
+                        color="primary"
+                        onClick={() => handleOpenEditLista(lista)}
+                        title="Editar lista"
+                      >
+                        <Edit />
+                      </IconButton>
+                      <IconButton
                         color="success"
                         onClick={() => handleOpenGenerateDialog(lista)}
-                        title="Gerar Lista de Exercícios"
+                        title="Exportar para LaTeX"
                       >
                         <PostAdd />
                       </IconButton>
@@ -1718,6 +1831,236 @@ export default function CursoDetalhesPage() {
         )}
       </Dialog>
 
+      {/*Dialog para Editar Lista de Exercícios*/}
+      <Dialog
+        open={openEditListaDialog}
+        onClose={() => !loadingEditLista && setOpenEditListaDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Editar Lista de Exercícios</DialogTitle>
+
+        {editingLista && (
+          <>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                
+                {/* Informações básicas (Simplificado para Listas) */}
+                <TextField
+                  fullWidth
+                  required
+                  label="Conteúdo da Lista"
+                  value={editListaData.tituloLista}
+                  onChange={handleChangeEditLista('tituloLista')}
+                  variant="outlined"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Nome da Escola/Instituição"
+                  value={editListaData.nomeInstituicao}
+                  onChange={handleChangeEditLista('nomeInstituicao')}
+                  variant="outlined"
+                />
+                
+                <Divider sx={{ my: 1 }} />
+
+                {/* Questões da lista */}
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  Questões da Lista
+                </Typography>
+
+                {(!curso.questoes || curso.questoes.length === 0) ? (
+                  <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                    Nenhuma questão cadastrada neste curso.
+                  </Typography>
+                ) : (
+                  <Box>
+                    {/* Questões Selecionadas - Ordenáveis */}
+                    {selectedQuestoesLista.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            Questões Selecionadas ({selectedQuestoesLista.length})
+                          </Typography>
+                          {/* Box de pontuação REMOVIDO */}
+                        </Box>
+                        <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
+                          {selectedQuestoesLista.map((questaoId, index) => {
+                            
+                            // LÓGICA DE BUSCA SIMPLIFICADA (A GRANDE MUDANÇA)
+                            // Listas usam Referência, então *sempre* buscamos do 'curso.questoes'
+                            const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                            
+                            // Se a questão foi deletada do curso, ela não aparecerá aqui.
+                            // Este é o comportamento esperado para Listas (Referência).
+                            if (!questao) return null;
+
+                            return (
+                              <ListItem
+                                key={`selected-${questaoId}`}
+                                sx={{
+                                  border: 1,
+                                  borderColor: 'primary.main',
+                                  borderRadius: 1,
+                                  mb: 1,
+                                  bgcolor: 'background.paper',
+                                  p: 1,
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                {/* Número da ordem */}
+                                <Box
+                                  sx={{
+                                    minWidth: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    borderRadius: 1,
+                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem',
+                                  }}
+                                >
+                                  {index + 1}
+                                </Box>
+
+                                {/* Conteúdo da questão */}
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
+                                    {questao.enunciado || 'Sem enunciado'}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip 
+                                        key={`sel-tag-${questaoId}-${idx}`} 
+                                        label={tag} 
+                                        size="small" 
+                                        variant="outlined" 
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+
+                                {/* Campo de pontuação REMOVIDO */}
+
+                                {/* Botões de controle */}
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveUpLista(index);
+                                    }}
+                                    disabled={index === 0}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowUpward fontSize="small" />
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveDownLista(index);
+                                    }}
+                                    disabled={index === selectedQuestoesLista.length - 1}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowDownward fontSize="small" />
+                                  </Button>
+                                </Box>
+
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveQuestaoLista(questaoId);
+                                  }}
+                                  sx={{ minWidth: 'auto', p: 0.5 }}
+                                >
+                                  <ClearIcon fontSize="small" />
+                                </Button>
+                              </ListItem>
+                            );
+                          })}
+                        </List>
+                      </Box>
+                    )}
+
+                    {/* Divider se houver questões selecionadas */}
+                    {selectedQuestoesLista.length > 0 && (
+                      <Divider sx={{ my: 1 }}>
+                        <Chip label="Questões Disponíveis" size="small" />
+                      </Divider>
+                    )}
+
+                    {/* Questões Disponíveis */}
+                    <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      {curso.questoes
+                        .filter(questao => !selectedQuestoesLista.includes(questao._id || questao.id))
+                        .map((questao) => {
+                          const questaoId = questao._id || questao.id;
+
+                          return (
+                            <ListItem
+                              key={questaoId}
+                              dense
+                              component="div"
+                              onClick={() => handleToggleQuestaoLista(questaoId)}
+                              sx={{
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover',
+                                },
+                              }}
+                            >
+                              <Checkbox
+                                checked={false}
+                                tabIndex={-1}
+                                disableRipple
+                              />
+                              <ListItemText
+                                primary={questao.enunciado || 'Sem enunciado'}
+                                secondaryTypographyProps={{ component: 'div' }}
+                                secondary={
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                    ))}
+                                  </Box>
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
+                    </List>
+                  </Box>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenEditListaDialog(false)} disabled={loadingEditLista}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEditLista} variant="contained" disabled={loadingEditLista}>
+                {loadingEditLista ? 'Salvando...' : 'Salvar Lista'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       {/* Dialog para Gerar Lista de Exercícios */}
       <Dialog
         open={openGenerateDialog}
@@ -1728,7 +2071,7 @@ export default function CursoDetalhesPage() {
         <DialogTitle>Gerar Lista de Exercícios</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.nomeMateria}".` : 'Você está prestes a gerar uma lista de exercícios.'}
+            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.tituloLista}".` : 'Você está prestes a gerar uma lista de exercícios.'}
           </Typography>
 
           <FormControlLabel

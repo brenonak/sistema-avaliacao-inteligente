@@ -88,14 +88,14 @@ export async function PUT(
         // Buscar todas as questões do banco
         const questoesFromDb = await db
           .collection("questoes")
-          .find({ _id: { $in: questoesIds }, cursoIds: id })
+          .find({ _id: { $in: questoesIds } })
           .toArray();
-        
+
         // Reorganizar questões na ordem em que foram selecionadas e adicionar pontuação
         questoes = questoesIds.map(qId => {
           const questao = questoesFromDb.find(q => q._id.equals(qId));
           if (!questao) return null;
-          
+
           // Adicionar pontuação à questão
           const pontuacao = questoesPontuacao?.[qId.toString()] || 0;
           return {
@@ -148,12 +148,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const { provaId } = await params;
     const _id = oid(provaId);
     if (!_id) return badRequest("id inválido");
-    
+
     const db = await getDb();
     const result = await db.collection("provas").deleteOne({ _id });
-    
+
     if (!result.deletedCount) return notFound("prova não encontrada");
-    
+
     return json({ ok: true, message: 'Prova excluída com sucesso!' });
   } catch (e) {
     return serverError(e);

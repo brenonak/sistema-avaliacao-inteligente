@@ -27,7 +27,7 @@ function oid(id: string) {
  * schema:
  * type: object
  * properties:
- * nomeMateria:
+ * tituloLista:
  * type: string
  * description: O nome da matéria ou tópico da lista
  * questoesIds:
@@ -39,7 +39,7 @@ function oid(id: string) {
  * type: string
  * description: (Opcional) Nome da instituição de ensino
  * required:
- * - nomeMateria
+ * - tituloLista
  * - questoesIds
  * responses:
  * 200:
@@ -59,10 +59,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     
     const body = await request.json();
     // Extrai os campos do corpo, incluindo o novo campo 'nomeInstituicao'
-    const { nomeMateria, questoesIds, nomeInstituicao } = body;
+    const { tituloLista, questoesIds, nomeInstituicao } = body;
     
     // Validação dos campos obrigatórios
-    if (!nomeMateria || !Array.isArray(questoesIds)) {
+    if (!tituloLista || !Array.isArray(questoesIds)) {
       return badRequest("Nome da matéria e um array de 'questoesIds' são obrigatórios");
     }
     
@@ -75,7 +75,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // 2. Criar o documento da lista de exercícios
     const lista = {
       cursoId: id, 
-      nomeMateria,
+      tituloLista,
       questoesIds,
       nomeInstituicao: nomeInstituicao || '', 
       criadoEm: new Date(),
