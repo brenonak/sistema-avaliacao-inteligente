@@ -20,6 +20,7 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { clientPromise } from "./src/lib/mongodb";
+import { events } from "./src/lib/auth-events";
 
 export const authOptions: NextAuthOptions = {
   // Adapter MongoDB oficial - cria coleções: users, accounts, sessions, verificationTokens
@@ -27,6 +28,9 @@ export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise, {
     databaseName: process.env.MONGODB_DB,
   }),
+
+  // Eventos do adapter (manipulam o banco de dados)
+  events,
   
   // Estratégia de sessão JWT (necessário para funcionar com adapter)
   session: {
@@ -86,8 +90,9 @@ export const authOptions: NextAuthOptions = {
       // Na primeira vez que o JWT é criado (após login)
       if (user) {
         token.id = user.id;
-        token.isProfileComplete = (user as any).isProfileComplete;
-        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}`);
+        token.isProfileComplete = (user as any).isProfileComplete === true;
+        token.profileCompleted = (user as any).profileCompleted === true; // mantém compatibilidade
+        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}, isProfileComplete: ${token.isProfileComplete}`);
       }
       
       // Incluir provider info
@@ -104,6 +109,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id as string;
         (session as any).provider = token.provider;
         (session.user as any).isProfileComplete = token.isProfileComplete;
+        (session.user as any).profileCompleted = token.profileCompleted; // mantém compatibilidade
       }
       return session;
     },

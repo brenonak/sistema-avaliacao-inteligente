@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
           instituicao: parsed.data.instituicao,
           curso: parsed.data.curso,
           areasInteresse: parsed.data.areasInteresse,
-          profileCompleted: true,
+          isProfileComplete: true,
+          profileCompleted: true, // mantém compatibilidade
           profileCompletedAt: new Date(),
           updatedAt: new Date(),
         }
@@ -111,7 +112,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      profileCompleted: user.profileCompleted || false,
+      isProfileComplete: user.isProfileComplete || user.profileCompleted || false,
+      profileCompleted: user.profileCompleted || user.isProfileComplete || false, // mantém compatibilidade
       user: {
         id: user._id?.toString(),
         name: user.name,
