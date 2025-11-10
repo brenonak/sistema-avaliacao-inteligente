@@ -63,9 +63,11 @@ async function isProfileCompleted(userId: string, forceRefresh: boolean = false)
     await client.close();
 
     console.log(`[isProfileCompleted] User encontrado:`, user ? `email: ${user.email}` : 'null');
+    console.log(`[isProfileCompleted] isProfileComplete no banco:`, user?.isProfileComplete);
     console.log(`[isProfileCompleted] profileCompleted no banco:`, user?.profileCompleted);
     
-    const completed = user?.profileCompleted === true;
+    // Verificar ambos os campos por compatibilidade
+    const completed = user?.isProfileComplete === true || user?.profileCompleted === true;
     
     // Atualizar cache
     profileCache.set(userId, { completed, timestamp: Date.now() });
