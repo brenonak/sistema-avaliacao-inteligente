@@ -47,7 +47,7 @@ function CriarListaContent() {
 
   // Campos do formulário
   const [formData, setFormData] = useState({
-    nomeMateria: '',
+    tituloLista: '',
     questoesIds: [],
     nomeInstituicao: '',
 
@@ -57,16 +57,6 @@ function CriarListaContent() {
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
-
-  useEffect(() => {
-    // Pré-preencher o nome da disciplina com o nome do curso, se disponível
-    if (cursoNome) {
-      setFormData(prev => ({
-        ...prev,
-        nomeMateria: decodeURIComponent(cursoNome),
-      }));
-    }
-  }, [cursoNome]);
 
   // Buscar questões do curso
   useEffect(() => {
@@ -131,7 +121,7 @@ function CriarListaContent() {
     e.preventDefault();
 
     // Validação básica
-    if (!formData.nomeMateria.trim()) {
+    if (!formData.tituloLista.trim()) {
       setError('O nome da matéria é obrigatório');
       return;
     }
@@ -253,10 +243,10 @@ function CriarListaContent() {
                   <TextField
                     fullWidth
                     required
-                    label="Nome da Matéria"
-                    placeholder="Ex: Matemática"
-                    value={formData.nomeMateria}
-                    onChange={handleChange('nomeMateria')}
+                    label="Conteúdo da Lista"
+                    placeholder="Ex: Integrais e Derivadas"
+                    value={formData.tituloLista}
+                    onChange={handleChange('tituloLista')}
                     variant="outlined"
                     multiline
                     rows={4}

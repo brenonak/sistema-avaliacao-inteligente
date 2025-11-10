@@ -99,7 +99,7 @@ export default function CursoDetalhesPage() {
   const [editingLista, setEditingLista] = useState(null);
   const [loadingEditLista, setLoadingEditLista] = useState(false);
   const [editListaData, setEditListaData] = useState({
-    nomeMateria: '',
+    tituloLista: '',
     nomeInstituicao: '',
   });
   const [selectedQuestoesLista, setSelectedQuestoesLista] = useState([]); // Apenas os IDs
@@ -711,7 +711,7 @@ export default function CursoDetalhesPage() {
     
     // Define os dados dos campos do formulário
     setEditListaData({
-      nomeMateria: lista.nomeMateria || '',
+      tituloLista: lista.tituloLista || '',
       nomeInstituicao: lista.nomeInstituicao || '',
     });
     
@@ -764,7 +764,7 @@ export default function CursoDetalhesPage() {
   };
 
   const handleSaveEditLista = async () => {
-    if (!editListaData.nomeMateria.trim()) {
+    if (!editListaData.tituloLista.trim()) {
       alert('O nome da matéria é obrigatório');
       return;
     }
@@ -783,7 +783,7 @@ export default function CursoDetalhesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...editListaData, // nomeMateria, nomeInstituicao
+          ...editListaData, // tituloLista, nomeInstituicao
           questoesIds,       // O array de IDs
         }),
       });
@@ -1085,7 +1085,7 @@ export default function CursoDetalhesPage() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                        {lista.nomeMateria}
+                        {lista.tituloLista}
                       </Typography>
 
                       {lista.nomeInstituicao && (
@@ -1849,9 +1849,9 @@ export default function CursoDetalhesPage() {
                 <TextField
                   fullWidth
                   required
-                  label="Nome da Matéria"
-                  value={editListaData.nomeMateria}
-                  onChange={handleChangeEditLista('nomeMateria')}
+                  label="Conteúdo da Lista"
+                  value={editListaData.tituloLista}
+                  onChange={handleChangeEditLista('tituloLista')}
                   variant="outlined"
                 />
 
@@ -2071,7 +2071,7 @@ export default function CursoDetalhesPage() {
         <DialogTitle>Gerar Lista de Exercícios</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.nomeMateria}".` : 'Você está prestes a gerar uma lista de exercícios.'}
+            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.tituloLista}".` : 'Você está prestes a gerar uma lista de exercícios.'}
           </Typography>
 
           <FormControlLabel

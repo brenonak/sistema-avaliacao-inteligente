@@ -51,12 +51,12 @@ export async function PUT(
 
     const body = await request.json();
     const {
-      nomeMateria,
+      tituloLista,
       nomeInstituicao,
       questoesIds, // Array de IDs
     } = body;
 
-    if (!nomeMateria) {
+    if (!tituloLista) {
       return badRequest("Nome da matéria é obrigatório");
     }
 
@@ -72,7 +72,7 @@ export async function PUT(
 
     // Atualizar a lista
     const updateData = {
-      nomeMateria,
+      tituloLista,
       nomeInstituicao: nomeInstituicao || "",
       questoesIds: Array.isArray(questoesIds) ? questoesIds : [], // Garante que é um array
       atualizadoEm: new Date(),
