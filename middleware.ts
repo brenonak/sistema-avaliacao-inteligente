@@ -81,14 +81,14 @@ export async function middleware(request: NextRequest) {
       req: request,
       secret: process.env.AUTH_SECRET,
     });
+    await client.close();
+
+    console.log(`[isProfileCompleted] User encontrado:`, user ? `email: ${user.email}` : 'null');
+    console.log(`[isProfileCompleted] isProfileComplete no banco:`, user?.isProfileComplete);
+    console.log(`[isProfileCompleted] profileCompleted no banco:`, user?.profileCompleted);
     
-    // Se não há token (não autenticado), redirecionar para login
-    if (!token) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      console.log(`[Middleware] ❌ Sem token - redirecionando para login`);
-      return NextResponse.redirect(loginUrl);
-    }
+    // Verificar ambos os campos por compatibilidade
+    const completed = user?.isProfileComplete === true || user?.profileCompleted === true;
     
     console.log(`[Middleware] ✅ Token encontrado:`);
     console.log(`[Middleware]    - Email: ${token.email}`);
