@@ -11,7 +11,8 @@ import {
   Legend, 
   PieChart, 
   Pie, 
-  Cell
+  Cell,
+  Label
 } from 'recharts';
 
 import {
@@ -37,18 +38,28 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     return (
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={dados} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <XAxis dataKey="nome" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="Respostas" name="Nº de Respostas">
+            <XAxis 
+                dataKey="nome" 
+                interval={0}
+            />
+            <YAxis>
+            {/* Adiciona um rótulo ao eixo Y */}
+            <Label 
+              value="Nº de Respostas" 
+              angle={-90} 
+              position="insideLeft" 
+              style={{ textAnchor: 'middle' }} 
+            />
+          </YAxis>
+            <Tooltip />
+            <Bar dataKey="Respostas">
             {dados.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
                 fill={entry.correta ? COR_CORRETA : COR_INCORRETA} 
               />
             ))}
-          </Bar>
+            </Bar>
         </BarChart>
       </ResponsiveContainer>
     );
@@ -78,7 +89,6 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
             ))}
           </Pie>
           <Tooltip />
-          <Legend />
         </PieChart>
       </ResponsiveContainer>
     );
@@ -105,10 +115,10 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
 
 // Dados Falsos para Múltipla Escolha
 const mockDadosBarra = [
-  { nome: 'Alternativa A', Respostas: 15, correta: false },
-  { nome: 'Alternativa B', Respostas: 45, correta: true },
-  { nome: 'Alternativa C', Respostas: 30, correta: false },
-  { nome: 'Alternativa D', Respostas: 10, correta: false },
+  { nome: 'A', Respostas: 15, correta: false },
+  { nome: 'B', Respostas: 45, correta: true },
+  { nome: 'C', Respostas: 30, correta: false },
+  { nome: 'D', Respostas: 10, correta: false },
 ];
 
 // Dados Falsos para Verdadeiro/Falso
@@ -123,7 +133,9 @@ const mockDadosRosca = [
 export const TesteGraficoEstatisticas = () => {
   return (
     <Box sx={{ width: '100%', p: 4, bgcolor: 'background.paper' }}>
-      <Typography variant="h5" gutterBottom>Teste - Gráfico Múltipla Escolha</Typography>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+        Teste - Gráfico Múltipla Escolha
+      </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="multipla-escolha" 
         dados={mockDadosBarra} 
@@ -131,7 +143,9 @@ export const TesteGraficoEstatisticas = () => {
       
       <Box sx={{ my: 4 }} /> 
 
-      <Typography variant="h5" gutterBottom>Teste - Gráfico Verdadeiro/Falso</Typography>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+        Teste - Gráfico Verdadeiro/Falso
+      </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="verdadeiro-falso" 
         dados={mockDadosRosca} 
@@ -139,7 +153,9 @@ export const TesteGraficoEstatisticas = () => {
       
       <Box sx={{ my: 4 }} /> 
 
-      <Typography variant="h5" gutterBottom>Teste - Sem Dados</Typography>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+        Teste - Sem Dados
+      </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="multipla-escolha" 
         dados={[]} 
