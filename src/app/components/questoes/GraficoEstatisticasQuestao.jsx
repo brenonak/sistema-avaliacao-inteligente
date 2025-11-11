@@ -35,6 +35,25 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     const COR_CORRETA = "#2e7d32"; 
     const COR_INCORRETA = "#d32f2f"; 
 
+    const CustomTooltip = ({ active, payload, label }) => {
+      if (active && payload && payload.length) {
+        const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+        const valorAtual = payload[0].value;
+        const porcentagem = totalRespostas > 0 ? ((valorAtual / totalRespostas) * 100).toFixed(1) : 0;
+
+        return (
+          <Box sx={{ p: 1, bgcolor: 'background.paper', border: '1px solid #ccc', borderRadius: '4px' }}>
+            <Typography variant="body2" color="text.secondary">{`Alternativa ${label}`}</Typography>
+            <Typography variant="body2" color="text.primary">{`Nº de Respostas: ${valorAtual} (${porcentagem}%)`}</Typography>
+            {payload[0].payload.correta && (
+              <Typography variant="body2" sx={{ color: COR_CORRETA }}>Alternativa Correta</Typography>
+            )}
+          </Box>
+        );
+      }
+      return null;
+    };
+
     return (
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={dados} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -50,8 +69,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
               position="insideLeft" 
               style={{ textAnchor: 'middle' }} 
             />
-          </YAxis>
-            <Tooltip />
+            </YAxis>
+            <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="Respostas">
             {dados.map((entry, index) => (
               <Cell 
@@ -61,6 +80,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
             ))}
             </Bar>
         </BarChart>
+        
       </ResponsiveContainer>
     );
   };
