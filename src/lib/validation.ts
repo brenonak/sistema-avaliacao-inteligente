@@ -11,7 +11,8 @@ export const CompleteProfileSchema = z.object({
   instituicao: z.string().optional(),
   curso: z.string().optional(),
   areasInteresse: z.array(z.string()).optional().default([]),
-  profileCompleted: z.boolean().default(true),
+  isProfileComplete: z.boolean().default(true),
+  profileCompleted: z.boolean().default(true), // mantém compatibilidade
 });
 
 export const AlternativaSchema = z.object({
