@@ -48,7 +48,7 @@ const setupMocks = (cursoId, cursoNome, questoesResponse, submitResponse) => {
         json: () => Promise.resolve(questoesResponse),
       });
     }
-    // [MODIFICADO] Endpoint de submissão alterado para /listas
+    
     if (url.includes(`/api/cursos/${cursoId}/listas`) && submitResponse) {
       return new Promise(resolve => {
         setTimeout(() => {
@@ -74,17 +74,17 @@ const setupMocks = (cursoId, cursoNome, questoesResponse, submitResponse) => {
 
 // Encontra o Card que contém as listas de questões
 const getQuestoesCard = () => {
-  // [MODIFICADO] Texto do título do Card
+  
   return screen.getByText('Questões da Lista').closest('.MuiCard-root');
 };
 
-// Encontra a LISTA de questões selecionadas (que vem DEPOIS do título)
+
 const getSelecionadasList = (card) => {
   const heading = within(card).getByText(/Questões Selecionadas/);
-  return heading.closest('div').nextSibling; // A <List> é o próximo irmão da <Box> do título
+  return heading.closest('div').nextSibling; 
 };
 
-// Encontra a LISTA de questões disponíveis (a última <List> dentro do Card)
+
 const getDisponiveisList = (card) => {
   const lists = within(card).getAllByRole('list');
   return lists[lists.length - 1]; // A lista de disponíveis é sempre a última
@@ -106,19 +106,19 @@ describe('CriarListaPage', () => {
     );
     render(<CriarListaPage />);
     
-    // Verifica cabeçalho
+    
+    // Isso garante que os 'act' warnings desapareçam, pois esperamos a tela ficar estável.
+    expect(await screen.findByText(mockQuestao1.enunciado)).toBeInTheDocument();
+    expect(await screen.findByText(mockQuestao2.enunciado)).toBeInTheDocument();
+    
+    // Agora que a tela está estável, checamos os elementos síncronos.
     expect(screen.getByRole('heading', { name: /Criar Nova Lista de Exercícios/i })).toBeInTheDocument();
     expect(screen.getByText(/Curso: Cálculo I/i)).toBeInTheDocument();
     
-    // [MODIFICADO] Verifica se o nome da matéria foi preenchido automaticamente
-    expect(screen.getByLabelText(/Nome da Matéria/i)).toHaveValue('Cálculo I');
     
-    // Verifica loading
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-
-    // Espera as questões carregarem
-    expect(await screen.findByText(mockQuestao1.enunciado)).toBeInTheDocument();
-    expect(await screen.findByText(mockQuestao2.enunciado)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Conteúdo da Lista/i)).toHaveValue('');
+    
+    // Agora o loading não deve mais existir.
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe('CriarListaPage', () => {
     
     const q1Item = await within(selecionadasList).findByText(mockQuestao1.enunciado);
     expect(q1Item).toBeInTheDocument();
-    // [MODIFICADO] Verifica se o número da ordem (1) está visível
+    
     expect(within(q1Item.closest('li')).getByText('1')).toBeInTheDocument();
 
     // 4. ESPERA ela desaparecer da lista de "Disponíveis"
@@ -216,13 +216,13 @@ describe('CriarListaPage', () => {
     setupMocks('curso123', 'Cálculo I', { items: [] });
     render(<CriarListaPage />);
 
-    // [MODIFICADO] Apaga o valor pré-preenchido
-    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: ' ' } });
+    
+    fireEvent.change(screen.getByLabelText(/Conteúdo da Lista/i), { target: { value: ' ' } });
     
     const submitButton = screen.getByRole('button', { name: /Gravar Lista/i });
     fireEvent.click(submitButton);
 
-    // [MODIFICADO] Mensagem de erro específica da Lista
+    
     const alertText = await screen.findByText(/O nome da matéria é obrigatório/i);
     expect(alertText).toBeInTheDocument();
     
@@ -242,8 +242,8 @@ describe('CriarListaPage', () => {
     render(<CriarListaPage />);
     await screen.findByText(mockQuestao1.enunciado); // Espera carregar
 
-    // Preenche o formulário
-    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: 'Lista Teste' } });
+    
+    fireEvent.change(screen.getByLabelText(/Conteúdo da Lista/i), { target: { value: 'Lista Teste' } });
     fireEvent.change(screen.getByLabelText(/Nome da Escola\/Instituição/i), { target: { value: 'UNIFESP' } });
     
     // Seleciona questões (Q2 e depois Q1, para testar a ordem de submissão)
@@ -261,14 +261,15 @@ describe('CriarListaPage', () => {
     // Verifica o estado de loading
     expect(await screen.findByRole('button', { name: /Gravando Lista.../i })).toBeDisabled();
 
-    // [MODIFICADO] Verifica a chamada ao fetch com os dados da LISTA
+    
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         '/api/cursos/curso123/listas', // Endpoint correto
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
-            nomeMateria: 'Lista Teste',
+            
+            tituloLista: 'Lista Teste', 
             questoesIds: [mockQuestao2._id, mockQuestao1._id],
             nomeInstituicao: 'UNIFESP',
             // A ordem de seleção foi Q2, depois Q1.
@@ -295,8 +296,8 @@ describe('CriarListaPage', () => {
     render(<CriarListaPage />);
     await screen.findByText(mockQuestao1.enunciado);
 
-    // Preenche dados mínimos
-    fireEvent.change(screen.getByLabelText(/Nome da Matéria/i), { target: { value: 'Lista com erro' } });
+    
+    fireEvent.change(screen.getByLabelText(/Conteúdo da Lista/i), { target: { value: 'Lista com erro' } });
     fireEvent.click(screen.getByText(mockQuestao1.enunciado));
     await screen.findByText(/Questões Selecionadas \(1\)/);
     
