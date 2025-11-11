@@ -11,7 +11,7 @@ export default function StudentPerformanceChart({ labels = [], scores = [], text
   const hasData = hasLabelData && hasScoreData;
 
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: 3, p: 2, opacity: hasData ? 1 : 0.8 }}>
+    <Card sx={{ borderRadius: 2, p: 2, opacity: hasData ? 1 : 0.8 }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
           {text}

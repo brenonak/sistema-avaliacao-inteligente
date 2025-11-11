@@ -21,7 +21,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
         minHeight: { md: 120 }, // manter altura igual ao CourseSelect
       }}
     >
-      <Card sx={{ borderRadius: 3, boxShadow: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
@@ -41,7 +41,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
         </CardContent>
       </Card>
 
-      <Card sx={{ borderRadius: 3, boxShadow: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
@@ -61,7 +61,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
         </CardContent>
       </Card>
 
-      <Card sx={{ borderRadius: 3, boxShadow: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <Box>
             <Typography variant="subtitle2" color="text.secondary">

@@ -10,7 +10,7 @@ import StudentPerformanceChart from "../../components/StudentPerformanceChart";
 import CourseSelect from "../../components/CourseSelect";
 
 export default function DesempenhoPage() {
-  const [selectedCourse, setSelectedCourse] = useState('todos');
+  const [selectedCourse, setSelectedCourse] = useState('nenhum');
 
   const courses = [
     { id: 'nenhum', name: 'Nenhum' },

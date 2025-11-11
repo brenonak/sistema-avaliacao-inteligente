@@ -1,52 +1,66 @@
 'use client';
 import React from 'react';
-import { Box, TextField, MenuItem } from '@mui/material';
+import {
+  Card,
+  Box,
+  Typography,
+  FormControl,
+  Select,
+  MenuItem,
+  useTheme,
+} from '@mui/material';
 
-// TODO: A estilização do TextField apresentou dificuldades, e é necessário corrigí-las.
-
-export default function CourseSelect({ courses = [], selectedCourse = '', onCourseChange, sx = {} }) {
-  const displayCourses = (courses && courses.length) ? courses : [{ id: 'todos', name: 'Todos os cursos' }];
+export default function CourseSelect({ courses, selectedCourse, onCourseChange }) {
+  const theme = useTheme();
 
   return (
-    <Box
+    <Card
       sx={{
-        flex: { xs: '1 1 100%', md: '0 0 50%' },
+        borderRadius: 2,
+        height: '100%',
         display: 'flex',
-        alignItems: { xs: 'flex-start', md: 'center' },
-        justifyContent: 'flex-end',
-        minHeight: { md: 120 }, // manter altura igual aos cards de desempenho
-        ...sx,
+        flexDirection: 'column',
+        justifyContent: 'center',
+        p: 2.5,
       }}
     >
-      <TextField
-        select
-        label="Curso"
-        value={selectedCourse || ''}
-        onChange={(e) => onCourseChange?.(e.target.value)}
-        size="small"
-        variant="outlined"
-        slotProps={{
-          select: {
-            MenuProps: { PaperProps: { sx: { maxHeight: 320 } } },
-          },
-        }}
-        sx={{
-          width: '100%',
-          '& .MuiOutlinedInput-root': {
-            height: '100%',               
-            alignItems: 'center',
-            borderRadius: 3,
-            backgroundColor: 'background.paper',
-            boxShadow: 3,
-          },
-        }}
-      >
-        {displayCourses.map((c) => (
-          <MenuItem key={c.id ?? c} value={c.id ?? c}>
-            {c.name ?? c}
-          </MenuItem>
-        ))}
-      </TextField>
-    </Box>
+      <Box sx={{ width: '100%' }}>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+          Curso Selecionado
+        </Typography>
+
+        <FormControl fullWidth>
+          <Select
+            value={selectedCourse}
+            onChange={(e) => onCourseChange(e.target.value)}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 500,
+              backgroundColor: 'inherit',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'transparent', 
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: theme.palette.primary.main, 
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'transparent', 
+              },
+              '& .MuiSelect-select': {
+                px: 1.5,
+                py: 1.2,
+              },
+              transition: 'border-color 0.2s ease, background-color 0.2s ease',
+            }}
+          >
+            {courses.map((course) => (
+              <MenuItem key={course.id} value={course.id}>
+                {course.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+    </Card>
   );
 }
