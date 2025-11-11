@@ -2,7 +2,13 @@
 import React from 'react';
 import { Card, CardContent, Typography, LinearProgress, Box } from '@mui/material';
 
-export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }) {
+export default function PerformanceSummary({ average = NaN, best = NaN, latest = NaN }) {
+  const hasAverage = Number.isFinite(average);
+  const hasBest = Number.isFinite(best);
+  const hasLatest = Number.isFinite(latest);
+
+  const valueOrDash = (v) => (Number.isFinite(v) ? `${v.toFixed(1)}` : '-');
+
   return (
     <Box
       component="section"
@@ -21,13 +27,17 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Média Geral
             </Typography>
-            <Typography variant="h5">{Number.isFinite(average) ? average.toFixed(1) : '0.0'}</Typography>
+            <Typography variant="h5">{valueOrDash(average)}</Typography>
           </Box>
-          <LinearProgress
-            variant="determinate"
-            value={average}
-            sx={{ mt: 1, height: 8, borderRadius: 2 }}
-          />
+          {hasAverage ? (
+            <LinearProgress
+              variant="determinate"
+              value={Math.max(0, Math.min(100, average))}
+              sx={{ mt: 1, height: 8, borderRadius: 2 }}
+            />
+          ) : (
+            <Box sx={{ mt: 1, height: 8 }} />
+          )}
         </CardContent>
       </Card>
 
@@ -37,13 +47,17 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Melhor Nota
             </Typography>
-            <Typography variant="h5">{Number.isFinite(best) ? best.toFixed(1) : '0.0'}</Typography>
+            <Typography variant="h5">{valueOrDash(best)}</Typography>
           </Box>
-          <LinearProgress
-            variant="determinate"
-            value={best}
-            sx={{ mt: 1, height: 8, borderRadius: 2 }}
-          />
+          {hasBest ? (
+            <LinearProgress
+              variant="determinate"
+              value={Math.max(0, Math.min(100, best))}
+              sx={{ mt: 1, height: 8, borderRadius: 2 }}
+            />
+          ) : (
+            <Box sx={{ mt: 1, height: 8 }} />
+          )}
         </CardContent>
       </Card>
 
@@ -53,13 +67,17 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Última Avaliação
             </Typography>
-            <Typography variant="h5">{Number.isFinite(latest) ? latest.toFixed(1) : '0.0'}</Typography>
+            <Typography variant="h5">{valueOrDash(latest)}</Typography>
           </Box>
-          <LinearProgress
-            variant="determinate"
-            value={latest}
-            sx={{ mt: 1, height: 8, borderRadius: 2 }}
-          />
+          {hasLatest ? (
+            <LinearProgress
+              variant="determinate"
+              value={Math.max(0, Math.min(100, latest))}
+              sx={{ mt: 1, height: 8, borderRadius: 2 }}
+            />
+          ) : (
+            <Box sx={{ mt: 1, height: 8 }} />
+          )}
         </CardContent>
       </Card>
     </Box>

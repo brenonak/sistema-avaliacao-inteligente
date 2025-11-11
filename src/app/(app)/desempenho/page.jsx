@@ -13,6 +13,7 @@ export default function DesempenhoPage() {
   const [selectedCourse, setSelectedCourse] = useState('todos');
 
   const courses = [
+    { id: 'nenhum', name: 'Nenhum' },
     { id: 'logicaprogramacao', name: 'Lógica de Programação' },
     { id: 'calculo', name: 'Cálculo I' },
     { id: 'fisica', name: 'Física Geral' },
@@ -20,7 +21,15 @@ export default function DesempenhoPage() {
 
   // Exemplos de dados (devem ser conectados à API)
   const dataByCourse = {
-    todos: {
+    no_course_selected: {
+      examsLabels: [],
+      examsScores: [],
+      listsLabels: [],
+      listsScores: [],
+      combinedLabels: [],
+      combinedScores: [],
+    },
+    logicaprogramacao: {
       examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
       examsScores: [72, 78, 91],
       listsLabels: ['Lista 1', 'Lista 2'],
@@ -46,7 +55,7 @@ export default function DesempenhoPage() {
     },
   };
 
-  const active = dataByCourse[selectedCourse] || dataByCourse.todos;
+  const active = dataByCourse[selectedCourse] || dataByCourse.no_course_selected;
 
   // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
   const combinedLabels = active.combinedLabels;
