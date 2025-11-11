@@ -153,3 +153,4 @@ export const authOptions: NextAuthOptions = {
   // Debug em desenvolvimento
   debug: process.env.NODE_ENV === "development",
 };
+
