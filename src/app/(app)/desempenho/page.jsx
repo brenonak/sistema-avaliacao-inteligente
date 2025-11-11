@@ -13,7 +13,7 @@ export default function DesempenhoPage() {
   const [selectedCourse, setSelectedCourse] = useState('todos');
 
   const courses = [
-    { id: 'todos', name: 'Todos os cursos' },
+    { id: 'logicaprogramacao', name: 'Lógica de Programação' },
     { id: 'calculo', name: 'Cálculo I' },
     { id: 'fisica', name: 'Física Geral' },
   ];

@@ -2,6 +2,8 @@
 import React from 'react';
 import { Box, TextField, MenuItem } from '@mui/material';
 
+// TODO: A estilização do TextField apresentou dificuldades, e é necessário corrigí-las.
+
 export default function CourseSelect({ courses = [], selectedCourse = '', onCourseChange, sx = {} }) {
   const displayCourses = (courses && courses.length) ? courses : [{ id: 'todos', name: 'Todos os cursos' }];
 

@@ -21,7 +21,7 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Média Geral
             </Typography>
-            <Typography variant="h5">{Number.isFinite(average) ? average.toFixed(1) : '0.0'}%</Typography>
+            <Typography variant="h5">{Number.isFinite(average) ? average.toFixed(1) : '0.0'}</Typography>
           </Box>
           <LinearProgress
             variant="determinate"
@@ -37,7 +37,7 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Melhor Nota
             </Typography>
-            <Typography variant="h5">{Number.isFinite(best) ? best.toFixed(1) : '0.0'}%</Typography>
+            <Typography variant="h5">{Number.isFinite(best) ? best.toFixed(1) : '0.0'}</Typography>
           </Box>
           <LinearProgress
             variant="determinate"
@@ -53,7 +53,7 @@ export default function PerformanceSummary({ average = 0, best = 0, latest = 0 }
             <Typography variant="subtitle2" color="text.secondary">
               Última Avaliação
             </Typography>
-            <Typography variant="h5">{Number.isFinite(latest) ? latest.toFixed(1) : '0.0'}%</Typography>
+            <Typography variant="h5">{Number.isFinite(latest) ? latest.toFixed(1) : '0.0'}</Typography>
           </Box>
           <LinearProgress
             variant="determinate"
