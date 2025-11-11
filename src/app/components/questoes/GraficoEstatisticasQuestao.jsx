@@ -90,27 +90,32 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     const CORES = ['#2e7d32', '#d32f2f']; // [0] = Correto, [1] = Incorreto
 
     return (
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={dados}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={100}
-            fill="#8884d8"
-            dataKey="Respostas"
-            // Exibe "Nome (XX%)" no gráfico
-            label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
-          >
-            {dados.map((entry, index) => (
-              // Assume que o primeiro item nos dados é o correto
-              <Cell key={`cell-${index}`} fill={entry.correta ? CORES[0] : CORES[1]} />
-            ))}
-          </Pie>
-          <Tooltip />
-        </PieChart>
-      </ResponsiveContainer>
+        <Box>
+            <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
+                Distribuição de Respostas
+            </Typography>  
+            <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                <Pie
+                    data={dados}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="Respostas"
+                    // Exibe "Nome (XX%)" no gráfico
+                    label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
+                >
+                    {dados.map((entry, index) => (
+                    // Assume que o primeiro item nos dados é o correto
+                    <Cell key={`cell-${index}`} fill={entry.correta ? CORES[0] : CORES[1]} />
+                    ))}
+                </Pie>
+                <Tooltip />
+                </PieChart>
+            </ResponsiveContainer>
+        </Box>  
     );
   };
 
