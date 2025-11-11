@@ -33,6 +33,9 @@ export default function CourseSelect({ courses, selectedCourse, onCourseChange }
           <Select
             value={selectedCourse}
             onChange={(e) => onCourseChange(e.target.value)}
+            MenuProps={{
+              disableScrollLock: true,
+            }}
             sx={{
               borderRadius: 2,
               fontWeight: 500,
