@@ -470,29 +470,21 @@ export default function ListarQuestoesPage() {
                 </Box>
               )}
               
-              {/* Exibir tags da questão */}
-              {Array.isArray(questao.tags) && questao.tags.length > 0 && (
-                <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {questao.tags.map((tag, tagIdx) => (
-                    <Chip
-                      key={tagIdx}
-                      label={tag}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                </Box>
-              )}
-              
-              {/* Exibir tipo da questão */}
-              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
-                Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
-                       questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
-                       questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
-                       questao.tipo === 'dissertativa' ? 'Dissertativa' : 
-                       questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
-              </Typography>
+              {/* Exibir tipo e tags da questão */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
+                         questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
+                         questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
+                         questao.tipo === 'dissertativa' ? 'Dissertativa' : 
+                         questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
+                  size="small"
+                  color="primary"
+                />
+                {questao.tags && questao.tags.map((tag, idx) => (
+                  <Chip key={idx} label={tag} size="small" variant="outlined" />
+                ))}
+              </Box>
               
               {/* Exibir resposta numérica se for questão numérica */}
               {questao.tipo === 'numerica' && (
