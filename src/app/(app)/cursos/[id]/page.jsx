@@ -42,6 +42,7 @@ import {
   ArrowDownward,
   Clear as ClearIcon,
   Download,
+  RateReview,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -1168,6 +1169,15 @@ export default function CursoDetalhesPage() {
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                      {lista.usarPontuacao && (
+                        <IconButton
+                          color="primary"
+                          onClick={() => router.push(`/cursos/${cursoId}/listas/${lista.id}/responder`)}
+                          title="Responder Lista"
+                        >
+                          <RateReview />
+                        </IconButton>
+                      )}
                       <IconButton
                         color="primary"
                         onClick={() => handleOpenEditLista(lista)}
