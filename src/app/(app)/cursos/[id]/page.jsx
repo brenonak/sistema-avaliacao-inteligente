@@ -103,6 +103,8 @@ export default function CursoDetalhesPage() {
     nomeInstituicao: '',
   });
   const [selectedQuestoesLista, setSelectedQuestoesLista] = useState([]); // Apenas os IDs
+  const [usarPontuacaoLista, setUsarPontuacaoLista] = useState(false);
+  const [questoesPontuacaoLista, setQuestoesPontuacaoLista] = useState({});
 
   // Estado e handlers para diálogo "Gerar Lista de Exercícios"
   const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
@@ -718,6 +720,10 @@ export default function CursoDetalhesPage() {
     // Preenche as questões selecionadas (são apenas IDs)
     setSelectedQuestoesLista(lista.questoesIds || []);
     
+    // Configurar pontuação
+    setUsarPontuacaoLista(lista.usarPontuacao || false);
+    setQuestoesPontuacaoLista(lista.questoesPontuacao || {});
+    
     setOpenEditListaDialog(true);
   };
 
@@ -761,6 +767,30 @@ export default function CursoDetalhesPage() {
   // Remover questão da seleção (edição de lista)
   const handleRemoveQuestaoLista = (questaoId) => {
     setSelectedQuestoesLista((prev) => prev.filter(q => q !== questaoId));
+    // Remover também a pontuação se estiver usando
+    if (usarPontuacaoLista) {
+      setQuestoesPontuacaoLista((prev) => {
+        const newPontuacao = { ...prev };
+        delete newPontuacao[questaoId];
+        return newPontuacao;
+      });
+    }
+  };
+
+  // Atualizar pontuação de uma questão (edição de lista)
+  const handleChangePontuacaoLista = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacaoLista((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos (edição de lista)
+  const calcularTotalPontosLista = () => {
+    return selectedQuestoesLista.reduce((total, qId) => {
+      return total + (questoesPontuacaoLista[qId] || 0);
+    }, 0);
   };
 
   const handleSaveEditLista = async () => {
@@ -771,21 +801,36 @@ export default function CursoDetalhesPage() {
 
     setLoadingEditLista(true);
     try {
-      // Diferente das provas, aqui SÓ precisamos enviar os IDs
+      // Preparar IDs das questões
       const questoesIds = selectedQuestoesLista.map(qId => {
         const questao = curso.questoes.find(q => (q._id || q.id) === qId);
         return questao?._id || qId;
       });
+
+      // Preparar dados para envio
+      const listaData = {
+        ...editListaData,
+        questoesIds,
+        usarPontuacao: usarPontuacaoLista,
+      };
+
+      // Se usar pontuação, incluir as pontuações
+      if (usarPontuacaoLista) {
+        const pontuacoes = {};
+        selectedQuestoesLista.forEach(qId => {
+          const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+          const realId = questao?._id || qId;
+          pontuacoes[realId] = questoesPontuacaoLista[qId] || 0;
+        });
+        listaData.questoesPontuacao = pontuacoes;
+      }
 
       const res = await fetch(`/api/cursos/${cursoId}/listas/${editingLista.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...editListaData, // tituloLista, nomeInstituicao
-          questoesIds,       // O array de IDs
-        }),
+        body: JSON.stringify(listaData),
       });
 
       if (!res.ok) {
@@ -1105,6 +1150,19 @@ export default function CursoDetalhesPage() {
                             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
                               Questões: {lista.questoesIds.length}
                             </Typography>
+                            {lista.usarPontuacao && lista.questoesPontuacao && (
+                              <>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                                  •
+                                </Typography>
+                                <Chip
+                                  label={`${Object.values(lista.questoesPontuacao).reduce((sum, p) => sum + (p || 0), 0).toFixed(1)} pts`}
+                                  size="small"
+                                  color="success"
+                                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                />
+                              </>
+                            )}
                           </Box>
                         </Box>
                       )}
@@ -1866,9 +1924,21 @@ export default function CursoDetalhesPage() {
                 <Divider sx={{ my: 1 }} />
 
                 {/* Questões da lista */}
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  Questões da Lista
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    Questões da Lista
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={usarPontuacaoLista}
+                        onChange={(e) => setUsarPontuacaoLista(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Usar Pontuação"
+                  />
+                </Box>
 
                 {(!curso.questoes || curso.questoes.length === 0) ? (
                   <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
@@ -1883,7 +1953,19 @@ export default function CursoDetalhesPage() {
                           <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                             Questões Selecionadas ({selectedQuestoesLista.length})
                           </Typography>
-                          {/* Box de pontuação REMOVIDO */}
+                          {usarPontuacaoLista && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                                Total:
+                              </Typography>
+                              <Chip
+                                label={`${calcularTotalPontosLista().toFixed(1)} pts`}
+                                size="small"
+                                color="success"
+                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                              />
+                            </Box>
+                          )}
                         </Box>
                         <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
                           {selectedQuestoesLista.map((questaoId, index) => {
@@ -1949,7 +2031,22 @@ export default function CursoDetalhesPage() {
                                   </Box>
                                 </Box>
 
-                                {/* Campo de pontuação REMOVIDO */}
+                                {/* Campo de pontuação (se ativado) */}
+                                {usarPontuacaoLista && (
+                                  <TextField
+                                    type="number"
+                                    label="Pts"
+                                    value={questoesPontuacaoLista[questaoId] || ''}
+                                    onChange={(e) => handleChangePontuacaoLista(questaoId, e.target.value)}
+                                    inputProps={{
+                                      min: 0,
+                                      step: 0.5,
+                                      style: { textAlign: 'center', fontSize: '0.85rem' }
+                                    }}
+                                    sx={{ width: 70 }}
+                                    size="small"
+                                  />
+                                )}
 
                                 {/* Botões de controle */}
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>

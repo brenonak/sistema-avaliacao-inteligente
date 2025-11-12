@@ -22,6 +22,8 @@ import {
   ListItemText,
   Checkbox,
   Chip,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -57,6 +59,10 @@ function CriarListaContent() {
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
+  
+  // Estados para controle de pontuação
+  const [usarPontuacao, setUsarPontuacao] = useState(false);
+  const [questoesPontuacao, setQuestoesPontuacao] = useState({});
 
   // Buscar questões do curso
   useEffect(() => {
@@ -115,6 +121,30 @@ function CriarListaContent() {
   // Remover questão da seleção
   const handleRemoveQuestao = (id) => {
     setSelectedQuestoes((prev) => prev.filter(q => q !== id));
+    // Remover também a pontuação
+    if (usarPontuacao) {
+      setQuestoesPontuacao((prev) => {
+        const newPontuacao = { ...prev };
+        delete newPontuacao[id];
+        return newPontuacao;
+      });
+    }
+  };
+
+  // Atualizar pontuação de uma questão
+  const handleChangePontuacao = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacao((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos
+  const calcularTotalPontos = () => {
+    return selectedQuestoes.reduce((total, qId) => {
+      return total + (questoesPontuacao[qId] || 0);
+    }, 0);
   };
 
   const handleSubmit = async (e) => {
@@ -142,15 +172,24 @@ function CriarListaContent() {
         return questao?._id || qId;
       });
 
+      // Preparar dados para envio
+      const listaData = {
+        ...formData,
+        questoesIds,
+        usarPontuacao,
+      };
+
+      // Se usar pontuação, incluir as pontuações
+      if (usarPontuacao) {
+        listaData.questoesPontuacao = questoesPontuacao;
+      }
+
       const saveResponse = await fetch(`/api/cursos/${cursoId}/listas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          questoesIds,
-        }),
+        body: JSON.stringify(listaData),
       });
 
       if (!saveResponse.ok) {
@@ -284,11 +323,23 @@ function CriarListaContent() {
           {/* Questões da Lista */}
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Description sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Questões da Lista
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Description sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    Questões da Lista
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={usarPontuacao}
+                      onChange={(e) => setUsarPontuacao(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Usar Pontuação"
+                />
               </Box>
 
               {loadingQuestoes ? (
@@ -308,6 +359,19 @@ function CriarListaContent() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                           Questões Selecionadas ({selectedQuestoes.length})
                         </Typography>
+                        {usarPontuacao && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                              Total:
+                            </Typography>
+                            <Chip
+                              label={`${calcularTotalPontos().toFixed(1)} pts`}
+                              size="small"
+                              color="success"
+                              sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                            />
+                          </Box>
+                        )}
                       </Box>
                       <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1 }}>
                         {selectedQuestoes.map((questaoId, index) => {
@@ -369,6 +433,23 @@ function CriarListaContent() {
                                   ))}
                                 </Box>
                               </Box>
+
+                              {/* Campo de pontuação (se ativado) */}
+                              {usarPontuacao && (
+                                <TextField
+                                  type="number"
+                                  label="Pts"
+                                  value={questoesPontuacao[questaoId] || ''}
+                                  onChange={(e) => handleChangePontuacao(questaoId, e.target.value)}
+                                  inputProps={{
+                                    min: 0,
+                                    step: 0.5,
+                                    style: { textAlign: 'center', fontSize: '0.85rem' }
+                                  }}
+                                  sx={{ width: 80 }}
+                                  size="small"
+                                />
+                              )}
 
                               {/* Botões de controle */}
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>

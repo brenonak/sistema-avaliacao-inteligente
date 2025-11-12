@@ -59,7 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     
     const body = await request.json();
     // Extrai os campos do corpo, incluindo o novo campo 'nomeInstituicao'
-    const { tituloLista, questoesIds, nomeInstituicao } = body;
+    const { tituloLista, questoesIds, nomeInstituicao, usarPontuacao, questoesPontuacao } = body;
     
     // Validação dos campos obrigatórios
     if (!tituloLista || !Array.isArray(questoesIds)) {
@@ -73,13 +73,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!curso) return notFound("Curso não encontrado");
     
     // 2. Criar o documento da lista de exercícios
-    const lista = {
+    const lista: any = {
       cursoId: id, 
       tituloLista,
       questoesIds,
       nomeInstituicao: nomeInstituicao || '', 
+      usarPontuacao: usarPontuacao || false,
       criadoEm: new Date(),
     };
+    
+    // Adicionar pontuações se estiver usando pontuação
+    if (usarPontuacao && questoesPontuacao) {
+      lista.questoesPontuacao = questoesPontuacao;
+    }
     
     const result = await db.collection("listasDeExercicios").insertOne(lista);
     

@@ -54,6 +54,8 @@ export async function PUT(
       tituloLista,
       nomeInstituicao,
       questoesIds, // Array de IDs
+      usarPontuacao,
+      questoesPontuacao,
     } = body;
 
     if (!tituloLista) {
@@ -71,12 +73,21 @@ export async function PUT(
     if (!listaExistente) return notFound("Lista de exercícios não encontrada");
 
     // Atualizar a lista
-    const updateData = {
+    const updateData: any = {
       tituloLista,
       nomeInstituicao: nomeInstituicao || "",
       questoesIds: Array.isArray(questoesIds) ? questoesIds : [], // Garante que é um array
+      usarPontuacao: usarPontuacao || false,
       atualizadoEm: new Date(),
     };
+
+    // Adicionar ou remover pontuações
+    if (usarPontuacao && questoesPontuacao) {
+      updateData.questoesPontuacao = questoesPontuacao;
+    } else {
+      // Se não estiver usando pontuação, remover o campo
+      updateData.questoesPontuacao = {};
+    }
 
     await db.collection("listasDeExercicios").updateOne(
       { _id: listaOid },
