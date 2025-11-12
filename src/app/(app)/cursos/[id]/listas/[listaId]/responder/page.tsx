@@ -38,6 +38,7 @@ export default function ResponderListaPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [finalizado, setFinalizado] = useState(false);
   
   // Armazena as respostas do aluno: { questaoId: resposta }
   const [respostas, setRespostas] = useState<Record<string, any>>({});
@@ -67,6 +68,12 @@ export default function ResponderListaPage() {
       if (respostasRes.ok) {
         const respostasData = await respostasRes.json();
         respostasSalvas = respostasData.respostas || {};
+        
+        // Se já está finalizado, redireciona para a página de visualização
+        if (respostasData.finalizado) {
+          router.push(`/cursos/${cursoId}/listas/${listaId}/visualizar`);
+          return;
+        }
       }
       
       // Inicializar respostas (mesclando com as respostas salvas)
@@ -123,9 +130,9 @@ export default function ResponderListaPage() {
       const data = await res.json();
       setSuccess(true);
       
-      // Redirecionar após 2 segundos
+      // Redirecionar para a página de visualização após 2 segundos
       setTimeout(() => {
-        router.push(`/cursos/${cursoId}`);
+        router.push(`/cursos/${cursoId}/listas/${listaId}/visualizar`);
       }, 2000);
       
     } catch (err: any) {
@@ -364,7 +371,7 @@ export default function ResponderListaPage() {
             Respostas Enviadas!
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
-            Suas respostas foram salvas com sucesso. Redirecionando...
+            Suas respostas foram finalizadas com sucesso. Você será redirecionado para a visualização...
           </Typography>
           <CircularProgress size={24} />
         </Paper>
@@ -490,6 +497,9 @@ export default function ResponderListaPage() {
           <DialogContentText id="confirm-submit-description">
             Atenção! Ao enviar suas respostas, elas serão finalizadas e{' '}
             <strong>não poderão mais ser modificadas</strong>.
+            <br />
+            <br />
+            Após a confirmação, você será redirecionado para uma página de visualização onde poderá revisar suas respostas, mas não poderá editá-las.
             <br />
             <br />
             Tem certeza de que deseja enviar suas respostas agora?

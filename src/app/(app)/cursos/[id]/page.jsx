@@ -43,6 +43,7 @@ import {
   Clear as ClearIcon,
   Download,
   RateReview,
+  Visibility,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -61,6 +62,7 @@ export default function CursoDetalhesPage() {
   // Estados para listas de exercícios
   const [exercícios, setExercícios] = useState([]);
   const [loadingExercícios, setLoadingExercícios] = useState(false);
+  const [listasFinalizadas, setListasFinalizadas] = useState({}); // { listaId: boolean }
 
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -299,7 +301,29 @@ export default function CursoDetalhesPage() {
       const res = await fetch(`/api/cursos/${cursoId}/listas`);
       if (!res.ok) throw new Error('Erro ao carregar listas');
       const data = await res.json();
-      setExercícios(data.items || []);
+      const listas = data.items || [];
+      setExercícios(listas);
+      
+      // Para cada lista, verificar se já foi finalizada
+      const statusMap = {};
+      await Promise.all(
+        listas.map(async (lista) => {
+          try {
+            const listaId = lista.id || lista._id;
+            const respostasRes = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`);
+            if (respostasRes.ok) {
+              const respostasData = await respostasRes.json();
+              statusMap[listaId] = respostasData.finalizado || false;
+            } else {
+              statusMap[listaId] = false;
+            }
+          } catch (err) {
+            console.error('Erro ao verificar status da lista:', err);
+            statusMap[lista.id || lista._id] = false;
+          }
+        })
+      );
+      setListasFinalizadas(statusMap);
     } catch (err) {
       console.error('Erro ao buscar listas:', err);
       setExercícios([]);
@@ -1172,10 +1196,18 @@ export default function CursoDetalhesPage() {
                       {lista.usarPontuacao && (
                         <IconButton
                           color="primary"
-                          onClick={() => router.push(`/cursos/${cursoId}/listas/${lista.id}/responder`)}
-                          title="Responder Lista"
+                          onClick={() => {
+                            const listaId = lista.id || lista._id;
+                            const isFinalizado = listasFinalizadas[listaId];
+                            if (isFinalizado) {
+                              router.push(`/cursos/${cursoId}/listas/${listaId}/visualizar`);
+                            } else {
+                              router.push(`/cursos/${cursoId}/listas/${listaId}/responder`);
+                            }
+                          }}
+                          title={listasFinalizadas[lista.id || lista._id] ? "Visualizar Respostas" : "Responder Lista"}
                         >
-                          <RateReview />
+                          {listasFinalizadas[lista.id || lista._id] ? <Visibility /> : <RateReview />}
                         </IconButton>
                       )}
                       <IconButton

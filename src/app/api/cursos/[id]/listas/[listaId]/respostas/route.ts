@@ -43,13 +43,23 @@ export async function GET(
 
     // Transformar em um objeto: { questaoId: resposta }
     const respostasMap: Record<string, any> = {};
+    let finalizado = false;
+    let dataFinalizacao = null;
+    
     respostasFiltradas.forEach(r => {
       respostasMap[r.questaoId.toString()] = r.resposta;
+      // Se qualquer resposta está finalizada, considera a lista como finalizada
+      if (r.finalizado) {
+        finalizado = true;
+        dataFinalizacao = r.dataFinalizacao;
+      }
     });
 
     return json({
       ok: true,
       respostas: respostasMap,
+      finalizado,
+      dataFinalizacao,
     });
   } catch (e) {
     console.error("Erro ao buscar respostas:", e);
@@ -73,10 +83,18 @@ export async function POST(
 
     const { listaId } = await params;
     const body = await request.json();
-    const { respostas } = body;
+    const { respostas, finalizado = false } = body;
 
     if (!Array.isArray(respostas) || respostas.length === 0) {
       return badRequest("Array de respostas é obrigatório");
+    }
+
+    // Verificar se as respostas já foram finalizadas
+    const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId);
+    const respostaFinalizada = respostasExistentes.find(r => r.finalizado === true);
+    
+    if (respostaFinalizada) {
+      return badRequest("As respostas já foram finalizadas e não podem ser modificadas");
     }
 
     const db = await getDb();
@@ -112,6 +130,7 @@ export async function POST(
         pontuacaoMaxima,
         pontuacaoObtida,
         isCorrect,
+        finalizado,
       });
 
       respostasSalvas.push({

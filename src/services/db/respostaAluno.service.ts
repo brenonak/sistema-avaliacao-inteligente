@@ -35,6 +35,9 @@ export interface RespostaAluno {
   pontuacaoObtida: number; // Pontuação que o aluno alcançou
   isCorrect: boolean;      // A resposta foi 100% correta?
   
+  finalizado?: boolean;    // Se true, a resposta foi finalizada e não pode ser modificada
+  dataFinalizacao?: Date;  // Data em que a resposta foi finalizada
+  
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -50,6 +53,7 @@ export interface CreateRespostaAlunoInput {
   pontuacaoMaxima: number;
   pontuacaoObtida: number;
   isCorrect: boolean;
+  finalizado?: boolean;
 }
 
 /**
@@ -231,13 +235,19 @@ export async function upsertRespostaAluno(
 
   if (existingResposta) {
     // Atualizar resposta existente
-    const updateData = {
+    const updateData: any = {
       resposta: data.resposta,
       pontuacaoMaxima: data.pontuacaoMaxima,
       pontuacaoObtida: data.pontuacaoObtida,
       isCorrect: data.isCorrect,
       updatedAt: now,
     };
+    
+    // Se finalizado = true, adiciona flag e data
+    if (data.finalizado) {
+      updateData.finalizado = true;
+      updateData.dataFinalizacao = now;
+    }
 
     await collection.updateOne(
       { _id: existingResposta._id },
@@ -250,13 +260,19 @@ export async function upsertRespostaAluno(
     };
   } else {
     // Criar nova resposta
-    const respostaAluno: RespostaAluno = {
+    const respostaAluno: any = {
       ...data,
       questaoId: questaoObjectId,
       ownerId: userObjectId,
       createdAt: now,
       updatedAt: now,
     };
+    
+    // Se finalizado = true, adiciona flag e data
+    if (data.finalizado) {
+      respostaAluno.finalizado = true;
+      respostaAluno.dataFinalizacao = now;
+    }
 
     const result = await collection.insertOne(respostaAluno);
 
