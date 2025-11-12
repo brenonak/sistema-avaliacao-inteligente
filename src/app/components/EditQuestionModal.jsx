@@ -22,7 +22,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Checkbox,
-  Chip
+  Chip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import ImageUploadSection from './ImageUploadSection';
@@ -45,6 +47,12 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   const [afirmacoes, setAfirmacoes] = useState([{ texto: '', correta: true }]);
   const [proposicoes, setProposicoes] = useState([{ texto: '', correta: false }]); // Começa com uma proposição
   const [arquivos, setArquivos] = useState([]);
+  
+  // Estados para funcionalidades de IA
+  const [aiReviewing, setAiReviewing] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiGeneratingDistractors, setAiGeneratingDistractors] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
 
   const indexToLetter = (i) => String.fromCharCode(65 + i);
 
@@ -75,6 +83,20 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
     }
   }, [tipo, open, question]); // Roda quando o tipo, a visibilidade do modal ou a questão mudam
 
+  // Efeito para verificar se o formulário está preenchido e ativar os botões de IA
+  useEffect(() => {
+    const isAnyFieldFilled =
+      enunciado.trim() !== '' ||
+      tagsInput.trim() !== '' ||
+      (tipo === 'alternativa' && alternativas.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'afirmacoes' && afirmacoes.some(a => a.texto.trim() !== '')) ||
+      (tipo === 'numerica' && (respostaNumerica.trim() !== '' || margemErro.trim() !== '')) ||
+      (tipo === 'proposicoes' && proposicoes.some(p => p.texto.trim() !== '')) ||
+      (tipo === 'dissertativa' && (gabarito.trim() !== '' || palavrasChave.trim() !== ''));
+
+    setIsFormFilled(isAnyFieldFilled);
+  }, [enunciado, tagsInput, tipo, alternativas, afirmacoes, respostaNumerica, margemErro, proposicoes, gabarito, palavrasChave]);
+
   const cleanTags = useMemo(() => (
     tagsInput
       .split(',')
@@ -94,6 +116,192 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
     return soma; // Se não for correta, retorna a soma sem alteração
   }, 0); // O '0' é o valor inicial da soma
 }, [proposicoes]); // Recalcula a soma sempre que o array 'proposicoes' mudar
+
+  // Funções de IA
+  const handleGenerateEnunciadoWithAI = async () => {
+    if (cleanTags.length === 0) {
+      setSnackbarMsg('Adicione pelo menos uma tag para gerar um enunciado.');
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+      const payload = {
+        tags: cleanTags,
+        alternativas: ['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) 
+          ? alternativas.map(a => a.texto).filter(Boolean)
+          : [],
+        enunciadoInicial: enunciado,
+      };
+
+      const res = await fetch("/api/ai/gerar-enunciado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.details || "A IA não conseguiu gerar um enunciado com os dados fornecidos.");
+      }
+
+      const data = await res.json();
+      setEnunciado(data.enunciadoGerado);
+      setSnackbarMsg('Enunciado gerado com sucesso!');
+    } catch (err) {
+      console.error("Erro ao gerar enunciado:", err);
+      setSnackbarMsg(err.message);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleReviewSpellingWithAI = async () => {
+    if (!enunciado.trim()) {
+      setSnackbarMsg('Por favor, preencha o enunciado da questão.');
+      return;
+    }
+
+    setAiReviewing(true);
+    try {
+      const payload = { enunciado };
+
+      if (tipo === 'alternativa') {
+        payload.alternativas = alternativas.map(a => a.texto);
+      }
+      
+      if (tipo === 'afirmacoes') {
+        payload.afirmacoes = afirmacoes.map(a => a.texto);
+      }
+      
+      if (tipo === 'proposicoes') {
+        payload.proposicoes = proposicoes.map(p => p.texto);
+      }
+      
+      if (tipo === 'dissertativa') {
+        payload.gabarito = gabarito;
+      }
+
+      const res = await fetch("/api/ai/revisar-questao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Erro HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      if (data.enunciadoRevisado) {
+        setEnunciado(data.enunciadoRevisado);
+      }
+
+      if (tipo === 'alternativa' && data.alternativasRevisadas) {
+        setAlternativas(alternativas.map((a, i) => ({
+          ...a,
+          texto: data.alternativasRevisadas[i] || a.texto,
+        })));
+      }
+
+      if (tipo === 'afirmacoes' && data.afirmacoesRevisadas) {
+        setAfirmacoes(afirmacoes.map((a, i) => ({
+          ...a,
+          texto: data.afirmacoesRevisadas[i] || a.texto,
+        })));
+      }
+
+      if (tipo === 'proposicoes' && data.proposicoesRevisadas) {
+        setProposicoes(proposicoes.map((p, i) => ({
+          ...p,
+          texto: data.proposicoesRevisadas[i] || p.texto,
+        })));
+      }
+
+      if (tipo === 'dissertativa' && data.gabaritoRevisado) {
+        setGabarito(data.gabaritoRevisado);
+      }
+
+      setSnackbarMsg('Questão revisada com sucesso pela IA!');
+    } catch (err) {
+      console.error('Erro na revisão:', err);
+      setSnackbarMsg(err.message || 'Erro ao revisar questão com IA.');
+    } finally {
+      setAiReviewing(false);
+    }
+  };
+
+  const handleGenerateDistractorsWithAI = async () => {
+    const alternativaCorreta = alternativas.find(a => a.correta);
+    if (!enunciado.trim() || !alternativaCorreta || !alternativaCorreta.texto.trim()) {
+      setSnackbarMsg('Para gerar distratores, preencha o enunciado e a alternativa correta.');
+      return;
+    }
+
+    const quantidadeVazias = alternativas.filter(a => a.texto.trim() === '').length;
+
+    if (quantidadeVazias === 0) {
+      setSnackbarMsg('Não há alternativas vazias para preencher com a IA.');
+      return;
+    }
+
+    setAiGeneratingDistractors(true);
+    try {
+      const payload = {
+        enunciado: enunciado,
+        alternativaCorreta: alternativaCorreta.texto,
+        tags: cleanTags,
+        quantidade: quantidadeVazias
+      };
+
+      const res = await fetch("/api/ai/gerar-alternativa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        let errorMessage = `Erro HTTP ${res.status}`;
+        const resClone = res.clone(); 
+        try {
+          const errorData = await res.json(); 
+          errorMessage = errorData.details || "A IA não conseguiu gerar os distratores.";
+        } catch (e) {
+          const errorText = await resClone.text(); 
+          console.error("A resposta de erro não era JSON. Resposta do servidor:", errorText);
+          errorMessage = "Ocorreu um erro inesperado no servidor. Verifique o console.";
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await res.json();
+      const distratoresGerados = data.alternativasIncorretas;
+
+      if (!distratoresGerados || !Array.isArray(distratoresGerados)) {
+        throw new Error("A resposta da IA não continha os dados esperados.");
+      }
+
+      let distractorIndex = 0;
+      const novasAlternativas = alternativas.map(alt => {
+        if (alt.texto.trim() === '' && distractorIndex < distratoresGerados.length) {
+          const textoDoDistrator = distratoresGerados[distractorIndex];
+          distractorIndex++;
+          return { ...alt, texto: textoDoDistrator };
+        }
+        return alt;
+      });
+      
+      setAlternativas(novasAlternativas);
+      setSnackbarMsg('Alternativas vazias preenchidas com sucesso!');
+    } catch (err) {
+      console.error("Erro ao gerar distratores:", err);
+      setSnackbarMsg(err.message);
+    } finally {
+      setAiGeneratingDistractors(false);
+    }
+  };
 
   const handleSave = async () => {
     // Monta o payload para a API de forma condicional
@@ -235,11 +443,11 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           sx={{ mb: 3 }}
         />
 
-        {/* Botões de IA (funcionalidade ainda não implementada) */}
+        {/* Botões de IA */}
           <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
             <AIButton 
-              // onClick={handleReviewSpellingWithAI}
-              // loading={aiReviewing}
+              onClick={handleReviewSpellingWithAI}
+              loading={aiReviewing}
               disabled={!isFormFilled || loading}
               variant="outlined"
               label="Revisar"
@@ -247,8 +455,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
             />
             
             <AIButton 
-              // onClick={handleGenerateEnunciadoWithAI}
-              // loading={aiGenerating}
+              onClick={handleGenerateEnunciadoWithAI}
+              loading={aiGenerating}
               disabled={!isFormFilled || loading}
               variant="outlined"
               label="Gerar Enunciado"
@@ -257,8 +465,8 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
   
             {['alternativa', 'afirmacoes', 'proposicoes'].includes(tipo) && (
               <AIButton 
-                // onClick={handleGenerateDistractorsWithAI}
-                // loading={aiGeneratingDistractors}
+                onClick={handleGenerateDistractorsWithAI}
+                loading={aiGeneratingDistractors}
                 disabled={!isFormFilled || loading}
                 variant="outlined"
                 label="Gerar Distratores"
@@ -546,6 +754,18 @@ export default function EditQuestionModal({ open, onClose, question, onSaveSucce
           {saving ? <CircularProgress size={24} /> : 'Salvar Alterações'}
         </Button>
       </DialogActions>
+
+      {/* Snackbar para mensagens de feedback */}
+      <Snackbar 
+        open={!!snackbarMsg} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbarMsg('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%' }}>
+          {snackbarMsg}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }
