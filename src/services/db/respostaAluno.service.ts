@@ -204,7 +204,71 @@ export async function updateRespostaAluno(
 }
 
 /**
- * Deleta uma resposta (ex: aluno cancelou submissão)
+ * Cria ou atualiza uma resposta de aluno (upsert)
+ * Se já existir uma resposta do aluno para esta questão, atualiza. Caso contrário, cria nova.
+ * @param userId - ID do aluno autenticado
+ * @param data - Dados da resposta (já corrigida)
+ * @returns RespostaAluno criada ou atualizada
+ */
+export async function upsertRespostaAluno(
+  userId: string,
+  data: CreateRespostaAlunoInput
+): Promise<RespostaAluno> {
+  await validateQuestaoExists(data.questaoId);
+
+  const db = await getDb();
+  const collection = db.collection<RespostaAluno>("respostasAluno");
+
+  const userObjectId = new ObjectId(userId);
+  const questaoObjectId = new ObjectId(data.questaoId);
+  const now = new Date();
+
+  // Buscar resposta existente
+  const existingResposta = await collection.findOne({
+    ownerId: userObjectId,
+    questaoId: questaoObjectId,
+  });
+
+  if (existingResposta) {
+    // Atualizar resposta existente
+    const updateData = {
+      resposta: data.resposta,
+      pontuacaoMaxima: data.pontuacaoMaxima,
+      pontuacaoObtida: data.pontuacaoObtida,
+      isCorrect: data.isCorrect,
+      updatedAt: now,
+    };
+
+    await collection.updateOne(
+      { _id: existingResposta._id },
+      { $set: updateData }
+    );
+
+    return {
+      ...existingResposta,
+      ...updateData,
+    };
+  } else {
+    // Criar nova resposta
+    const respostaAluno: RespostaAluno = {
+      ...data,
+      questaoId: questaoObjectId,
+      ownerId: userObjectId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await collection.insertOne(respostaAluno);
+
+    return {
+      ...respostaAluno,
+      _id: result.insertedId,
+    };
+  }
+}
+
+/**
+ * Deleta uma resposta
  * @param userId - ID do aluno autenticado
  * @param respostaId - ID da resposta
  * @returns true se deletou, false se não encontrou

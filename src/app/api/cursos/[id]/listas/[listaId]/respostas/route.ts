@@ -6,6 +6,58 @@ import { getDb } from "../../../../../../../lib/mongodb";
 import { ObjectId } from "mongodb";
 
 /**
+ * GET /api/cursos/:id/listas/:listaId/respostas
+ * Busca as respostas já salvas do aluno para uma lista de exercícios
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string, listaId: string }> }
+) {
+  try {
+    const userIdOrError = await getUserIdOrUnauthorized();
+    if (userIdOrError instanceof NextResponse) return userIdOrError;
+    const userId = userIdOrError;
+
+    const { listaId } = await params;
+
+    // Buscar a lista para obter os IDs das questões
+    const db = await getDb();
+    const listasCollection = db.collection("listasDeExercicios");
+    const lista = await listasCollection.findOne({ _id: new ObjectId(listaId) });
+
+    if (!lista) {
+      return badRequest("Lista não encontrada");
+    }
+
+    // Buscar respostas do aluno para as questões desta lista
+    const questoesIds = (lista.questoesIds || []).map((id: any) => 
+      typeof id === 'string' ? id : id.toString()
+    );
+    
+    const respostas = await RespostaAlunoService.listRespostasAluno(userId);
+
+    // Filtrar apenas as respostas relacionadas às questões desta lista
+    const respostasFiltradas = respostas.filter(r => 
+      questoesIds.includes(r.questaoId.toString())
+    );
+
+    // Transformar em um objeto: { questaoId: resposta }
+    const respostasMap: Record<string, any> = {};
+    respostasFiltradas.forEach(r => {
+      respostasMap[r.questaoId.toString()] = r.resposta;
+    });
+
+    return json({
+      ok: true,
+      respostas: respostasMap,
+    });
+  } catch (e) {
+    console.error("Erro ao buscar respostas:", e);
+    return serverError(e);
+  }
+}
+
+/**
  * POST /api/cursos/:id/listas/:listaId/respostas
  * Salva as respostas do aluno para uma lista de exercícios
  * Body: { respostas: Array<{ questaoId, resposta, pontuacaoMaxima }> }
@@ -53,8 +105,8 @@ export async function POST(
       // Corrigir a resposta baseada no tipo de questão
       const { pontuacaoObtida, isCorrect } = corrigirResposta(questao, resposta, pontuacaoMaxima);
 
-      // Salvar a resposta no banco
-      const respostaSalva = await RespostaAlunoService.createRespostaAluno(userId, {
+      // Salvar ou atualizar a resposta no banco (upsert)
+      const respostaSalva = await RespostaAlunoService.upsertRespostaAluno(userId, {
         questaoId,
         resposta,
         pontuacaoMaxima,
