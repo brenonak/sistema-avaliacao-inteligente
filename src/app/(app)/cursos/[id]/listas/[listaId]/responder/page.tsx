@@ -54,13 +54,30 @@ export default function ResponderListaPage() {
       const data = await res.json();
       setLista(data);
       
-      // Inicializar respostas vazias
+      // Buscar respostas já salvas do aluno
+      const respostasRes = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`);
+      let respostasSalvas: Record<string, any> = {};
+      
+      if (respostasRes.ok) {
+        const respostasData = await respostasRes.json();
+        respostasSalvas = respostasData.respostas || {};
+      }
+      
+      // Inicializar respostas (mesclando com as respostas salvas)
       const initialRespostas: Record<string, any> = {};
       data.questoes?.forEach((q: any) => {
-        if (q.tipo === 'afirmacoes') {
-          initialRespostas[q.id] = Array(q.afirmacoes?.length || 0).fill(null);
+        const respostaSalva = respostasSalvas[q.id];
+        
+        if (respostaSalva !== undefined) {
+          // Usar resposta salva
+          initialRespostas[q.id] = respostaSalva;
         } else {
-          initialRespostas[q.id] = '';
+          // Inicializar vazio
+          if (q.tipo === 'afirmacoes') {
+            initialRespostas[q.id] = Array(q.afirmacoes?.length || 0).fill(null);
+          } else {
+            initialRespostas[q.id] = '';
+          }
         }
       });
       setRespostas(initialRespostas);
