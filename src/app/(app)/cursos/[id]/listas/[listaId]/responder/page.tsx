@@ -19,8 +19,13 @@ import {
   Divider,
   Alert,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { ArrowBack, Send, CheckCircle } from '@mui/icons-material';
+import { ArrowBack, Send, CheckCircle, Save, WarningAmber } from '@mui/icons-material';
 
 export default function ResponderListaPage() {
   const params = useParams();
@@ -32,6 +37,7 @@ export default function ResponderListaPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   // Armazena as respostas do aluno: { questaoId: resposta }
   const [respostas, setRespostas] = useState<Record<string, any>>({});
@@ -94,6 +100,7 @@ export default function ResponderListaPage() {
     try {
       setSubmitting(true);
       setError(null);
+      setShowConfirmDialog(false); // Fecha o diálogo
 
       // Preparar payload com as respostas
       const respostasArray = lista.questoes.map((questao: any) => ({
@@ -105,7 +112,7 @@ export default function ResponderListaPage() {
       const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ respostas: respostasArray }),
+        body: JSON.stringify({ respostas: respostasArray, finalizado: true }),
       });
 
       if (!res.ok) {
@@ -124,6 +131,44 @@ export default function ResponderListaPage() {
     } catch (err: any) {
       console.error('Erro ao enviar respostas:', err);
       setError(err.message || 'Erro ao enviar respostas');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      // Preparar payload com as respostas
+      const respostasArray = lista.questoes.map((questao: any) => ({
+        questaoId: questao.id,
+        resposta: respostas[questao.id],
+        pontuacaoMaxima: questao.pontuacao || 0,
+      }));
+
+      const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respostas: respostasArray, finalizado: false }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erro ao salvar respostas');
+      }
+
+      // Mostrar mensagem de sucesso temporária
+      const savedMessage = error;
+      setError(null);
+      setTimeout(() => {
+        alert('Respostas salvas com sucesso! Você pode continuar editando.');
+      }, 100);
+      
+    } catch (err: any) {
+      console.error('Erro ao salvar respostas:', err);
+      setError(err.message || 'Erro ao salvar respostas');
     } finally {
       setSubmitting(false);
     }
@@ -392,16 +437,84 @@ export default function ResponderListaPage() {
             Cancelar
           </Button>
           <Button
-            variant="contained"
-            startIcon={submitting ? <CircularProgress size={20} /> : <Send />}
-            onClick={handleSubmit}
+            variant="outlined"
+            startIcon={submitting ? <CircularProgress size={20} /> : <Save />}
+            onClick={handleSave}
             disabled={submitting}
             size="large"
           >
-            {submitting ? 'Enviando...' : 'Enviar Respostas'}
+            {submitting ? 'Salvando...' : 'Salvar'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={submitting ? <CircularProgress size={20} /> : <Send />}
+            onClick={() => setShowConfirmDialog(true)}
+            disabled={submitting}
+            size="large"
+          >
+            Enviar Respostas
           </Button>
         </Box>
       </Paper>
+
+      {/* Dialog de Confirmação */}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        aria-labelledby="confirm-submit-title"
+        aria-describedby="confirm-submit-description"
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              p: 1,
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          id="confirm-submit-title"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <WarningAmber color="warning" />
+          Confirmar Envio de Respostas
+        </DialogTitle>
+
+        <Divider sx={{ mb: 1 }} />
+
+        <DialogContent>
+          <DialogContentText id="confirm-submit-description">
+            Atenção! Ao enviar suas respostas, elas serão finalizadas e{' '}
+            <strong>não poderão mais ser modificadas</strong>.
+            <br />
+            <br />
+            Tem certeza de que deseja enviar suas respostas agora?
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setShowConfirmDialog(false)}
+            color="inherit"
+            disabled={submitting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={20} /> : <Send />}
+          >
+            {submitting ? 'Enviando...' : 'Confirmar Envio'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
