@@ -37,7 +37,11 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
 
     return (
       // Envolve o BarChart numa Box para centralização
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
         <BarChart
           dataset={dadosProcessados} 
           xAxis={[{ 
@@ -62,9 +66,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           ]}
           colors={[COR_CORRETA, COR_INCORRETA]}
           height={300}
-          width={500} 
           margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
-          // CORREÇÃO 6: Esconder a legenda (que agora apareceria)
           slotProps={{
             legend: { hidden: true },
           }}
@@ -86,7 +88,11 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     const colorsArray = dadosFormatados.map(entry => entry.correta ? COR_CORRETA : COR_INCORRETA);
 
     return (
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '500px', // O gráfico de rosca pode ser menor
+        mx: 'auto', // Centraliza o Box
+      }}>
         <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
           Distribuição de Respostas
         </Typography> 
@@ -95,7 +101,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           series={[{
             data: dadosFormatados, 
             outerRadius: 100,
-            // 5. Formata os rótulos (Nome XX.X%)
+            // Formata os rótulos (Nome XX.X%)
             valueFormatter: (value, { dataIndex }) => {
               const item = dadosFormatados[dataIndex];
               const total = dadosFormatados.reduce((sum, i) => sum + i.value, 0);
@@ -104,7 +110,6 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
             },
           }]}
           height={300}
-          width={500}
           margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
           slotProps={{
             legend: { hidden: true },
