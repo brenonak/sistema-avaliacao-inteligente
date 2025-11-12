@@ -58,9 +58,9 @@ export default function ResponderListaPage() {
       const initialRespostas: Record<string, any> = {};
       data.questoes?.forEach((q: any) => {
         if (q.tipo === 'afirmacoes') {
-          initialRespostas[q._id] = Array(q.afirmacoes?.length || 0).fill(null);
+          initialRespostas[q.id] = Array(q.afirmacoes?.length || 0).fill(null);
         } else {
-          initialRespostas[q._id] = '';
+          initialRespostas[q.id] = '';
         }
       });
       setRespostas(initialRespostas);
@@ -80,8 +80,8 @@ export default function ResponderListaPage() {
 
       // Preparar payload com as respostas
       const respostasArray = lista.questoes.map((questao: any) => ({
-        questaoId: questao._id,
-        resposta: respostas[questao._id],
+        questaoId: questao.id,
+        resposta: respostas[questao.id],
         pontuacaoMaxima: questao.pontuacao || 0,
       }));
 
@@ -129,10 +129,10 @@ export default function ResponderListaPage() {
   };
 
   const renderQuestao = (questao: any, index: number) => {
-    const resposta = respostas[questao._id];
+    const resposta = respostas[questao.id];
 
     return (
-      <Card key={questao._id} sx={{ mb: 3 }}>
+      <Card key={questao.id} sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
@@ -152,11 +152,34 @@ export default function ResponderListaPage() {
             {questao.enunciado}
           </Typography>
 
+          {/* Imagens/Recursos da questão */}
+          {Array.isArray(questao.imagens) && questao.imagens.length > 0 && (
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {questao.imagens.map((imagem: any, idx: number) => (
+                <Box
+                  key={imagem.id || idx}
+                  component="img"
+                  src={imagem.url}
+                  alt={imagem.filename || `Imagem ${idx + 1} da questão`}
+                  sx={{
+                    width: '100%',
+                    maxHeight: 400,
+                    objectFit: 'contain',
+                    borderRadius: 1,
+                    backgroundColor: 'background.default',
+                    border: 1,
+                    borderColor: 'divider'
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+
           {/* Múltipla Escolha */}
           {questao.tipo === 'alternativa' && (
             <RadioGroup
               value={resposta}
-              onChange={(e) => handleRespostaChange(questao._id, e.target.value)}
+              onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
             >
               {questao.alternativas?.map((alt: any) => (
                 <FormControlLabel
@@ -180,7 +203,7 @@ export default function ResponderListaPage() {
                   <RadioGroup
                     row
                     value={resposta?.[idx] === true ? 'true' : resposta?.[idx] === false ? 'false' : ''}
-                    onChange={(e) => handleAfirmacaoChange(questao._id, idx, e.target.value === 'true')}
+                    onChange={(e) => handleAfirmacaoChange(questao.id, idx, e.target.value === 'true')}
                   >
                     <FormControlLabel value="true" control={<Radio />} label="Verdadeiro" />
                     <FormControlLabel value="false" control={<Radio />} label="Falso" />
@@ -212,7 +235,7 @@ export default function ResponderListaPage() {
                 type="number"
                 label="Soma das proposições corretas"
                 value={resposta}
-                onChange={(e) => handleRespostaChange(questao._id, e.target.value)}
+                onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
                 variant="outlined"
               />
             </Box>
@@ -225,7 +248,7 @@ export default function ResponderListaPage() {
               type="number"
               label="Sua resposta"
               value={resposta}
-              onChange={(e) => handleRespostaChange(questao._id, e.target.value)}
+              onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
               variant="outlined"
               helperText={questao.margemErro > 0 ? `Margem de erro: ±${questao.margemErro}` : ''}
             />
@@ -239,7 +262,7 @@ export default function ResponderListaPage() {
               rows={6}
               label="Sua resposta"
               value={resposta}
-              onChange={(e) => handleRespostaChange(questao._id, e.target.value)}
+              onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
               variant="outlined"
               placeholder="Digite sua resposta..."
             />

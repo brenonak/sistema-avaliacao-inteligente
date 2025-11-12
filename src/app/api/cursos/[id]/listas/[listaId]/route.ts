@@ -48,19 +48,64 @@ export async function GET(
         .find({ _id: { $in: questoesIds } })
         .toArray();
 
-      // Reorganizar questões na ordem da lista e adicionar pontuação
-      questoes = questoesIds.map(qId => {
+      // Popular imagemIds com os dados completos dos recursos (incluindo URLs)
+      const recursosCol = db.collection("recursos");
+
+      // Reorganizar questões na ordem da lista, adicionar pontuação e popular imagens
+      questoes = await Promise.all(questoesIds.map(async qId => {
         const questao = questoesFromDb.find(q => q._id.equals(qId));
         if (!questao) return null;
 
         const pontuacao = lista.questoesPontuacao?.[qId.toString()] || 0;
         
+        // Popular imagemIds com os dados completos dos recursos
+        let imagens: any[] = [];
+        // Tentar buscar recursos de ambos os campos: imagemIds e recursos
+        const imagemIdsArray = questao.imagemIds || questao.recursos || [];
+        
+        if (Array.isArray(imagemIdsArray) && imagemIdsArray.length > 0) {
+          try {
+            // Converter recursos para ObjectIds se necessário
+            const recursoIds = imagemIdsArray.map((rid: any) => 
+              typeof rid === 'string' ? oid(rid) : rid
+            ).filter(Boolean);
+
+            if (recursoIds.length > 0) {
+              const recursos = await recursosCol.find({ 
+                _id: { $in: recursoIds }
+              }).toArray();
+              
+              imagens = recursos.map((rec: any) => ({
+                id: rec._id?.toString(),
+                url: rec.url,
+                filename: rec.filename,
+                mime: rec.mime
+              }));
+            }
+          } catch (err) {
+            console.error('[GET lista] Erro ao buscar recursos:', err);
+          }
+        }
+        
+        // Serializar ObjectIds e adicionar campos extras
+        const { _id, ownerId, createdBy, updatedBy, cursoIds, imagemIds, recursos, ...rest } = questao;
+        
         return {
-          ...questao,
-          _id: questao._id.toString(),
+          id: _id?.toString(),
+          ownerId: ownerId?.toString(),
+          createdBy: createdBy?.toString(),
+          updatedBy: updatedBy?.toString(),
+          cursoIds: Array.isArray(cursoIds) ? cursoIds.map((id: any) => id?.toString()) : [],
+          imagemIds: Array.isArray(imagemIds) ? imagemIds.map((id: any) => id?.toString()) : [],
+          recursos: Array.isArray(recursos) ? recursos.map((id: any) => id?.toString()) : [],
+          imagens, // Adicionar array de imagens populado
           pontuacao,
+          ...rest,
         };
-      }).filter(Boolean);
+      }));
+
+      // Filtrar nulls
+      questoes = questoes.filter(Boolean);
     }
 
     // Serializar a lista
