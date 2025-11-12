@@ -470,6 +470,21 @@ export default function ListarQuestoesPage() {
                 </Box>
               )}
               
+              {/* Exibir tags da questão */}
+              {Array.isArray(questao.tags) && questao.tags.length > 0 && (
+                <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {questao.tags.map((tag, tagIdx) => (
+                    <Chip
+                      key={tagIdx}
+                      label={tag}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                </Box>
+              )}
+              
               {/* Exibir tipo da questão */}
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
                 Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
