@@ -44,14 +44,14 @@ export async function GET(
     // Transformar em um objeto: { questaoId: resposta }
     const respostasMap: Record<string, any> = {};
     let finalizado = false;
-    let dataFinalizacao = null;
+    let dataFinalizacao: Date | null = null;
     
     respostasFiltradas.forEach(r => {
       respostasMap[r.questaoId.toString()] = r.resposta;
       // Se qualquer resposta está finalizada, considera a lista como finalizada
       if (r.finalizado) {
         finalizado = true;
-        dataFinalizacao = r.dataFinalizacao;
+        dataFinalizacao = r.dataFinalizacao ?? null;
       }
     });
 
