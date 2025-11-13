@@ -112,7 +112,8 @@ export default function ListarQuestoesPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Erro ao excluir questão');
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erro ao excluir questão');
       }
       setSnackbar({ open: true, message: 'Questão excluída com sucesso', severity: 'success' });
     
