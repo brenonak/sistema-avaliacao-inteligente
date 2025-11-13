@@ -18,6 +18,7 @@ import { getDb } from "../../lib/mongodb"; // Ajuste o caminho se necessário
  */
 export interface RespostaAluno {
   _id?: ObjectId;
+  listaId: ObjectId;   // Referência à lista de exercícios
   questaoId: ObjectId; // Referência à questão respondida
   ownerId: ObjectId;   // ID do aluno que respondeu
   
@@ -48,6 +49,7 @@ export interface RespostaAluno {
  * ANTES de chamar o create.
  */
 export interface CreateRespostaAlunoInput {
+  listaId: string;
   questaoId: string;
   resposta: any;
   pontuacaoMaxima: number;
@@ -107,6 +109,7 @@ export async function createRespostaAluno(
 
   const respostaAluno: RespostaAluno = {
     ...data,
+    listaId: new ObjectId(data.listaId),
     questaoId: new ObjectId(data.questaoId),
     ownerId: userObjectId, 
     createdAt: now,
@@ -124,11 +127,13 @@ export async function createRespostaAluno(
 /**
  * Lista todas as respostas de um aluno
  * @param userId - ID do aluno autenticado
+ * @param listaId - (Opcional) Filtrar respostas para uma lista específica
  * @param questaoId - (Opcional) Filtrar respostas para uma questão específica
  * @returns Array de respostas do aluno
  */
 export async function listRespostasAluno(
   userId: string,
+  listaId?: string,
   questaoId?: string
 ): Promise<RespostaAluno[]> {
   const db = await getDb();
@@ -137,6 +142,10 @@ export async function listRespostasAluno(
   const query: any = {
     ownerId: new ObjectId(userId),
   };
+  
+  if (listaId) {
+    query.listaId = new ObjectId(listaId);
+  }
   
   if (questaoId) {
     query.questaoId = new ObjectId(questaoId);
@@ -224,12 +233,14 @@ export async function upsertRespostaAluno(
   const collection = db.collection<RespostaAluno>("respostasAluno");
 
   const userObjectId = new ObjectId(userId);
+  const listaObjectId = new ObjectId(data.listaId);
   const questaoObjectId = new ObjectId(data.questaoId);
   const now = new Date();
 
-  // Buscar resposta existente
+  // Buscar resposta existente (agora considerando listaId)
   const existingResposta = await collection.findOne({
     ownerId: userObjectId,
+    listaId: listaObjectId,
     questaoId: questaoObjectId,
   });
 
@@ -262,6 +273,7 @@ export async function upsertRespostaAluno(
     // Criar nova resposta
     const respostaAluno: any = {
       ...data,
+      listaId: listaObjectId,
       questaoId: questaoObjectId,
       ownerId: userObjectId,
       createdAt: now,

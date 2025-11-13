@@ -34,19 +34,15 @@ export async function GET(
       typeof id === 'string' ? id : id.toString()
     );
     
-    const respostas = await RespostaAlunoService.listRespostasAluno(userId);
-
-    // Filtrar apenas as respostas relacionadas às questões desta lista
-    const respostasFiltradas = respostas.filter(r => 
-      questoesIds.includes(r.questaoId.toString())
-    );
+    // Buscar respostas filtrando por listaId
+    const respostas = await RespostaAlunoService.listRespostasAluno(userId, listaId);
 
     // Transformar em um objeto: { questaoId: resposta }
     const respostasMap: Record<string, any> = {};
     let finalizado = false;
     let dataFinalizacao: Date | null = null;
     
-    respostasFiltradas.forEach(r => {
+    respostas.forEach(r => {
       respostasMap[r.questaoId.toString()] = r.resposta;
       // Se qualquer resposta está finalizada, considera a lista como finalizada
       if (r.finalizado) {
@@ -89,8 +85,8 @@ export async function POST(
       return badRequest("Array de respostas é obrigatório");
     }
 
-    // Verificar se as respostas já foram finalizadas
-    const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId);
+    // Verificar se as respostas desta lista já foram finalizadas
+    const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId, listaId);
     const respostaFinalizada = respostasExistentes.find(r => r.finalizado === true);
     
     if (respostaFinalizada) {
@@ -125,6 +121,7 @@ export async function POST(
 
       // Salvar ou atualizar a resposta no banco (upsert)
       const respostaSalva = await RespostaAlunoService.upsertRespostaAluno(userId, {
+        listaId,
         questaoId,
         resposta,
         pontuacaoMaxima,
