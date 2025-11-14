@@ -23,14 +23,14 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     // CORREÇÃO 2: Processar os dados para criar duas séries (correta/incorreta)
     const dadosProcessados = dados.map(entry => ({
       nome: entry.nome,
-      RespostasCorretas: entry.correta ? entry.Respostas : null,
-      RespostasIncorretas: !entry.correta ? entry.Respostas : null,
+      RespostasCorretas: entry.correta ? entry.Respostas : undefined,
+      RespostasIncorretas: !entry.correta ? entry.Respostas : undefined,
     }));
 
     // Lógica para o Tooltip (Nº e %)
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
     const valueFormatter = (value) => {
-      if (value === null) return '';
+      if (value === null || value === undefined) return null;
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
       return `Nº de Respostas: ${value} (${porcentagem}%)`;
     };
@@ -70,6 +70,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           slotProps={{
             legend: { hidden: true },
           }}
+          tooltip={{ trigger: 'item' }}
         />
       </Box>
     );
@@ -123,7 +124,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   if (!dados || dados.length === 0) {
     return <Typography>Não há dados de estatística para esta questão.</Typography>;
   }
-
+  
+  
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'multipla-escolha':
