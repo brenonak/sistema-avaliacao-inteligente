@@ -272,6 +272,7 @@ describe('CriarListaPage', () => {
             tituloLista: 'Lista Teste', 
             questoesIds: [mockQuestao2._id, mockQuestao1._id],
             nomeInstituicao: 'UNIFESP',
+            usarPontuacao: false,
             // A ordem de seleção foi Q2, depois Q1.
              
           }),

@@ -18,6 +18,7 @@ import { getDb } from "../../lib/mongodb"; // Ajuste o caminho se necessário
  */
 export interface RespostaAluno {
   _id?: ObjectId;
+  listaId: ObjectId;   // Referência à lista de exercícios
   questaoId: ObjectId; // Referência à questão respondida
   ownerId: ObjectId;   // ID do aluno que respondeu
   
@@ -35,6 +36,9 @@ export interface RespostaAluno {
   pontuacaoObtida: number; // Pontuação que o aluno alcançou
   isCorrect: boolean;      // A resposta foi 100% correta?
   
+  finalizado?: boolean;    // Se true, a resposta foi finalizada e não pode ser modificada
+  dataFinalizacao?: Date;  // Data em que a resposta foi finalizada
+  
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -45,11 +49,13 @@ export interface RespostaAluno {
  * ANTES de chamar o create.
  */
 export interface CreateRespostaAlunoInput {
+  listaId: string;
   questaoId: string;
   resposta: any;
   pontuacaoMaxima: number;
   pontuacaoObtida: number;
   isCorrect: boolean;
+  finalizado?: boolean;
 }
 
 /**
@@ -103,6 +109,7 @@ export async function createRespostaAluno(
 
   const respostaAluno: RespostaAluno = {
     ...data,
+    listaId: new ObjectId(data.listaId),
     questaoId: new ObjectId(data.questaoId),
     ownerId: userObjectId, 
     createdAt: now,
@@ -120,11 +127,13 @@ export async function createRespostaAluno(
 /**
  * Lista todas as respostas de um aluno
  * @param userId - ID do aluno autenticado
+ * @param listaId - (Opcional) Filtrar respostas para uma lista específica
  * @param questaoId - (Opcional) Filtrar respostas para uma questão específica
  * @returns Array de respostas do aluno
  */
 export async function listRespostasAluno(
   userId: string,
+  listaId?: string,
   questaoId?: string
 ): Promise<RespostaAluno[]> {
   const db = await getDb();
@@ -133,6 +142,10 @@ export async function listRespostasAluno(
   const query: any = {
     ownerId: new ObjectId(userId),
   };
+  
+  if (listaId) {
+    query.listaId = new ObjectId(listaId);
+  }
   
   if (questaoId) {
     query.questaoId = new ObjectId(questaoId);
@@ -204,7 +217,86 @@ export async function updateRespostaAluno(
 }
 
 /**
- * Deleta uma resposta (ex: aluno cancelou submissão)
+ * Cria ou atualiza uma resposta de aluno (upsert)
+ * Se já existir uma resposta do aluno para esta questão, atualiza. Caso contrário, cria nova.
+ * @param userId - ID do aluno autenticado
+ * @param data - Dados da resposta (já corrigida)
+ * @returns RespostaAluno criada ou atualizada
+ */
+export async function upsertRespostaAluno(
+  userId: string,
+  data: CreateRespostaAlunoInput
+): Promise<RespostaAluno> {
+  await validateQuestaoExists(data.questaoId);
+
+  const db = await getDb();
+  const collection = db.collection<RespostaAluno>("respostasAluno");
+
+  const userObjectId = new ObjectId(userId);
+  const listaObjectId = new ObjectId(data.listaId);
+  const questaoObjectId = new ObjectId(data.questaoId);
+  const now = new Date();
+
+  // Buscar resposta existente (agora considerando listaId)
+  const existingResposta = await collection.findOne({
+    ownerId: userObjectId,
+    listaId: listaObjectId,
+    questaoId: questaoObjectId,
+  });
+
+  if (existingResposta) {
+    // Atualizar resposta existente
+    const updateData: any = {
+      resposta: data.resposta,
+      pontuacaoMaxima: data.pontuacaoMaxima,
+      pontuacaoObtida: data.pontuacaoObtida,
+      isCorrect: data.isCorrect,
+      updatedAt: now,
+    };
+    
+    // Se finalizado = true, adiciona flag e data
+    if (data.finalizado) {
+      updateData.finalizado = true;
+      updateData.dataFinalizacao = now;
+    }
+
+    await collection.updateOne(
+      { _id: existingResposta._id },
+      { $set: updateData }
+    );
+
+    return {
+      ...existingResposta,
+      ...updateData,
+    };
+  } else {
+    // Criar nova resposta
+    const respostaAluno: any = {
+      ...data,
+      listaId: listaObjectId,
+      questaoId: questaoObjectId,
+      ownerId: userObjectId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    // Se finalizado = true, adiciona flag e data
+    if (data.finalizado) {
+      respostaAluno.finalizado = true;
+      respostaAluno.dataFinalizacao = now;
+    }
+
+    const result = await collection.insertOne(respostaAluno);
+
+    return {
+      ...respostaAluno,
+      _id: result.insertedId,
+    };
+  }
+}
+
+/**
+ * Deleta uma resposta
  * @param userId - ID do aluno autenticado
  * @param respostaId - ID da resposta
  * @returns true se deletou, false se não encontrou

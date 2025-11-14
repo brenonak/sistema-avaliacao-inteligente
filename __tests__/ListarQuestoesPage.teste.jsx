@@ -317,7 +317,8 @@ describe('ListarQuestoesPage', () => {
       fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [], total: 0 }) });
       const autocomplete = screen.getByLabelText(/filtrar por tags/i);
       fireEvent.mouseDown(autocomplete);
-      await user.click(await screen.findByText('geografia'));
+      const options = await screen.findAllByRole('option', { name: /geografia/i });
+      await user.click(options[0]);
 
       await waitFor(() => {
         expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('tags=geografia'));
@@ -329,12 +330,13 @@ describe('ListarQuestoesPage', () => {
       const user = userEvent.setup();
       // Mocks para a renderização inicial
       fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
-      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: 20 }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes.slice(0, 5), total: 20 }) });
 
       renderWithTheme(<ListarQuestoesPage />);
 
+      await screen.findByText(/Qual é a capital do Brasil\?/i);
       
-      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: 20 }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes.slice(0, 5), total: 20 }) });
       const pageTwoButtons = await screen.findAllByRole('button', { name: /go to page 2/i });
       await user.click(pageTwoButtons[0]);
 
@@ -366,30 +368,31 @@ describe('ListarQuestoesPage', () => {
         const confirmButtonInDialog = within(dialog).getByRole('button', { name: /excluir/i });
         await user.click(confirmButtonInDialog);
   
-        expect(await screen.findByText(/Erro ao excluir questão/i)).toBeInTheDocument();
+        expect(await screen.findByText(/Permissão negada/i)).toBeInTheDocument();
         consoleErrorSpy.mockRestore();
       });
   });
 
   describe('Renderização de Tipos de Questão', () => {
-    
-    beforeEach(() => {
-        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
-        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) });
-    });
 
     it('deve renderizar corretamente uma questão do tipo numérica', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) });
       renderWithTheme(<ListarQuestoesPage />);
       expect(await screen.findByText(/Resposta correta: 3.14/i)).toBeInTheDocument();
       expect(screen.getByText(/\(± 0.01\)/i)).toBeInTheDocument();
     });
 
     it('deve renderizar corretamente uma questão do tipo dissertativa', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) });
       renderWithTheme(<ListarQuestoesPage />);
       expect(await screen.findByText(/Gabarito: É um estilo de arquitetura/i)).toBeInTheDocument();
     });
 
     it('deve renderizar corretamente uma questão do tipo proposições e calcular a soma', async () => {
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) });
       renderWithTheme(<ListarQuestoesPage />);
       const card = await screen.findByText(/Analise as proposições sobre programação./i);
       const proposicaoCard = card.closest('.MuiCard-root');
@@ -402,6 +405,8 @@ describe('ListarQuestoesPage', () => {
     });
 
     it('deve renderizar corretamente uma questão do tipo afirmações', async () => {
+        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ tags: [] }) });
+        fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: mockQuestoes, total: mockQuestoes.length }) });
         renderWithTheme(<ListarQuestoesPage />);
         expect(await screen.findByText("I.")).toBeInTheDocument();
         expect(screen.getByText("II.")).toBeInTheDocument();
