@@ -1,121 +1,122 @@
 "use client";
 
 import React from 'react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  PieChart, 
-  Pie, 
-  Cell,
-  Label
-} from 'recharts';
-
-import {
-  Typography,
-  Box
-} from '@mui/material';
+import { BarChart, PieChart } from '@mui/x-charts';
+import { Typography, Box } from '@mui/material';
 
 /**
  * Componente para renderizar os gráficos de estatísticas de uma questão.
- * * Este componente recebe o tipo de questão e os dados, e decide
- * qual gráfico (Barras ou Rosca) deve renderizar.
- * * @param {string} tipoQuestao - 'multipla-escolha' ou 'verdadeiro-falso'
+ * Task #225: Refatorado para usar @mui/x-charts em vez de recharts.
+ *
+ * @param {string} tipoQuestao - 'multipla-escolha' ou 'verdadeiro-falso'
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
  */
 const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
 
+  // Define as cores
+  const COR_CORRETA = "#2e7d32"; 
+  const COR_INCORRETA = "#d32f2f"; 
+
   // Lógica para o Gráfico de Barras (Múltipla Escolha)
   const renderGraficoBarras = () => {
-    // Define as cores: verde para a correta, vermelho/cinza para as erradas
-    const COR_CORRETA = "#2e7d32"; 
-    const COR_INCORRETA = "#d32f2f"; 
 
-    const CustomTooltip = ({ active, payload, label }) => {
-      if (active && payload && payload.length) {
-        const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
-        const valorAtual = payload[0].value;
-        const porcentagem = totalRespostas > 0 ? ((valorAtual / totalRespostas) * 100).toFixed(1) : 0;
+    // CORREÇÃO 2: Processar os dados para criar duas séries (correta/incorreta)
+    const dadosProcessados = dados.map(entry => ({
+      nome: entry.nome,
+      RespostasCorretas: entry.correta ? entry.Respostas : undefined,
+      RespostasIncorretas: !entry.correta ? entry.Respostas : undefined,
+    }));
 
-        return (
-          <Box sx={{ p: 1, bgcolor: 'background.paper', border: '1px solid #ccc', borderRadius: '4px' }}>
-            <Typography variant="body2" color="text.secondary">{`Alternativa ${label}`}</Typography>
-            <Typography variant="body2" color="text.primary">{`Nº de Respostas: ${valorAtual} (${porcentagem}%)`}</Typography>
-            {payload[0].payload.correta && (
-              <Typography variant="body2" sx={{ color: COR_CORRETA }}>Alternativa Correta</Typography>
-            )}
-          </Box>
-        );
-      }
-      return null;
+    // Lógica para o Tooltip (Nº e %)
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    const valueFormatter = (value) => {
+      if (value === null || value === undefined) return null;
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      return `Nº de Respostas: ${value} (${porcentagem}%)`;
     };
 
     return (
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={dados} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <XAxis 
-                dataKey="nome" 
-                interval={0}
-            />
-            <YAxis>
-            {/* Adiciona um rótulo ao eixo Y */}
-            <Label 
-              value="Nº de Respostas" 
-              angle={-90} 
-              position="insideLeft" 
-              style={{ textAnchor: 'middle' }} 
-            />
-            </YAxis>
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="Respostas">
-            {dados.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.correta ? COR_CORRETA : COR_INCORRETA} 
-              />
-            ))}
-            </Bar>
-        </BarChart>
-        
-      </ResponsiveContainer>
+      // Envolve o BarChart numa Box para centralização
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
+        <BarChart
+          dataset={dadosProcessados} 
+          xAxis={[{ 
+            scaleType: 'band', 
+            dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
+            label: 'Alternativa' 
+          }]}
+          yAxis={[{ 
+            label: 'Nº de Respostas' // Rótulo do Eixo Y
+          }]}
+          series={[
+            { 
+              dataKey: 'RespostasCorretas', 
+              valueFormatter, 
+              stack: 'respostas' // Identificador do "stack"
+            },
+            { 
+              dataKey: 'RespostasIncorretas', 
+              valueFormatter, 
+              stack: 'respostas' // Mesmo identificador
+            }
+          ]}
+          colors={[COR_CORRETA, COR_INCORRETA]}
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
+          slotProps={{
+            legend: { hidden: true },
+          }}
+          tooltip={{ trigger: 'item' }}
+        />
+      </Box>
     );
   };
 
   // Lógica para o Gráfico de Rosca (Verdadeiro/Falso)
   const renderGraficoRosca = () => {
-    const CORES = ['#2e7d32', '#d32f2f']; // [0] = Correto, [1] = Incorreto
+    
+    const dadosFormatados = dados.map((entry, index) => ({
+      id: index,
+      value: entry.Respostas,
+      label: entry.nome,
+      correta: entry.correta,
+    }));
+  
+    const colorsArray = dadosFormatados.map(entry => entry.correta ? COR_CORRETA : COR_INCORRETA);
 
     return (
-        <Box>
-            <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
-                Distribuição de Respostas
-            </Typography>  
-            <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                <Pie
-                    data={dados}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="Respostas"
-                    // Exibe "Nome (XX%)" no gráfico
-                    label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
-                >
-                    {dados.map((entry, index) => (
-                    // Assume que o primeiro item nos dados é o correto
-                    <Cell key={`cell-${index}`} fill={entry.correta ? CORES[0] : CORES[1]} />
-                    ))}
-                </Pie>
-                <Tooltip />
-                </PieChart>
-            </ResponsiveContainer>
-        </Box>  
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '500px', // O gráfico de rosca pode ser menor
+        mx: 'auto', // Centraliza o Box
+      }}>
+        <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
+          Distribuição de Respostas
+        </Typography> 
+        <PieChart
+          colors={colorsArray} 
+          series={[{
+            data: dadosFormatados, 
+            outerRadius: 100,
+            // Formata os rótulos (Nome XX.X%)
+            valueFormatter: (value, { dataIndex }) => {
+              const item = dadosFormatados[dataIndex];
+              const total = dadosFormatados.reduce((sum, i) => sum + i.value, 0);
+              const percent = total > 0 ? (item.value / total) * 100 : 0;
+              return `${item.label} (${percent.toFixed(1)}%)`;
+            },
+          }]}
+          height={300}
+          margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+          slotProps={{
+            legend: { hidden: true },
+          }}
+        />
+      </Box>
     );
   };
 
@@ -123,7 +124,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   if (!dados || dados.length === 0) {
     return <Typography>Não há dados de estatística para esta questão.</Typography>;
   }
-
+  
+  
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'multipla-escolha':
@@ -135,8 +137,11 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   }
 };
 
-
-// DADOS MOCKADOS E EXEMPLO DE USO (PARA TESTE DA TASK #225)
+/*
+ * ====================================================================
+ * DADOS MOCKADOS E EXEMPLO DE USO (PARA TESTE)
+ * ====================================================================
+ */
 
 // Dados Falsos para Múltipla Escolha
 const mockDadosBarra = [
@@ -152,13 +157,13 @@ const mockDadosRosca = [
   { nome: 'Falso', Respostas: 22, correta: false },
 ];
 
-
-// Componente de Teste Wrapper
-
+/**
+ * Componente de Teste Wrapper
+ */
 export const TesteGraficoEstatisticas = () => {
   return (
     <Box sx={{ width: '100%', p: 4, bgcolor: 'background.paper' }}>
-      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Múltipla Escolha
       </Typography>
       <GraficoEstatisticasQuestao 
@@ -168,7 +173,7 @@ export const TesteGraficoEstatisticas = () => {
       
       <Box sx={{ my: 4 }} /> 
 
-      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Verdadeiro/Falso
       </Typography>
       <GraficoEstatisticasQuestao 
@@ -178,7 +183,7 @@ export const TesteGraficoEstatisticas = () => {
       
       <Box sx={{ my: 4 }} /> 
 
-      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Sem Dados
       </Typography>
       <GraficoEstatisticasQuestao 
