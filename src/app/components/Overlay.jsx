@@ -12,7 +12,7 @@ import CollectionsIcon from '@mui/icons-material/Collections';
 import DescriptionIcon from '@mui/icons-material/Description';
 import HomeIcon from '@mui/icons-material/Home';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
-import GradingIcon from '@mui/icons-material/Grading';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -36,6 +36,7 @@ export default function Overlay({ content }) {
     { text: 'Início', icon: <HomeIcon />, link: '/dashboard' },
     { text: 'Cursos', icon: <SchoolIcon />, link: '/cursos' },
     { text: 'Escanear', icon: <ScanBarcodeIcon />, link: '/escanear' },
+    { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/desempenho' },
     { text: 'Galeria', icon: <CollectionsIcon />, link: '/galeria' },
     { text: 'Questões', icon: <DescriptionIcon />, link: '/questoes' },
     { text: 'Criar Questão', icon: <NoteAddIcon />, link: '/questoes/criar' },
