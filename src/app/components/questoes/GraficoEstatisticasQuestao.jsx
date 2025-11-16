@@ -183,11 +183,11 @@ export const TesteGraficoEstatisticas = () => {
       <Box sx={{ my: 4 }} /> 
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
-        Teste - Gráfico Verdadeiro/Falso
+        Teste - Gráfico Verdadeiro/Falso (Agrupado)
       </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="verdadeiro-falso" 
-        dados={mockDadosRosca} 
+        dados={mockDadosVFAgrupado} 
       />
       
       <Box sx={{ my: 4 }} /> 
