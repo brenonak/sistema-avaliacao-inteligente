@@ -76,7 +76,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     );
   };
 
-  // --- Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações) ---
+  // Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações)
   const renderGraficoBarrasAgrupadas = () => {
     
     // O formatador do tooltip agora é simples, apenas adiciona '%'
@@ -97,15 +97,12 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           }]}
           yAxis={[{ 
             label: 'Percentual de Respostas (%)',
-            max: 100 // Definimos o máximo como 100%
+            max: 100 
           }]}
-          // A "mágica" do agrupamento acontece aqui:
-          // Duas séries de dados, em vez de empilhadas (stack),
-          // elas são renderizadas lado a lado.
           series={[
             { 
               dataKey: 'acertos', 
-              label: 'Acertos', // O 'label' é importante para a legenda
+              label: 'Acertos',
               valueFormatter,
             },
             { 
@@ -114,15 +111,13 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
               valueFormatter,
             }
           ]}
-          // Usamos as mesmas cores, que agora serão mapeadas para as séries
           colors={[COR_CORRETA, COR_INCORRETA]}
           height={300}
-          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Damos espaço para a legenda no topo
+          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Espaço para a legenda no topo
           
-          // NÃO escondemos a legenda, ela é necessária aqui
-          // slotProps={{
-          //   legend: { hidden: true }, 
-          // }}
+          slotProps={{
+            legend: { hidden: true }, 
+          }}
         />
       </Box>
     );
@@ -161,9 +156,9 @@ const mockDadosBarra = [
 ];
 
 const mockDadosVFAgrupado = [
-  { nome: 'Afirmação I', acertos: 85, erros: 15 },
-  { nome: 'Afirmação II', acertos: 62, erros: 38 },
-  { nome: 'Afirmação III', acertos: 70, erros: 30 },
+  { nome: 'I', acertos: 85, erros: 15 },
+  { nome: 'II', acertos: 62, erros: 38 },
+  { nome: 'III', acertos: 70, erros: 30 },
 ];
 
 /**
