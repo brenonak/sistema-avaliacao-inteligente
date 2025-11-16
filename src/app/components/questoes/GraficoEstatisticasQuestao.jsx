@@ -151,10 +151,10 @@ const mockDadosBarra = [
   { nome: 'D', Respostas: 10, correta: false },
 ];
 
-// Dados Falsos para Verdadeiro/Falso
-const mockDadosRosca = [
-  { nome: 'Verdadeiro', Respostas: 78, correta: true },
-  { nome: 'Falso', Respostas: 22, correta: false },
+const mockDadosVFAgrupado = [
+  { nome: 'Afirmação I', acertos: 85, erros: 15 },
+  { nome: 'Afirmação II', acertos: 62, erros: 38 },
+  { nome: 'Afirmação III', acertos: 70, erros: 30 },
 ];
 
 /**
