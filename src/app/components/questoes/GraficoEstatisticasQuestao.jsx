@@ -8,19 +8,19 @@ import { Typography, Box } from '@mui/material';
  * Componente para renderizar os gráficos de estatísticas de uma questão.
  * Task #225: Refatorado para usar @mui/x-charts em vez de recharts.
  *
- * @param {string} tipoQuestao - 'multipla-escolha' ou 'verdadeiro-falso'
+ * @param {string} tipoQuestao - 'multipla-escolha', 'verdadeiro-falso', etc
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
+ * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
-const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
+const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
   // Define as cores
   const COR_CORRETA = "#2e7d32"; 
   const COR_INCORRETA = "#d32f2f"; 
 
-  // Lógica para o Gráfico de Barras (Múltipla Escolha)
-  const renderGraficoBarras = () => {
+  // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
+  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
 
-    // CORREÇÃO 2: Processar os dados para criar duas séries (correta/incorreta)
     const dadosProcessados = dados.map(entry => ({
       nome: entry.nome,
       RespostasCorretas: entry.correta ? entry.Respostas : undefined,
@@ -30,10 +30,12 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     // Lógica para o Tooltip (Nº e %)
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
     const valueFormatter = (value) => {
-      if (value === null || value === undefined) return null;
+      if (value === null || value === undefined) return null; // Alterado de '' para null na refatoração anterior
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
       return `Nº de Respostas: ${value} (${porcentagem}%)`;
     };
+
+
 
     return (
       // Envolve o BarChart numa Box para centralização
@@ -47,7 +49,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           xAxis={[{ 
             scaleType: 'band', 
             dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
-            label: 'Alternativa' 
+            label: labelEixoX
           }]}
           yAxis={[{ 
             label: 'Nº de Respostas' // Rótulo do Eixo Y
@@ -132,9 +134,17 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'multipla-escolha':
-      return renderGraficoBarras();
+      return renderGraficoBarras('Alternativa');
+
     case 'verdadeiro-falso':
       return renderGraficoBarrasAgrupadas();
+
+    case 'numerica':
+      return renderGraficoBarras('Respostas Submetidas');
+
+    case 'somatorio':
+      return renderGraficoBarras('Soma Submetida');
+
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
@@ -159,6 +169,21 @@ const mockDadosVFAgrupado = [
   { nome: 'I', acertos: 85, erros: 15 },
   { nome: 'II', acertos: 62, erros: 38 },
   { nome: 'III', acertos: 70, erros: 30 },
+];
+
+const mockDadosNumericaFrequencia = [
+  { nome: '15.5', Respostas: 12, correta: true },    // A Resposta Correta
+  { nome: '15500', Respostas: 8, correta: false },  // Erro Comum 1 (ex: erro de unidade)
+  { nome: '12.2', Respostas: 5, correta: false },   // Erro Comum 2
+  { nome: '31.0', Respostas: 4, correta: false },   // Erro Comum 3 (ex: esqueceu de dividir por 2)
+  { nome: 'Outros', Respostas: 2, correta: false },   // Todos os outros erros
+];
+
+const mockDadosSomatorio = [
+  { nome: '03', Respostas: 10, correta: false },
+  { nome: '05', Respostas: 25, correta: true },
+  { nome: '07', Respostas: 12, correta: false },
+  { nome: '14', Respostas: 8, correta: false },
 ];
 
 /**
@@ -186,6 +211,26 @@ export const TesteGraficoEstatisticas = () => {
       />
       
       <Box sx={{ my: 4 }} /> 
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Resposta Numérica
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="numerica" 
+        dados={mockDadosNumericaFrequencia}
+      />
+      
+      <Box sx={{ my: 4 }} />
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Somatório
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="somatorio" 
+        dados={mockDadosSomatorio}
+      />
+      
+      <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Sem Dados
