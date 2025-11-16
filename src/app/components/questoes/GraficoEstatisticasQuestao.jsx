@@ -40,7 +40,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
       const itemOriginal = dados[dataIndex];
       if (itemOriginal.correta && valorExato !== null) {
         // '\n' quebra a linha dentro do tooltip
-        return `${baseString}\nValor Correto: ${valorExato}`; 
+        return `${baseString} | Valor Correto: ${valorExato}`; 
       }
 
       return baseString;
@@ -241,7 +241,6 @@ export const TesteGraficoEstatisticas = () => {
       <GraficoEstatisticasQuestao 
         tipoQuestao="somatorio" 
         dados={mockDadosSomatorio}
-        valorCorreto={mockValorCorretoSomatorio} 
       />
       
       <Box sx={{ my: 4 }} />
