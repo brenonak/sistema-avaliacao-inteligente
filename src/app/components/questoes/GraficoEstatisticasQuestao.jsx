@@ -8,10 +8,11 @@ import { Typography, Box } from '@mui/material';
  * Componente para renderizar os gráficos de estatísticas de uma questão.
  * Task #225: Refatorado para usar @mui/x-charts em vez de recharts.
  *
- * @param {string} tipoQuestao - 'multipla-escolha' ou 'verdadeiro-falso'
+ * @param {string} tipoQuestao - 'multipla-escolha', 'verdadeiro-falso', etc
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
+ * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
-const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
+const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
   // Define as cores
   const COR_CORRETA = "#2e7d32"; 
@@ -136,7 +137,22 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     case 'verdadeiro-falso':
       return renderGraficoBarrasAgrupadas();
     case 'numerica':
-      return renderGraficoBarras('Intervalo de Respostas');
+      return (
+        <Box>
+          {renderGraficoBarras('Intervalo de Respostas')}
+          
+          {/* Adiciona a legenda se 'valorCorreto' for fornecido */}
+          {valorCorreto !== undefined && (
+            <Typography 
+              variant="caption" 
+              display="block" 
+              sx={{ textAlign: 'center', mt: 1, fontStyle: 'italic' }}
+            >
+              Valor Correto: {valorCorreto}
+            </Typography>
+          )}
+        </Box>
+      );
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
@@ -169,6 +185,7 @@ const mockDadosNumerica = [
   { nome: '21-30', Respostas: 8, correta: false },
   { nome: '31-40', Respostas: 3, correta: false },
 ];
+const mockValorCorretoNumerica = 15.5;
 
 /**
  * Componente de Teste Wrapper
@@ -202,6 +219,7 @@ export const TesteGraficoEstatisticas = () => {
       <GraficoEstatisticasQuestao 
         tipoQuestao="numerica" 
         dados={mockDadosNumerica} 
+        valorCorreto={mockValorCorretoNumerica} 
       />
       
       <Box sx={{ my: 4 }} />
