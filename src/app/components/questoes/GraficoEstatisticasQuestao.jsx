@@ -76,45 +76,53 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     );
   };
 
-  // Lógica para o Gráfico de Rosca (Verdadeiro/Falso)
-  const renderGraficoRosca = () => {
+  // --- Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações) ---
+  const renderGraficoBarrasAgrupadas = () => {
     
-    const dadosFormatados = dados.map((entry, index) => ({
-      id: index,
-      value: entry.Respostas,
-      label: entry.nome,
-      correta: entry.correta,
-    }));
-  
-    const colorsArray = dadosFormatados.map(entry => entry.correta ? COR_CORRETA : COR_INCORRETA);
+    // O formatador do tooltip agora é simples, apenas adiciona '%'
+    const valueFormatter = (value) => value === null ? '' : `${value}%`;
 
     return (
       <Box sx={{ 
         width: '100%', 
-        maxWidth: '500px', // O gráfico de rosca pode ser menor
-        mx: 'auto', // Centraliza o Box
+        maxWidth: '600px',
+        mx: 'auto' 
       }}>
-        <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
-          Distribuição de Respostas
-        </Typography> 
-        <PieChart
-          colors={colorsArray} 
-          series={[{
-            data: dadosFormatados, 
-            outerRadius: 100,
-            // Formata os rótulos (Nome XX.X%)
-            valueFormatter: (value, { dataIndex }) => {
-              const item = dadosFormatados[dataIndex];
-              const total = dadosFormatados.reduce((sum, i) => sum + i.value, 0);
-              const percent = total > 0 ? (item.value / total) * 100 : 0;
-              return `${item.label} (${percent.toFixed(1)}%)`;
-            },
+        <BarChart
+          dataset={dados} // Usará os mockDadosVFAgrupado
+          xAxis={[{ 
+            scaleType: 'band', 
+            dataKey: 'nome', // Eixo X (Afirmação I, II, III...)
+            label: 'Afirmação' 
           }]}
+          yAxis={[{ 
+            label: 'Percentual de Respostas (%)',
+            max: 100 // Definimos o máximo como 100%
+          }]}
+          // A "mágica" do agrupamento acontece aqui:
+          // Duas séries de dados, em vez de empilhadas (stack),
+          // elas são renderizadas lado a lado.
+          series={[
+            { 
+              dataKey: 'acertos', 
+              label: 'Acertos', // O 'label' é importante para a legenda
+              valueFormatter,
+            },
+            { 
+              dataKey: 'erros', 
+              label: 'Erros',
+              valueFormatter,
+            }
+          ]}
+          // Usamos as mesmas cores, que agora serão mapeadas para as séries
+          colors={[COR_CORRETA, COR_INCORRETA]}
           height={300}
-          margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
-          slotProps={{
-            legend: { hidden: true },
-          }}
+          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Damos espaço para a legenda no topo
+          
+          // NÃO escondemos a legenda, ela é necessária aqui
+          // slotProps={{
+          //   legend: { hidden: true }, 
+          // }}
         />
       </Box>
     );
@@ -131,11 +139,12 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     case 'multipla-escolha':
       return renderGraficoBarras();
     case 'verdadeiro-falso':
-      return renderGraficoRosca();
+      return renderGraficoBarrasAgrupadas();
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
 };
+
 
 /*
  * ====================================================================
