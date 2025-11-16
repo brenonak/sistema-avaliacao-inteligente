@@ -18,7 +18,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   const COR_INCORRETA = "#d32f2f"; 
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha)
-  const renderGraficoBarras = () => {
+  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
 
     // CORREÇÃO 2: Processar os dados para criar duas séries (correta/incorreta)
     const dadosProcessados = dados.map(entry => ({
@@ -47,7 +47,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
           xAxis={[{ 
             scaleType: 'band', 
             dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
-            label: 'Alternativa' 
+            label: labelEixoX
           }]}
           yAxis={[{ 
             label: 'Nº de Respostas' // Rótulo do Eixo Y
@@ -132,9 +132,11 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'multipla-escolha':
-      return renderGraficoBarras();
+      return renderGraficoBarras('Alternativa');
     case 'verdadeiro-falso':
       return renderGraficoBarrasAgrupadas();
+    case 'numerica':
+      return renderGraficoBarras('Intervalo de Respostas');
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
@@ -159,6 +161,13 @@ const mockDadosVFAgrupado = [
   { nome: 'I', acertos: 85, erros: 15 },
   { nome: 'II', acertos: 62, erros: 38 },
   { nome: 'III', acertos: 70, erros: 30 },
+];
+
+const mockDadosNumerica = [
+  { nome: '0-10', Respostas: 5, correta: false },
+  { nome: '11-20', Respostas: 12, correta: true },
+  { nome: '21-30', Respostas: 8, correta: false },
+  { nome: '31-40', Respostas: 3, correta: false },
 ];
 
 /**
@@ -186,6 +195,16 @@ export const TesteGraficoEstatisticas = () => {
       />
       
       <Box sx={{ my: 4 }} /> 
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Resposta Numérica (Histograma)
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="numerica" 
+        dados={mockDadosNumerica} 
+      />
+      
+      <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Sem Dados
