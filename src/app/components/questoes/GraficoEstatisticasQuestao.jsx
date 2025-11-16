@@ -18,8 +18,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   const COR_CORRETA = "#2e7d32"; 
   const COR_INCORRETA = "#d32f2f"; 
 
-  // Lógica para o Gráfico de Barras (Múltipla Escolha)
-  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
+  // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
+  const renderGraficoBarras = (labelEixoX = 'Alternativa', valorExato = null) => {
 
     const dadosProcessados = dados.map(entry => ({
       nome: entry.nome,
@@ -29,11 +29,24 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
     // Lógica para o Tooltip (Nº e %)
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
-    const valueFormatter = (value) => {
+    const valueFormatter = (value, { dataIndex }) => {
       if (value === null || value === undefined) return null;
+
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-      return `Nº de Respostas: ${value} (${porcentagem}%)`;
+      const baseString = `Nº de Respostas: ${value} (${porcentagem}%)`;
+
+      // Adicionar o valor exato ao tooltip da barra correta
+      // Usamos 'dados' (o array original) para checar se a barra é a correta
+      const itemOriginal = dados[dataIndex];
+      if (itemOriginal.correta && valorExato !== null) {
+        // '\n' quebra a linha dentro do tooltip
+        return `${baseString}\nValor Correto: ${valorExato}`; 
+      }
+
+      return baseString;
     };
+
+
 
     return (
       // Envolve o BarChart numa Box para centralização
@@ -133,27 +146,16 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   switch (tipoQuestao) {
     case 'multipla-escolha':
       return renderGraficoBarras('Alternativa');
+
     case 'verdadeiro-falso':
       return renderGraficoBarrasAgrupadas();
+
     case 'numerica':
-      return (
-        <Box>
-          {renderGraficoBarras('Intervalo de Respostas')}
-          
-          {/* Adiciona a legenda se 'valorCorreto' for fornecido */}
-          {valorCorreto !== undefined && (
-            <Typography 
-              variant="caption" 
-              display="block" 
-              sx={{ textAlign: 'center', mt: 1, fontStyle: 'italic' }}
-            >
-              Valor Correto: {valorCorreto}
-            </Typography>
-          )}
-        </Box>
-      );
+      return renderGraficoBarras('Faixa de Resposta', valorCorreto);
+
     case 'somatorio':
-      return renderGraficoBarras('Soma Submetida');
+      return renderGraficoBarras('Soma Submetida', valorCorreto);
+
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
@@ -194,6 +196,7 @@ const mockDadosSomatorio = [
   { nome: '07', Respostas: 12, correta: false },
   { nome: '14', Respostas: 8, correta: false },
 ];
+const mockValorCorretoSomatorio = '05';
 
 /**
  * Componente de Teste Wrapper
@@ -237,7 +240,8 @@ export const TesteGraficoEstatisticas = () => {
       </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="somatorio" 
-        dados={mockDadosSomatorio} 
+        dados={mockDadosSomatorio}
+        valorCorreto={mockValorCorretoSomatorio} 
       />
       
       <Box sx={{ my: 4 }} />
