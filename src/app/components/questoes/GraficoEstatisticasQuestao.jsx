@@ -76,44 +76,47 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     );
   };
 
-  // Lógica para o Gráfico de Rosca (Verdadeiro/Falso)
-  const renderGraficoRosca = () => {
+  // Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações)
+  const renderGraficoBarrasAgrupadas = () => {
     
-    const dadosFormatados = dados.map((entry, index) => ({
-      id: index,
-      value: entry.Respostas,
-      label: entry.nome,
-      correta: entry.correta,
-    }));
-  
-    const colorsArray = dadosFormatados.map(entry => entry.correta ? COR_CORRETA : COR_INCORRETA);
+    // O formatador do tooltip agora é simples, apenas adiciona '%'
+    const valueFormatter = (value) => value === null ? '' : `${value}%`;
 
     return (
       <Box sx={{ 
         width: '100%', 
-        maxWidth: '500px', // O gráfico de rosca pode ser menor
-        mx: 'auto', // Centraliza o Box
+        maxWidth: '600px',
+        mx: 'auto' 
       }}>
-        <Typography variant="subtitle1" sx={{ textAlign: 'center', mb: 1 }}>
-          Distribuição de Respostas
-        </Typography> 
-        <PieChart
-          colors={colorsArray} 
-          series={[{
-            data: dadosFormatados, 
-            outerRadius: 100,
-            // Formata os rótulos (Nome XX.X%)
-            valueFormatter: (value, { dataIndex }) => {
-              const item = dadosFormatados[dataIndex];
-              const total = dadosFormatados.reduce((sum, i) => sum + i.value, 0);
-              const percent = total > 0 ? (item.value / total) * 100 : 0;
-              return `${item.label} (${percent.toFixed(1)}%)`;
-            },
+        <BarChart
+          dataset={dados} // Usará os mockDadosVFAgrupado
+          xAxis={[{ 
+            scaleType: 'band', 
+            dataKey: 'nome', // Eixo X (Afirmação I, II, III...)
+            label: 'Afirmação' 
           }]}
+          yAxis={[{ 
+            label: 'Percentual de Respostas (%)',
+            max: 100 
+          }]}
+          series={[
+            { 
+              dataKey: 'acertos', 
+              label: 'Acertos',
+              valueFormatter,
+            },
+            { 
+              dataKey: 'erros', 
+              label: 'Erros',
+              valueFormatter,
+            }
+          ]}
+          colors={[COR_CORRETA, COR_INCORRETA]}
           height={300}
-          margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Espaço para a legenda no topo
+          
           slotProps={{
-            legend: { hidden: true },
+            legend: { hidden: true }, 
           }}
         />
       </Box>
@@ -131,11 +134,12 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados }) => {
     case 'multipla-escolha':
       return renderGraficoBarras();
     case 'verdadeiro-falso':
-      return renderGraficoRosca();
+      return renderGraficoBarrasAgrupadas();
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
 };
+
 
 /*
  * ====================================================================
@@ -151,10 +155,10 @@ const mockDadosBarra = [
   { nome: 'D', Respostas: 10, correta: false },
 ];
 
-// Dados Falsos para Verdadeiro/Falso
-const mockDadosRosca = [
-  { nome: 'Verdadeiro', Respostas: 78, correta: true },
-  { nome: 'Falso', Respostas: 22, correta: false },
+const mockDadosVFAgrupado = [
+  { nome: 'I', acertos: 85, erros: 15 },
+  { nome: 'II', acertos: 62, erros: 38 },
+  { nome: 'III', acertos: 70, erros: 30 },
 ];
 
 /**
@@ -174,11 +178,11 @@ export const TesteGraficoEstatisticas = () => {
       <Box sx={{ my: 4 }} /> 
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
-        Teste - Gráfico Verdadeiro/Falso
+        Teste - Gráfico Verdadeiro/Falso (Agrupado)
       </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="verdadeiro-falso" 
-        dados={mockDadosRosca} 
+        dados={mockDadosVFAgrupado} 
       />
       
       <Box sx={{ my: 4 }} /> 
