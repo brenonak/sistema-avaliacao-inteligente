@@ -21,7 +21,6 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   // Lógica para o Gráfico de Barras (Múltipla Escolha)
   const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
 
-    // CORREÇÃO 2: Processar os dados para criar duas séries (correta/incorreta)
     const dadosProcessados = dados.map(entry => ({
       nome: entry.nome,
       RespostasCorretas: entry.correta ? entry.Respostas : undefined,
@@ -153,6 +152,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
           )}
         </Box>
       );
+    case 'somatorio':
+      return renderGraficoBarras('Soma Submetida');
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
   }
@@ -187,6 +188,13 @@ const mockDadosNumerica = [
 ];
 const mockValorCorretoNumerica = 15.5;
 
+const mockDadosSomatorio = [
+  { nome: '03', Respostas: 10, correta: false },
+  { nome: '05', Respostas: 25, correta: true },
+  { nome: '07', Respostas: 12, correta: false },
+  { nome: '14', Respostas: 8, correta: false },
+];
+
 /**
  * Componente de Teste Wrapper
  */
@@ -220,6 +228,16 @@ export const TesteGraficoEstatisticas = () => {
         tipoQuestao="numerica" 
         dados={mockDadosNumerica} 
         valorCorreto={mockValorCorretoNumerica} 
+      />
+      
+      <Box sx={{ my: 4 }} />
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Somatório (Frequência)
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="somatorio" 
+        dados={mockDadosSomatorio} 
       />
       
       <Box sx={{ my: 4 }} />
