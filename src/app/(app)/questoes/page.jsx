@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete, Snackbar, Alert } from '@mui/material';
-import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
+import { ArrowUpward, ArrowDownward, Search, Clear, FilterList, Assessment } from '@mui/icons-material';
 import EditQuestionModal from '../../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
+import VisibilityIcon from '@mui/icons-material/Visibility'; 
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -570,31 +572,43 @@ export default function ListarQuestoesPage() {
               )}
               </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+              <Link href={`/questoes/${questao.id}`} passHref style={{ textDecoration: 'none' }}>
                 <Button 
                   size="small" 
-                  variant="contained" 
-                  color="secondary"
-                  onClick={() => handleOpenEditModal(questao)}
+                  variant="outlined" 
+                  color="primary" 
+                  startIcon={<Assessment />}
+                  sx={{ mr: 1 }}
                 >
-                  Editar
+                  Detalhes
                 </Button>
-                <>
-                  <Button 
-                    size="small"
-                    color="error" 
-                    variant="contained" 
-                    onClick={() => setQuestionToDelete(questao)}
-                  >
-                    Excluir
-                  </Button>
-          
-                  <ConfirmDeleteDialog
-                    open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
-                    elementText='esta questão'
-                    onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
-                    onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
-                  />
-                </>
+              </Link>
+
+              <Button 
+                size="small" 
+                variant="contained" 
+                color="secondary"
+                onClick={() => handleOpenEditModal(questao)}
+              >
+                Editar
+              </Button>
+              <>
+                <Button 
+                  size="small"
+                  color="error" 
+                  variant="contained" 
+                  onClick={() => setQuestionToDelete(questao)}
+                >
+                  Excluir
+                </Button>
+        
+                <ConfirmDeleteDialog
+                  open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
+                  elementText='esta questão'
+                  onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
+                  onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
+                />
+              </>
             </CardActions>
           </Card>
         ))}

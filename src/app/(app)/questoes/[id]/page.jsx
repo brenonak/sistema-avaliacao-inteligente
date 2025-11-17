@@ -83,7 +83,6 @@ export default function DetalhesQuestaoPage() {
         </Typography>
       </Paper>
 
-      {/* --- A SUA FEATURE (TASK #226) --- */}
       <Paper elevation={3} sx={{ p: 3, borderTop: '4px solid #1976d2' }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
           Histórico de Desempenho (Item Analysis)
