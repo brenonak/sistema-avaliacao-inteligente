@@ -17,7 +17,15 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   // Define as cores
   const COR_CORRETA = "#2e7d32"; 
   const COR_INCORRETA = "#d32f2f"; 
-  const COR_HISTOGRAMA = "#1976d2"; // Azul
+
+  // Gradiente de cores para o Histograma de Notas
+  const CORES_GRADIENTE_NOTAS = [
+    "#d32f2f", // Vermelho - Notas baixas (0-2)
+    "#ff9800", // Laranja - Notas médias baixas (2.1-4)
+    "#ffeb3b", // Amarelo - Notas médias (4.1-6)
+    "#8bc34a", // Verde Claro - Notas médias altas (6.1-8)
+    "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
+  ];
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
   const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
@@ -126,17 +134,36 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
     );
   };
 
-  // --- Lógica para o Histograma de Notas (Dissertativa) ---
+  // Lógica para o Histograma de Notas (Dissertativa)
   const renderHistogramaNotas = () => {
-    
-    // Lógica para o Tooltip (Nº e %)
+
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    
     const valueFormatter = (value) => {
-      if (value === null) return '';
+      // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
+      if (value === null || value === undefined) return ''; 
+      
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-      // Usamos "Alunos" em vez de "Respostas" para clareza
       return `Nº de Alunos: ${value} (${porcentagem}%)`; 
     };
+
+    // Formata os dados para incluir a cor baseada na faixa de nota
+    const seriesFormatadas = dados.map((entry, index) => {
+      // Cria um array de 'null's
+      const dataArray = new Array(dados.length).fill(null);
+      // Coloca o valor da barra na posição correta
+      dataArray[index] = entry.Respostas; 
+      
+      return {
+        data: dataArray, // ex: [3, null, null, null, null]
+        valueFormatter,  // Aplica o formatter
+        stack: 'total',  // Todas as séries ficam na mesma "pilha"
+        // O 'label' é removido para evitar o tooltip duplicado
+      };
+    });
+
+    const labelsEixoX = dados.map(entry => entry.nome);
+
 
     return (
       <Box sx={{ 
@@ -145,22 +172,17 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
         mx: 'auto' 
       }}>
         <BarChart
-          dataset={dados} // Usa o mockDadosDissertativa
           xAxis={[{ 
             scaleType: 'band', 
-            dataKey: 'nome', // Eixo X (Faixa 0-2, 2.1-4...)
+            data: labelsEixoX,
             label: 'Faixa de Nota' 
           }]}
           yAxis={[{ 
             label: 'Nº de Alunos'
           }]}
           // Este gráfico tem apenas UMA série de dados
-          series={[{ 
-            dataKey: 'Respostas', 
-            valueFormatter, 
-            label: 'Nº de Alunos' // Label para o tooltip
-          }]}
-          colors={[COR_HISTOGRAMA]} // Usa a nova cor azul
+          series={seriesFormatadas}
+          colors={CORES_GRADIENTE_NOTAS}
           height={300}
           margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
           slotProps={{
