@@ -141,7 +141,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
     
     const valueFormatter = (value) => {
       // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
-      if (value === null || value === undefined) return ''; 
+      if (value === null || value === undefined) return null 
       
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
       return `Nº de Alunos: ${value} (${porcentagem}%)`; 
