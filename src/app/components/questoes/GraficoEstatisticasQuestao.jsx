@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { Typography, Box } from '@mui/material';
+import { Typography, Box, Chip, Stack } from '@mui/material';
+
 
 /**
  * Componente para renderizar os gráficos de estatísticas de uma questão.
@@ -17,6 +18,15 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   // Define as cores
   const COR_CORRETA = "#2e7d32"; 
   const COR_INCORRETA = "#d32f2f"; 
+
+  // Gradiente de cores para o Histograma de Notas
+  const CORES_GRADIENTE_NOTAS = [
+    "#d32f2f", // Vermelho - Notas baixas (0-2)
+    "#ff9800", // Laranja - Notas médias baixas (2.1-4)
+    "#ffeb3b", // Amarelo - Notas médias (4.1-6)
+    "#8bc34a", // Verde Claro - Notas médias altas (6.1-8)
+    "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
+  ];
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
   const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
@@ -125,6 +135,91 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
     );
   };
 
+  // Lógica para o Histograma de Notas (Dissertativa)
+  const renderHistogramaNotas = () => {
+
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    
+    const valueFormatter = (value) => {
+      // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
+      if (value === null || value === undefined) return null 
+      
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      return `Nº de Alunos: ${value} (${porcentagem}%)`; 
+    };
+
+    // Formata os dados para incluir a cor baseada na faixa de nota
+    const seriesFormatadas = dados.map((entry, index) => {
+      // Cria um array de 'null's
+      const dataArray = new Array(dados.length).fill(null);
+      // Coloca o valor da barra na posição correta
+      dataArray[index] = entry.Respostas; 
+      
+      return {
+        data: dataArray, // ex: [3, null, null, null, null]
+        valueFormatter,  // Aplica o formatter
+        stack: 'total',  // Todas as séries ficam na mesma "pilha"
+        // O 'label' é removido para evitar o tooltip duplicado
+      };
+    });
+
+    const labelsEixoX = dados.map(entry => entry.nome);
+
+
+    return (
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '600px',
+        mx: 'auto' 
+      }}>
+        <BarChart
+          xAxis={[{ 
+            scaleType: 'band', 
+            data: labelsEixoX,
+            label: 'Faixa de Nota' 
+          }]}
+          yAxis={[{ 
+            label: 'Nº de Alunos'
+          }]}
+          // Este gráfico tem apenas UMA série de dados
+          series={seriesFormatadas}
+          colors={CORES_GRADIENTE_NOTAS}
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
+          slotProps={{
+            legend: { hidden: true }, // Não precisa de legenda
+          }}
+          tooltip={{ trigger: 'item' }} // Gatilho 'item'
+        />
+
+          {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
+        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Chip 
+            label={`Nota Zero: ${qtdNotaZero} alunos`} 
+            variant="outlined"
+            sx={{ 
+              borderColor: '#d32f2f', // Vermelho
+              color: '#d32f2f',
+              fontWeight: 'bold'
+            }} 
+          />
+          <Chip 
+            label={`Nota Dez: ${qtdNotaDez} alunos`} 
+            variant="outlined"
+            sx={{ 
+              borderColor: '#2e7d32', // Verde
+              color: '#2e7d32',
+              fontWeight: 'bold'
+            }} 
+          />
+        </Stack>
+
+      </Box>
+    );
+  };
+  
+  
+
   // Lógica Principal de Renderização
   if (!dados || dados.length === 0) {
     return <Typography>Não há dados de estatística para esta questão.</Typography>;
@@ -144,6 +239,9 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
     case 'somatorio':
       return renderGraficoBarras('Soma Submetida');
+
+    case 'dissertativa':
+      return renderHistogramaNotas();
 
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
@@ -185,6 +283,16 @@ const mockDadosSomatorio = [
   { nome: '07', Respostas: 12, correta: false },
   { nome: '14', Respostas: 8, correta: false },
 ];
+
+const mockDadosDissertativa = [
+  { nome: '0 - 2.0', Respostas: 3 },
+  { nome: '2.1 - 4.0', Respostas: 5 },
+  { nome: '4.1 - 6.0', Respostas: 8 },
+  { nome: '6.1 - 8.0', Respostas: 10 },
+  { nome: '8.1 - 10.0', Respostas: 7 },
+];
+const qtdNotaZero = 2; // Exemplo
+const qtdNotaDez = 4;  // Exemplo
 
 /**
  * Componente de Teste Wrapper
@@ -228,6 +336,16 @@ export const TesteGraficoEstatisticas = () => {
       <GraficoEstatisticasQuestao 
         tipoQuestao="somatorio" 
         dados={mockDadosSomatorio}
+      />
+      
+      <Box sx={{ my: 4 }} />
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Dissertativa (Distribuição de Notas)
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="dissertativa" 
+        dados={mockDadosDissertativa} 
       />
       
       <Box sx={{ my: 4 }} />
