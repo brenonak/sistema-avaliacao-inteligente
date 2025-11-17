@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
-import { Typography, Box } from '@mui/material';
+import { Typography, Box, Chip, Stack } from '@mui/material';
+
 
 /**
  * Componente para renderizar os gráficos de estatísticas de uma questão.
@@ -190,6 +191,29 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
           }}
           tooltip={{ trigger: 'item' }} // Gatilho 'item'
         />
+
+          {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
+        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Chip 
+            label={`Nota Zero: ${qtdNotaZero} alunos`} 
+            variant="outlined"
+            sx={{ 
+              borderColor: '#d32f2f', // Vermelho
+              color: '#d32f2f',
+              fontWeight: 'bold'
+            }} 
+          />
+          <Chip 
+            label={`Nota Dez: ${qtdNotaDez} alunos`} 
+            variant="outlined"
+            sx={{ 
+              borderColor: '#2e7d32', // Verde
+              color: '#2e7d32',
+              fontWeight: 'bold'
+            }} 
+          />
+        </Stack>
+
       </Box>
     );
   };
@@ -267,6 +291,8 @@ const mockDadosDissertativa = [
   { nome: '6.1 - 8.0', Respostas: 10 },
   { nome: '8.1 - 10.0', Respostas: 7 },
 ];
+const qtdNotaZero = 2; // Exemplo
+const qtdNotaDez = 4;  // Exemplo
 
 /**
  * Componente de Teste Wrapper
