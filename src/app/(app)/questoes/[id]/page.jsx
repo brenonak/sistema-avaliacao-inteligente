@@ -63,7 +63,6 @@ export default function DetalhesQuestaoPage() {
     if (!gabarito) return null;
 
     switch (gabarito.tipo) {
-      // PADRÃO: Lista de Múltipla Escolha
       case 'alternativa':
         return (
           <List dense>
@@ -83,7 +82,6 @@ export default function DetalhesQuestaoPage() {
           </List>
         );
 
-      // PADRÃO: Lista de Afirmações (V/F)
       case 'afirmacoes':
         return (
           <List dense>
@@ -101,7 +99,6 @@ export default function DetalhesQuestaoPage() {
           </List>
         );
 
-      // PADRÃO: Lista de Proposições (Soma)
       case 'proposicoes':
         const somaCorreta = gabarito.proposicoes.reduce((acc, p) => acc + (p.correta ? (Number(p.valor) || 0) : 0), 0);
         return (
@@ -130,7 +127,6 @@ export default function DetalhesQuestaoPage() {
           </>
         );
 
-      // PADRÃO: Numérica
       case 'numerica':
         return (
           <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1, display: 'inline-block' }}>
@@ -141,7 +137,6 @@ export default function DetalhesQuestaoPage() {
           </Box>
         );
 
-      // PADRÃO: Dissertativa
       case 'dissertativa':
         return (
           <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
