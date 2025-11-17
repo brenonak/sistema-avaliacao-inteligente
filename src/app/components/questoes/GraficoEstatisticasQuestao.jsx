@@ -17,6 +17,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   // Define as cores
   const COR_CORRETA = "#2e7d32"; 
   const COR_INCORRETA = "#d32f2f"; 
+  const COR_HISTOGRAMA = "#1976d2"; // Azul
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
   const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
@@ -125,6 +126,54 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
     );
   };
 
+  // --- Lógica para o Histograma de Notas (Dissertativa) ---
+  const renderHistogramaNotas = () => {
+    
+    // Lógica para o Tooltip (Nº e %)
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    const valueFormatter = (value) => {
+      if (value === null) return '';
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      // Usamos "Alunos" em vez de "Respostas" para clareza
+      return `Nº de Alunos: ${value} (${porcentagem}%)`; 
+    };
+
+    return (
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: '600px',
+        mx: 'auto' 
+      }}>
+        <BarChart
+          dataset={dados} // Usa o mockDadosDissertativa
+          xAxis={[{ 
+            scaleType: 'band', 
+            dataKey: 'nome', // Eixo X (Faixa 0-2, 2.1-4...)
+            label: 'Faixa de Nota' 
+          }]}
+          yAxis={[{ 
+            label: 'Nº de Alunos'
+          }]}
+          // Este gráfico tem apenas UMA série de dados
+          series={[{ 
+            dataKey: 'Respostas', 
+            valueFormatter, 
+            label: 'Nº de Alunos' // Label para o tooltip
+          }]}
+          colors={[COR_HISTOGRAMA]} // Usa a nova cor azul
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
+          slotProps={{
+            legend: { hidden: true }, // Não precisa de legenda
+          }}
+          tooltip={{ trigger: 'item' }} // Gatilho 'item'
+        />
+      </Box>
+    );
+  };
+  
+  
+
   // Lógica Principal de Renderização
   if (!dados || dados.length === 0) {
     return <Typography>Não há dados de estatística para esta questão.</Typography>;
@@ -144,6 +193,9 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
     case 'somatorio':
       return renderGraficoBarras('Soma Submetida');
+
+    case 'dissertativa':
+      return renderHistogramaNotas();
 
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
@@ -184,6 +236,14 @@ const mockDadosSomatorio = [
   { nome: '05', Respostas: 25, correta: true },
   { nome: '07', Respostas: 12, correta: false },
   { nome: '14', Respostas: 8, correta: false },
+];
+
+const mockDadosDissertativa = [
+  { nome: '0 - 2.0', Respostas: 3 },
+  { nome: '2.1 - 4.0', Respostas: 5 },
+  { nome: '4.1 - 6.0', Respostas: 8 },
+  { nome: '6.1 - 8.0', Respostas: 10 },
+  { nome: '8.1 - 10.0', Respostas: 7 },
 ];
 
 /**
@@ -228,6 +288,16 @@ export const TesteGraficoEstatisticas = () => {
       <GraficoEstatisticasQuestao 
         tipoQuestao="somatorio" 
         dados={mockDadosSomatorio}
+      />
+      
+      <Box sx={{ my: 4 }} />
+
+      <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
+        Teste - Gráfico Dissertativa (Distribuição de Notas)
+      </Typography>
+      <GraficoEstatisticasQuestao 
+        tipoQuestao="dissertativa" 
+        dados={mockDadosDissertativa} 
       />
       
       <Box sx={{ my: 4 }} />
