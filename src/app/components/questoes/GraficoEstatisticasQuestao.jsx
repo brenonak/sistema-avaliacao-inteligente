@@ -19,7 +19,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
   const COR_INCORRETA = "#d32f2f"; 
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
-  const renderGraficoBarras = (labelEixoX = 'Alternativa', valorExato = null) => {
+  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
 
     const dadosProcessados = dados.map(entry => ({
       nome: entry.nome,
@@ -29,21 +29,10 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
     // Lógica para o Tooltip (Nº e %)
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
-    const valueFormatter = (value, { dataIndex }) => {
-      if (value === null || value === undefined) return null;
-
+    const valueFormatter = (value) => {
+      if (value === null || value === undefined) return null; // Alterado de '' para null na refatoração anterior
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-      const baseString = `Nº de Respostas: ${value} (${porcentagem}%)`;
-
-      // Adicionar o valor exato ao tooltip da barra correta
-      // Usamos 'dados' (o array original) para checar se a barra é a correta
-      const itemOriginal = dados[dataIndex];
-      if (itemOriginal.correta && valorExato !== null) {
-        // '\n' quebra a linha dentro do tooltip
-        return `${baseString} | Valor Correto: ${valorExato}`; 
-      }
-
-      return baseString;
+      return `Nº de Respostas: ${value} (${porcentagem}%)`;
     };
 
 
@@ -151,10 +140,10 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
       return renderGraficoBarrasAgrupadas();
 
     case 'numerica':
-      return renderGraficoBarras('Faixa de Resposta', valorCorreto);
+      return renderGraficoBarras('Respostas Submetidas');
 
     case 'somatorio':
-      return renderGraficoBarras('Soma Submetida', valorCorreto);
+      return renderGraficoBarras('Soma Submetida');
 
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
@@ -182,13 +171,13 @@ const mockDadosVFAgrupado = [
   { nome: 'III', acertos: 70, erros: 30 },
 ];
 
-const mockDadosNumerica = [
-  { nome: '0-10', Respostas: 5, correta: false },
-  { nome: '11-20', Respostas: 12, correta: true },
-  { nome: '21-30', Respostas: 8, correta: false },
-  { nome: '31-40', Respostas: 3, correta: false },
+const mockDadosNumericaFrequencia = [
+  { nome: '15.5', Respostas: 12, correta: true },    // A Resposta Correta
+  { nome: '15500', Respostas: 8, correta: false },  // Erro Comum 1 (ex: erro de unidade)
+  { nome: '12.2', Respostas: 5, correta: false },   // Erro Comum 2
+  { nome: '31.0', Respostas: 4, correta: false },   // Erro Comum 3 (ex: esqueceu de dividir por 2)
+  { nome: 'Outros', Respostas: 2, correta: false },   // Todos os outros erros
 ];
-const mockValorCorretoNumerica = 15.5;
 
 const mockDadosSomatorio = [
   { nome: '03', Respostas: 10, correta: false },
@@ -196,7 +185,6 @@ const mockDadosSomatorio = [
   { nome: '07', Respostas: 12, correta: false },
   { nome: '14', Respostas: 8, correta: false },
 ];
-const mockValorCorretoSomatorio = '05';
 
 /**
  * Componente de Teste Wrapper
@@ -225,18 +213,17 @@ export const TesteGraficoEstatisticas = () => {
       <Box sx={{ my: 4 }} /> 
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
-        Teste - Gráfico Resposta Numérica (Histograma)
+        Teste - Gráfico Resposta Numérica
       </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="numerica" 
-        dados={mockDadosNumerica} 
-        valorCorreto={mockValorCorretoNumerica} 
+        dados={mockDadosNumericaFrequencia}
       />
       
       <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
-        Teste - Gráfico Somatório (Frequência)
+        Teste - Gráfico Somatório
       </Typography>
       <GraficoEstatisticasQuestao 
         tipoQuestao="somatorio" 
