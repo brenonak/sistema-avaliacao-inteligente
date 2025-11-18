@@ -286,6 +286,9 @@ describe('CriarProvaPage', () => {
   });
 
   it('deve mostrar uma mensagem de erro se a API de submissão falhar', async () => {
+    // Suprime console.error para este teste, pois o erro é esperado
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     setupMocks(
       'curso123',
       'Cálculo I',
@@ -308,5 +311,8 @@ describe('CriarProvaPage', () => {
     expect(await screen.findByText(/Erro interno do servidor/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Gravar Prova/i })).not.toBeDisabled();
     expect(mockRouter.push).not.toHaveBeenCalled();
+    
+    // Restaura console.error
+    consoleErrorSpy.mockRestore();
   });
 });

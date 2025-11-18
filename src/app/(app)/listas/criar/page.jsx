@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import {
   Box,
   Typography,
@@ -20,6 +22,8 @@ import {
   ListItemText,
   Checkbox,
   Chip,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -33,7 +37,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 
-export default function CriarListaPage() {
+function CriarListaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cursoId = searchParams.get('cursoId');
@@ -45,7 +49,7 @@ export default function CriarListaPage() {
 
   // Campos do formulário
   const [formData, setFormData] = useState({
-    nomeMateria: '',
+    tituloLista: '',
     questoesIds: [],
     nomeInstituicao: '',
 
@@ -55,16 +59,10 @@ export default function CriarListaPage() {
   const [questoes, setQuestoes] = useState([]);
   const [loadingQuestoes, setLoadingQuestoes] = useState(false);
   const [selectedQuestoes, setSelectedQuestoes] = useState([]);
-
-  useEffect(() => {
-    // Pré-preencher o nome da disciplina com o nome do curso, se disponível
-    if (cursoNome) {
-      setFormData(prev => ({
-        ...prev,
-        nomeMateria: decodeURIComponent(cursoNome),
-      }));
-    }
-  }, [cursoNome]);
+  
+  // Estados para controle de pontuação
+  const [usarPontuacao, setUsarPontuacao] = useState(false);
+  const [questoesPontuacao, setQuestoesPontuacao] = useState({});
 
   // Buscar questões do curso
   useEffect(() => {
@@ -123,13 +121,37 @@ export default function CriarListaPage() {
   // Remover questão da seleção
   const handleRemoveQuestao = (id) => {
     setSelectedQuestoes((prev) => prev.filter(q => q !== id));
+    // Remover também a pontuação
+    if (usarPontuacao) {
+      setQuestoesPontuacao((prev) => {
+        const newPontuacao = { ...prev };
+        delete newPontuacao[id];
+        return newPontuacao;
+      });
+    }
+  };
+
+  // Atualizar pontuação de uma questão
+  const handleChangePontuacao = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacao((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos
+  const calcularTotalPontos = () => {
+    return selectedQuestoes.reduce((total, qId) => {
+      return total + (questoesPontuacao[qId] || 0);
+    }, 0);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validação básica
-    if (!formData.nomeMateria.trim()) {
+    if (!formData.tituloLista.trim()) {
       setError('O nome da matéria é obrigatório');
       return;
     }
@@ -150,15 +172,24 @@ export default function CriarListaPage() {
         return questao?._id || qId;
       });
 
+      // Preparar dados para envio
+      const listaData = {
+        ...formData,
+        questoesIds,
+        usarPontuacao,
+      };
+
+      // Se usar pontuação, incluir as pontuações
+      if (usarPontuacao) {
+        listaData.questoesPontuacao = questoesPontuacao;
+      }
+
       const saveResponse = await fetch(`/api/cursos/${cursoId}/listas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          questoesIds,
-        }),
+        body: JSON.stringify(listaData),
       });
 
       if (!saveResponse.ok) {
@@ -251,10 +282,10 @@ export default function CriarListaPage() {
                   <TextField
                     fullWidth
                     required
-                    label="Nome da Matéria"
-                    placeholder="Ex: Matemática"
-                    value={formData.nomeMateria}
-                    onChange={handleChange('nomeMateria')}
+                    label="Conteúdo da Lista"
+                    placeholder="Ex: Integrais e Derivadas"
+                    value={formData.tituloLista}
+                    onChange={handleChange('tituloLista')}
                     variant="outlined"
                     multiline
                     rows={4}
@@ -292,11 +323,23 @@ export default function CriarListaPage() {
           {/* Questões da Lista */}
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Description sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Questões da Lista
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Description sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    Questões da Lista
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={usarPontuacao}
+                      onChange={(e) => setUsarPontuacao(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Usar Pontuação"
+                />
               </Box>
 
               {loadingQuestoes ? (
@@ -316,6 +359,19 @@ export default function CriarListaPage() {
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                           Questões Selecionadas ({selectedQuestoes.length})
                         </Typography>
+                        {usarPontuacao && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                              Total:
+                            </Typography>
+                            <Chip
+                              label={`${calcularTotalPontos().toFixed(1)} pts`}
+                              size="small"
+                              color="success"
+                              sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                            />
+                          </Box>
+                        )}
                       </Box>
                       <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1 }}>
                         {selectedQuestoes.map((questaoId, index) => {
@@ -377,6 +433,23 @@ export default function CriarListaPage() {
                                   ))}
                                 </Box>
                               </Box>
+
+                              {/* Campo de pontuação (se ativado) */}
+                              {usarPontuacao && (
+                                <TextField
+                                  type="number"
+                                  label="Pts"
+                                  value={questoesPontuacao[questaoId] || ''}
+                                  onChange={(e) => handleChangePontuacao(questaoId, e.target.value)}
+                                  inputProps={{
+                                    min: 0,
+                                    step: 0.5,
+                                    style: { textAlign: 'center', fontSize: '0.85rem' }
+                                  }}
+                                  sx={{ width: 80 }}
+                                  size="small"
+                                />
+                              )}
 
                               {/* Botões de controle */}
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -509,5 +582,17 @@ export default function CriarListaPage() {
         </Box>
       </form>
     </Box>
+  );
+}
+
+export default function CriarListaPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <CriarListaContent />
+    </Suspense>
   );
 }

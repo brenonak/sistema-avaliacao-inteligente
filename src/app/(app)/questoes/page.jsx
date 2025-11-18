@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete, Snackbar, Alert } from '@mui/material';
-import { ArrowUpward, ArrowDownward, Search, Clear, FilterList } from '@mui/icons-material';
+import { ArrowUpward, ArrowDownward, Search, Clear, FilterList, Assessment } from '@mui/icons-material';
 import EditQuestionModal from '../../components/EditQuestionModal';
 import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
+import VisibilityIcon from '@mui/icons-material/Visibility'; 
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 export default function ListarQuestoesPage() {
   const [questoes, setQuestoes] = useState([]);
@@ -112,7 +114,8 @@ export default function ListarQuestoesPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Erro ao excluir questão');
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erro ao excluir questão');
       }
       setSnackbar({ open: true, message: 'Questão excluída com sucesso', severity: 'success' });
     
@@ -470,14 +473,21 @@ export default function ListarQuestoesPage() {
                 </Box>
               )}
               
-              {/* Exibir tipo da questão */}
-              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
-                Tipo: {questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
-                       questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
-                       questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
-                       questao.tipo === 'dissertativa' ? 'Dissertativa' : 
-                       questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
-              </Typography>
+              {/* Exibir tipo e tags da questão */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Chip 
+                  label={questao.tipo === 'alternativa' ? 'Múltipla escolha' : 
+                         questao.tipo === 'afirmacoes' ? 'Verdadeiro ou Falso' : 
+                         questao.tipo === 'proposicoes' ? 'Verdadeiro ou Falso - Somatório' : 
+                         questao.tipo === 'dissertativa' ? 'Dissertativa' : 
+                         questao.tipo === 'numerica' ? 'Resposta Numérica' : questao.tipo}
+                  size="small"
+                  color="primary"
+                />
+                {questao.tags && questao.tags.map((tag, idx) => (
+                  <Chip key={idx} label={tag} size="small" variant="outlined" />
+                ))}
+              </Box>
               
               {/* Exibir resposta numérica se for questão numérica */}
               {questao.tipo === 'numerica' && (
@@ -562,31 +572,43 @@ export default function ListarQuestoesPage() {
               )}
               </CardContent>
             <CardActions sx={{ marginTop: 'auto', alignSelf: 'flex-end', p: 2 }}>
+              <Link href={`/questoes/${questao.id}`} passHref style={{ textDecoration: 'none' }}>
                 <Button 
                   size="small" 
-                  variant="contained" 
-                  color="secondary"
-                  onClick={() => handleOpenEditModal(questao)}
+                  variant="outlined" 
+                  color="primary" 
+                  startIcon={<Assessment />}
+                  sx={{ mr: 1 }}
                 >
-                  Editar
+                  Detalhes
                 </Button>
-                <>
-                  <Button 
-                    size="small"
-                    color="error" 
-                    variant="contained" 
-                    onClick={() => setQuestionToDelete(questao)}
-                  >
-                    Excluir
-                  </Button>
-          
-                  <ConfirmDeleteDialog
-                    open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
-                    elementText='esta questão'
-                    onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
-                    onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
-                  />
-                </>
+              </Link>
+
+              <Button 
+                size="small" 
+                variant="contained" 
+                color="secondary"
+                onClick={() => handleOpenEditModal(questao)}
+              >
+                Editar
+              </Button>
+              <>
+                <Button 
+                  size="small"
+                  color="error" 
+                  variant="contained" 
+                  onClick={() => setQuestionToDelete(questao)}
+                >
+                  Excluir
+                </Button>
+        
+                <ConfirmDeleteDialog
+                  open={!!questionToDelete && questionToDelete.id === questao.id} // Abre apenas se o ID corresponder
+                  elementText='esta questão'
+                  onClose={() => setQuestionToDelete(null)} // Limpa o estado para fechar
+                  onConfirm={handleDelete} // A função já sabe quem deletar pelo estado
+                />
+              </>
             </CardActions>
           </Card>
         ))}

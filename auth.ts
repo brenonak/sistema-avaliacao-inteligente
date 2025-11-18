@@ -21,6 +21,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { clientPromise } from "./src/lib/mongodb";
 import { events } from "./src/lib/auth-events";
+import { ObjectId } from 'mongodb';
 
 export const authOptions: NextAuthOptions = {
   // Adapter MongoDB oficial - cria coleções: users, accounts, sessions, verificationTokens
@@ -85,19 +86,45 @@ export const authOptions: NextAuthOptions = {
       return false;
     },
     
-    // Callback de JWT: incluir userId no token
-    async jwt({ token, user, account }) {
-      // Na primeira vez que o JWT é criado (após login)
+    async jwt({ token, user, trigger }) {
+      // 1. No Login Inicial (quando 'user' é passado pelo Adapter)
+      // O 'user' aqui já contém 'isProfileComplete: false' (graças à Task #248)
       if (user) {
+        console.log("[Auth] JWT: Login inicial. 'user' está presente.");
         token.id = user.id;
-        token.isProfileComplete = (user as any).isProfileComplete === true;
-        token.profileCompleted = (user as any).profileCompleted === true; // mantém compatibilidade
-        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}, isProfileComplete: ${token.isProfileComplete}`);
+        token.isProfileComplete = (user as any).isProfileComplete;
+        token.role = (user as any).role; // (Será 'undefined' no login inicial)
       }
+
+      // Se o 'token.id' não existir (o que não deve acontecer, mas é uma
+      // salvaguarda), paramos aqui para evitar um 'crash'.
+      if (!token.id) {
+        console.warn("[Auth] JWT: ID do token em falta, a saltar consulta ao DB.");
+        return token;
+      }
+
+      // Em acessos subsequentes (ex: navegação, middleware)
+      // Precisamos de re-consultar o DB para garantir que o 'role' e 'isProfileComplete' apareçam na sessão
       
-      // Incluir provider info
-      if (account) {
-        token.provider = account.provider;
+      try {
+        const db = (await clientPromise).db(process.env.MONGODB_DB);
+        const dbUser = await db.collection("users").findOne({ 
+          _id: new ObjectId(token.id as string) 
+        });
+
+        if (dbUser) {
+          // Atualiza o token com os dados FRESCOS do banco de dados
+          token.isProfileComplete = dbUser.isProfileComplete;
+          token.role = dbUser.role;
+          console.log(`[Auth] JWT: Token atualizado com dados frescos. Role: ${dbUser.role}`);
+        } else {
+          // O utilizador foi apagado do DB?
+          console.warn("[Auth] JWT: Utilizador não encontrado no DB. A invalidar token.");
+          return null; // Força o logout
+        }
+      } catch (error) {
+        console.error("[Auth] JWT: Erro ao re-consultar usuário no DB:", error);
+        return null; // Erro no DB, força o logout (mais seguro)
       }
       
       return token;
@@ -107,20 +134,34 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as any).id = token.id as string;
-        (session as any).provider = token.provider;
         (session.user as any).isProfileComplete = token.isProfileComplete;
-        (session.user as any).profileCompleted = token.profileCompleted; // mantém compatibilidade
+        (session.user as any).role = token.role;
       }
       return session;
     },
     
-    // Callback de redirect: redireciona após autenticação
+    /**
+     * Callback de redirect (CORRIGIDO para ser "neutro")
+     * A lógica de redirecionamento real será feita no middleware (Task #222/223)
+     */
     async redirect({ url, baseUrl }) {
-      // Esta nova lógica é neutra. Ela permite que a sua Task #172 (middleware)
-      // controle o redirecionamento, tratando corretamente os URLs.
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl; // Padrão seguro
+      console.log(`[Auth] Redirect callback - url: ${url}, baseUrl: ${baseUrl}`);
+      
+      // Se a URL é relativa (ex: "/dashboard"), permite
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      
+      // Se a URL é absoluta, mas da nossa origem, permite
+      try {
+        if (new URL(url).origin === new URL(baseUrl).origin) {
+          return url;
+        }
+      } catch (e) {
+        // ignora erros de URL inválida
+      }
+      
+      // Caso padrão seguro: voltar para a página inicial
+      console.log(`[Auth] Redirecionamento para origem externa bloqueado. A voltar para: ${baseUrl}`);
+      return baseUrl;
     },
   },
   
@@ -133,3 +174,4 @@ export const authOptions: NextAuthOptions = {
   // Debug em desenvolvimento
   debug: process.env.NODE_ENV === "development",
 };
+

@@ -12,10 +12,10 @@ function oid(id: string) {
 // DELETE /recursos/:id - Remover imagem do banco e blob storage
 export async function DELETE(
   request: NextRequest,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     if (!id) return badRequest("ID de recurso inválido");
 
     // Verificar se o recurso existe
