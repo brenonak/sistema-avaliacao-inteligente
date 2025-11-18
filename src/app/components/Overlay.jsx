@@ -20,7 +20,7 @@ import Header from './Header';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
-import { ScanBarcodeIcon } from 'lucide-react';
+import { PencilIcon, ScanBarcodeIcon } from 'lucide-react';
 
 const drawerWidth = 220;
 const collapsedWidth = 60;
@@ -40,6 +40,7 @@ export default function Overlay({ content }) {
     { text: 'Galeria', icon: <CollectionsIcon />, link: '/galeria' },
     { text: 'Questões', icon: <DescriptionIcon />, link: '/questoes' },
     { text: 'Criar Questão', icon: <NoteAddIcon />, link: '/questoes/criar' },
+    { text: 'Correção', icon: <PencilIcon />, link: '/correcao' }
   ];
 
 
