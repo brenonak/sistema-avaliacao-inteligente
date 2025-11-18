@@ -70,7 +70,7 @@ const setupMocks = (cursoId, cursoNome, questoesResponse, submitResponse) => {
   });
 };
 
-// --- Helpers de Seleção (adaptados do seu teste de Prova) ---
+
 
 // Encontra o Card que contém as listas de questões
 const getQuestoesCard = () => {
@@ -130,15 +130,15 @@ describe('CriarListaPage', () => {
     );
     render(<CriarListaPage />);
     
-    // 1. Espera as questões carregarem e acha o Card
+    
     await screen.findByText(mockQuestao1.enunciado);
     const questoesCard = getQuestoesCard();
     const disponiveisList = getDisponiveisList(questoesCard);
 
-    // --- 2. Selecionar a Questão 1 ---
+    
     fireEvent.click(within(disponiveisList).getByText(mockQuestao1.enunciado));
 
-    // 3. ESPERA ela aparecer na lista de "Selecionadas"
+    
     await screen.findByText(/Questões Selecionadas \(1\)/); // Espera o contador atualizar
     const selecionadasList = getSelecionadasList(questoesCard);
     
@@ -147,23 +147,23 @@ describe('CriarListaPage', () => {
     
     expect(within(q1Item.closest('li')).getByText('1')).toBeInTheDocument();
 
-    // 4. ESPERA ela desaparecer da lista de "Disponíveis"
+    
     await waitFor(() => {
       expect(within(disponiveisList).queryByText(mockQuestao1.enunciado)).not.toBeInTheDocument();
     });
 
-    // --- 5. Remover a Questão 1 ---
+    
     const q1ListItem = q1Item.closest('li');
-    // Usando getByTestId no ícone, assim como no seu teste de referência
+    
     const removeButton = within(q1ListItem).getByTestId('ClearIcon');
     fireEvent.click(removeButton);
 
-    // 7. ESPERA a seção "Questões Selecionadas" desaparecer
+    
     await waitFor(() => {
       expect(screen.queryByText(/Questões Selecionadas \(\d\)/)).not.toBeInTheDocument();
     });
 
-    // 8. ESPERA a Questão 1 voltar para a lista de "Disponíveis"
+    
     expect(await within(disponiveisList).findByText(mockQuestao1.enunciado)).toBeInTheDocument();
   });
 
@@ -179,7 +179,7 @@ describe('CriarListaPage', () => {
     const questoesCard = getQuestoesCard();
     const disponiveisList = getDisponiveisList(questoesCard);
 
-    // Seleciona as duas questões (Q1, depois Q2)
+    
     fireEvent.click(within(disponiveisList).getByText(mockQuestao1.enunciado));
     await screen.findByText(/Questões Selecionadas \(1\)/); 
     fireEvent.click(within(disponiveisList).getByText(mockQuestao2.enunciado));
@@ -189,7 +189,7 @@ describe('CriarListaPage', () => {
     
     let listItems = await within(selecionadasList).findAllByRole('listitem');
 
-    // Ordem inicial: [Q1, Q2]
+    
     expect(within(listItems[0]).getByText(mockQuestao1.enunciado)).toBeInTheDocument();
     expect(within(listItems[1]).getByText(mockQuestao2.enunciado)).toBeInTheDocument();
 
@@ -264,7 +264,7 @@ describe('CriarListaPage', () => {
     
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/cursos/curso123/listas', // Endpoint correto
+        '/api/cursos/curso123/listas', 
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
