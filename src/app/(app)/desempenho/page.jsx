@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -10,7 +9,6 @@ import StudentPerformanceChart from "../../components/StudentPerformanceChart";
 import CourseSelect from "../../components/CourseSelect";
 
 export default function DesempenhoPage() {
-
   const [selectedCourse, setSelectedCourse] = useState('nenhum');
   const [courses, setCourses] = useState([{ id: 'nenhum', name: 'Nenhum' }]);
   const [dataByCourse, setDataByCourse] = useState({
@@ -26,15 +24,9 @@ export default function DesempenhoPage() {
 
   useEffect(() => {
     async function fetchDesempenho() {
-      let json = {};
-      try {
-        const res = await fetch('/api/desempenho');
-        if (res && res.ok) {
-          json = await res.json();
-        }
-      } catch (e) {
-        // Silencia erro, json permanece vazio
-      }
+      const res = await fetch('/api/desempenho');
+      if (!res.ok) return;
+      const json = await res.json();
       // Montar lista de cursos para o select
       const apiCourses = json.cursos?.map(c => ({ id: c.id, name: c.nome })) || [];
       setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
@@ -57,22 +49,18 @@ export default function DesempenhoPage() {
 
   const active = dataByCourse[selectedCourse] || dataByCourse.no_course_selected;
 
-  // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
+    // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
   const combinedLabels = active.combinedLabels;
   const combinedScores = active.combinedScores;
-
   // Dados para os gráficos
   const examsLabels = active.examsLabels;
   const examsScores = active.examsScores;
-
   const listsLabels = active.listsLabels;
   const listsScores = active.listsScores;
-
   // Valores para o resumo de desempenho
   const average = combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length;
   const best = Math.max(...combinedScores);
   const latest = combinedScores[combinedScores.length - 1];
-
   return (
     <Box
       sx={{
@@ -93,7 +81,6 @@ export default function DesempenhoPage() {
       >
         Desempenho
       </Typography>
-
       <Box
         sx={{
           width: "100%",
@@ -107,7 +94,6 @@ export default function DesempenhoPage() {
         <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "1", width: "100%" }}>
           <PerformanceSummary average={average} best={best} latest={latest} />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "2" }, gridRow: "1", width: "100%" }}>
           <CourseSelect
             courses={courses}
@@ -115,7 +101,6 @@ export default function DesempenhoPage() {
             onCourseChange={setSelectedCourse}
           />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "2", width: "100%" }}>
           <StudentPerformanceChart
             labels={examsLabels}
@@ -124,7 +109,6 @@ export default function DesempenhoPage() {
             height={520}
           />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "2" }, gridRow: "2", width: "100%" }}>
           <StudentPerformanceChart
             labels={listsLabels}
