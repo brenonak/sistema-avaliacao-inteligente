@@ -42,7 +42,6 @@ function useAlunos(cursoId) {
   return alunos;
 }
 
-
 export default function CorrecaoPageMui() {
   const [cursos, setCursos] = useState([]);
   const [provasPorCurso, setProvasPorCurso] = useState({});
@@ -112,26 +111,69 @@ export default function CorrecaoPageMui() {
     setNotasManuais((prev) => ({ ...prev, [questaoId]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Monta o payload para envio (simulando a estrutura final)
+    if (!alunoSelecionado) {
+      alert("Selecione um aluno primeiro.");
+      return;
+    }
+
+    if (!provaSelecionada || provaSelecionada.questoes.length === 0) {
+      alert("Esta prova não tem questões para corrigir.");
+      return;
+    }
+
+    // Monta o payload
     const payload = {
       alunoId: alunoSelecionado,
       respostas: provaSelecionada.questoes.map(q => {
         const qId = q._id || q.id;
         const tipo = q.tipo?.toLowerCase();
+
+        // Pega a nota manual SOMENTE se for dissertativa
+        // Para as outras, envia undefined (o backend calcula automaticamente)
+        const notaManual = tipo === 'dissertativa' ? parseFloat(notasManuais[qId] || 0) : undefined;
+
         return {
           questaoId: qId,
           resposta: respostas[qId],
-          // Se for dissertativa, usa a nota manual. Senão, null (backend calcula).
-          pontuacaoObtida: tipo === 'dissertativa' ? parseFloat(notasManuais[qId] || 0) : undefined
+          pontuacaoObtida: notaManual, // Nota manual é passada AQUI
+          pontuacaoMaxima: q.pontuacao || 0
         };
       })
     };
 
-    console.log("Payload de Correção:", payload);
-    alert("Respostas enviadas! (mock - ver console)");
+    try {
+      // Normalização de IDs para garantir que não sejam undefined
+      const cursoId = provaSelecionada.cursoId || provaSelecionada.curso_id;
+      const provaId = provaSelecionada._id || provaSelecionada.id;
+
+      const response = await fetch(`/api/cursos/${cursoId}/provas/${provaId}/correcao-manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Correção salva com sucesso!");
+        // Limpa o form e a seleção para permitir corrigir o próximo aluno imediatamente
+        setRespostas({});
+        setNotasManuais({});
+        setAlunoSelecionado("");
+      } else {
+        console.error("Erro do servidor:", data);
+        alert(`Erro ao salvar: ${data.message || 'Erro desconhecido'}`);
+      }
+
+    } catch (error) {
+      console.error("Erro de rede:", error);
+      alert("Erro ao conectar com o servidor.");
+    }
   };
 
   if (loading) {
