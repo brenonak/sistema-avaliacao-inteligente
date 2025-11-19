@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -43,11 +43,7 @@ export default function ResponderListaPage() {
   // Armazena as respostas do aluno: { questaoId: resposta }
   const [respostas, setRespostas] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    fetchLista();
-  }, [listaId]);
-
-  const fetchLista = async () => {
+  const fetchLista = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -101,7 +97,11 @@ export default function ResponderListaPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cursoId, listaId, router]);
+
+  useEffect(() => {
+    fetchLista();
+  }, [fetchLista]);
 
   const handleSubmit = async () => {
     try {

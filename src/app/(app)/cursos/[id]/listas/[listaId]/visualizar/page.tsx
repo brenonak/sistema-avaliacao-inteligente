@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -33,11 +33,7 @@ export default function VisualizarRespostasPage() {
   const [pontuacaoTotal, setPontuacaoTotal] = useState(0);
   const [pontuacaoObtidaTotal, setPontuacaoObtidaTotal] = useState(0);
 
-  useEffect(() => {
-    fetchLista();
-  }, [listaId]);
-
-  const fetchLista = async () => {
+  const fetchLista = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -70,7 +66,11 @@ export default function VisualizarRespostasPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cursoId, listaId]);
+
+  useEffect(() => {
+    fetchLista();
+  }, [fetchLista]);
 
   const renderQuestao = (questao: any, index: number) => {
     const resposta = respostas[questao.id];

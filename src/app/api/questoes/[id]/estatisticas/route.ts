@@ -216,10 +216,11 @@ function aggregateStats(questao: any, respostas: any[]) {
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const questaoId = oid(params.id);
+        const { id } = await params;
+        const questaoId = oid(id);
         if (!questaoId) {
             return badRequest("ID da questão inválido");
         }
@@ -251,7 +252,7 @@ export async function GET(
 
         const listas = await db.collection("listasDeExercicios")
             .find(
-                { "questoesIds": params.id },
+                { "questoesIds": id },
                 { projection: { _id: 1, tituloLista: 1, cursoId: 1 } }
             )
             .toArray();
