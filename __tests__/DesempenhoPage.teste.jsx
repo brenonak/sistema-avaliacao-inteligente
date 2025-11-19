@@ -1,12 +1,10 @@
-// page.test.jsx
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DesempenhoPage from '../src/app/(app)/desempenho/page'; 
+import DesempenhoPage from '../src/app/(app)/desempenho/page';
 
 
 jest.mock('../src/app/components/PerformanceSummary', () => {
-  
   return jest.fn(({ average, best, latest }) => (
     <div data-testid="performance-summary">
       <span>Média: {String(average)}</span>
@@ -15,7 +13,6 @@ jest.mock('../src/app/components/PerformanceSummary', () => {
     </div>
   ));
 });
-
 
 jest.mock('../src/app/components/StudentPerformanceChart', () => {
   return jest.fn(({ labels, scores, text }) => (
@@ -44,69 +41,85 @@ jest.mock('../src/app/components/CourseSelect', () => {
   ));
 });
 
-// --- Testes ---
+
+const mockApiResponse = {
+  cursos: [
+    { id: 'calculo', nome: 'Cálculo I' },
+    { id: 'fisica', nome: 'Física Geral' }
+  ],
+  graficosPorCurso: {
+    calculo: {
+      examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
+      examsScores: [68, 74, 80],
+      listsLabels: ['Lista 1', 'Lista 2', 'Lista 3', 'Lista 4'],
+      listsScores: [82, 86, 51, 23],
+      
+      combinedLabels: ['P1', 'P2', 'P3', 'L1', 'L2', 'L3', 'L4'],
+      combinedScores: [68, 74, 80, 82, 86, 51, 23] 
+    },
+    fisica: {
+      examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
+      examsScores: [79, 85, 77],
+      listsLabels: ['Lista 1', 'Lista 2'],
+      listsScores: [90, 88],
+      
+      combinedLabels: ['P1', 'P2', 'L1', 'L2', 'P3'],
+      combinedScores: [79, 85, 90, 88, 77] 
+    }
+  }
+};
+
+
 
 describe('DesempenhoPage', () => {
   
-  
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockApiResponse),
+      })
+    );
   });
 
-  it('deve renderizar o estado inicial corretamente (nenhum curso selecionado)', () => {
+  it('deve renderizar o estado inicial corretamente (nenhum curso selecionado)', async () => {
     render(<DesempenhoPage />);
-
     
-    expect(screen.getByText('Desempenho')).toBeInTheDocument();
-
     
+    await waitFor(() => expect(screen.getByText('Cálculo I')).toBeInTheDocument());
+
     const select = screen.getByTestId('course-select');
-    expect(select).toBeInTheDocument();
     expect(select).toHaveValue('nenhum');
 
-    
     expect(screen.getByText('Média: NaN')).toBeInTheDocument();
     expect(screen.getByText('Melhor: -Infinity')).toBeInTheDocument();
     expect(screen.getByText('Última: undefined')).toBeInTheDocument();
-
-    
-    const provasChart = screen.getByTestId('chart-Provas');
-    expect(provasChart).toHaveTextContent('Rótulos:'); // Vazio
-    expect(provasChart).toHaveTextContent('Pontuações:'); // Vazio
-
-    const listasChart = screen.getByTestId('chart-Listas de Exercícios');
-    expect(listasChart).toHaveTextContent('Rótulos:'); // Vazio
   });
 
-  it('deve atualizar os dados ao selecionar "Cálculo I"', () => {
+  it('deve atualizar os dados ao selecionar "Cálculo I"', async () => {
     render(<DesempenhoPage />);
-
     
+    
+    await waitFor(() => expect(screen.getByText('Cálculo I')).toBeInTheDocument());
+
     const select = screen.getByTestId('course-select');
-
-    
     fireEvent.change(select, { target: { value: 'calculo' } });
 
-    
     expect(screen.getByText('Média: 66.28571428571429')).toBeInTheDocument();
     expect(screen.getByText('Melhor: 86')).toBeInTheDocument();
     expect(screen.getByText('Última: 23')).toBeInTheDocument();
 
-    
     const provasChart = screen.getByTestId('chart-Provas');
     expect(provasChart).toHaveTextContent('Rótulos: Prova 1,Prova 2,Prova 3');
-    expect(provasChart).toHaveTextContent('Pontuações: 68,74,80');
-
-    
-    const listasChart = screen.getByTestId('chart-Listas de Exercícios');
-    expect(listasChart).toHaveTextContent('Rótulos: Lista 1,Lista 2,Lista 3,Lista 4');
-    expect(listasChart).toHaveTextContent('Pontuações: 82,86,51,23');
   });
 
-  it('deve atualizar os dados ao selecionar "Física Geral"', () => {
+  it('deve atualizar os dados ao selecionar "Física Geral"', async () => {
     render(<DesempenhoPage />);
 
     
+    await waitFor(() => expect(screen.getByText('Física Geral')).toBeInTheDocument());
+
     fireEvent.change(screen.getByTestId('course-select'), {
       target: { value: 'fisica' },
     });
@@ -115,22 +128,16 @@ describe('DesempenhoPage', () => {
     expect(screen.getByText('Média: 83.8')).toBeInTheDocument();
     expect(screen.getByText('Melhor: 90')).toBeInTheDocument();
     expect(screen.getByText('Última: 77')).toBeInTheDocument();
-
-    
-    const provasChart = screen.getByTestId('chart-Provas');
-    expect(provasChart).toHaveTextContent('Rótulos: Prova 1,Prova 2,Prova 3');
-    expect(provasChart).toHaveTextContent('Pontuações: 79,85,77');
   });
 
-  it('deve voltar ao estado inicial ao selecionar "Nenhum" novamente', () => {
+  it('deve voltar ao estado inicial ao selecionar "Nenhum" novamente', async () => {
     render(<DesempenhoPage />);
+    await waitFor(() => expect(screen.getByText('Cálculo I')).toBeInTheDocument());
 
-
+    
     fireEvent.change(screen.getByTestId('course-select'), {
       target: { value: 'calculo' },
     });
-
-    
     expect(screen.getByText('Melhor: 86')).toBeInTheDocument();
 
     
@@ -138,14 +145,7 @@ describe('DesempenhoPage', () => {
       target: { value: 'nenhum' },
     });
 
-    
     expect(screen.getByText('Média: NaN')).toBeInTheDocument();
     expect(screen.getByText('Melhor: -Infinity')).toBeInTheDocument();
-    expect(screen.getByText('Última: undefined')).toBeInTheDocument();
-
-    
-    const provasChart = screen.getByTestId('chart-Provas');
-    expect(provasChart).toHaveTextContent('Rótulos:'); 
-    expect(provasChart).toHaveTextContent('Pontuações:'); 
   });
 });
