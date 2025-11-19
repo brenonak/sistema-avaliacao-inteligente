@@ -116,7 +116,14 @@ export const authOptions: NextAuthOptions = {
           // Atualiza o token com os dados FRESCOS do banco de dados
           token.profileComplete = dbUser.profileComplete || dbUser.isProfileComplete || false;
           token.role = dbUser.role || null;
-          console.log(`[Auth] JWT: Token atualizado com dados frescos. Role: ${dbUser.role}, ProfileComplete: ${token.profileComplete}`);
+          
+          // Sincronizar dados de perfil do banco para o token
+          // Isso corrige o problema de nomes desatualizados ou incorretos
+          if (dbUser.name) token.name = dbUser.name;
+          if (dbUser.email) token.email = dbUser.email;
+          if (dbUser.image) token.picture = dbUser.image;
+          
+          console.log(`[Auth] JWT: Token atualizado com dados frescos. User: ${token.name}, Role: ${dbUser.role}, ProfileComplete: ${token.profileComplete}`);
         } else {
           // O utilizador foi apagado do DB - manter valores padrão
           console.warn("[Auth] JWT: Utilizador não encontrado no DB.");
@@ -137,7 +144,13 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.profileComplete = token.profileComplete || false;
         session.user.role = token.role || null;
-        console.log(`[Auth] Session: User ${session.user.email} - Role: ${session.user.role}, ProfileComplete: ${session.user.profileComplete}`);
+        
+        // Garantir que a sessão use os dados atualizados do token (que vieram do banco)
+        if (token.name) session.user.name = token.name;
+        if (token.email) session.user.email = token.email;
+        if (token.picture) session.user.image = token.picture;
+        
+        console.log(`[Auth] Session: User ${session.user.email} (${session.user.name}) - Role: ${session.user.role}, ProfileComplete: ${session.user.profileComplete}`);
       }
       return session;
     },
