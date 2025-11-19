@@ -177,21 +177,6 @@ export default function CriarCursoPage() {
           helperText="Nome obrigatório"
         />
 
-        {/* Preview do Código e Slug */}
-        {previewCodigo && (
-          <Box sx={{ mb: 3, p: 2, backgroundColor: 'action.hover', borderRadius: 1 }}>
-            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              Identificadores gerados automaticamente:
-            </Typography>
-            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-              <strong>Código:</strong> {previewCodigo}
-            </Typography>
-            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-              <strong>Slug:</strong> {previewSlug}
-            </Typography>
-          </Box>
-        )}
-
         {/* Descrição */}
         <TextField
           id="descricao"
