@@ -315,3 +315,145 @@ export async function deleteRespostaAluno(
 
   return result.deletedCount > 0;
 }
+
+
+
+// Tipos definidos
+type TipoQuestao = "alternativa" | "afirmacoes" | "numerica" | "proposicoes" | "vf";
+
+interface QuestaoDoc {
+  _id: ObjectId;
+  tipo: TipoQuestao;
+  gabarito: any;       
+  pontuacao: number;   
+  tolerancia?: number; 
+}
+
+interface ResultadoCorrecao {
+  isCorrect: boolean;
+  pontuacaoObtida: number;
+  pontuacaoMaxima: number;
+}
+
+/**
+ * Helper: Compara dois arrays ignorando a ordem dos elementos.
+ * Útil para 'afirmacoes' e 'proposicoes' (Multi-select).
+ */
+function arraysSaoIguaisSemOrdem(arr1: any[], arr2: any[]): boolean {
+  if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
+  if (arr1.length !== arr2.length) return false;
+
+  const sorted1 = [...arr1].sort();
+  const sorted2 = [...arr2].sort();
+
+  return JSON.stringify(sorted1) === JSON.stringify(sorted2);
+}
+
+/**
+ * Função pura de correção baseada nos 5 tipos
+ */
+function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCorrecao {
+  let isCorrect = false;
+  const pontuacaoMaxima = questao.pontuacao || 0;
+
+  // Se a resposta for nula ou indefinida, já retorna erro
+  if (respostaAluno === null || respostaAluno === undefined) {
+    return { isCorrect: false, pontuacaoObtida: 0, pontuacaoMaxima };
+  }
+
+  switch (questao.tipo) {
+    // 1. Única escolha (Radio Button)
+    case "alternativa":
+      // Converte para string para evitar erros como "1" (number) !== "1" (string)
+      isCorrect = String(questao.gabarito).trim() === String(respostaAluno).trim();
+      break;
+
+    // 2. Resposta Numérica (Input Number)
+    case "numerica":
+      const valorGabarito = Number(questao.gabarito);
+      const valorAluno = Number(respostaAluno);
+      const margemErro = questao.tolerancia || 0;
+      
+      // Verifica se é um número válido e se está dentro da margem
+      if (!isNaN(valorAluno)) {
+        isCorrect = Math.abs(valorGabarito - valorAluno) <= margemErro;
+      }
+      break;
+
+    // 3. Verdadeiro ou Falso (Array Ordenado)
+    case "vf":
+      // Ex: Gabarito [true, false, true] deve ser IGUAL e na MESMA ORDEM
+      // Assumindo que respostaAluno chega como array de booleans
+      isCorrect = JSON.stringify(questao.gabarito) === JSON.stringify(respostaAluno);
+      break;
+
+    // 4. Múltiplas Escolhas / Checkbox (Array Sem Ordem)
+    case "afirmacoes":
+    case "proposicoes":
+      // Ex: Gabarito ["A", "C"]. Aluno enviou ["C", "A"]. Deve aceitar.
+      // Verifica se são arrays e compara o conteúdo ignorando ordem.
+      if (Array.isArray(questao.gabarito) && Array.isArray(respostaAluno)) {
+        isCorrect = arraysSaoIguaisSemOrdem(questao.gabarito, respostaAluno);
+      } else {
+        // Fallback caso proposições seja estilo "Soma" (número inteiro)
+        if (typeof questao.gabarito === 'number') {
+             isCorrect = Number(questao.gabarito) === Number(respostaAluno);
+        } else {
+             isCorrect = false;
+        }
+      }
+      break;
+
+    default:
+      console.warn(`Tipo de questão desconhecido: ${questao.tipo}`);
+      isCorrect = false;
+  }
+
+  const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
+
+  return {
+    isCorrect,
+    pontuacaoObtida,
+    pontuacaoMaxima
+  };
+}
+
+/**
+ * Orquestrador: Busca Questão -> Corrige -> Salva
+ */
+export async function submeterRespostaAluno(
+  userId: string,
+  listaId: string,
+  questaoId: string,
+  respostaAluno: any
+): Promise<RespostaAluno> {
+  const db = await getDb();
+  
+  // 1. Busca a questão (projeta gabarito e tipo)
+  const questao = await db.collection<QuestaoDoc>("questoes").findOne({ 
+    _id: new ObjectId(questaoId) 
+  });
+
+  if (!questao) {
+    throw new Error("Questão não encontrada.");
+  }
+
+  // 2. Executa a correção
+  const resultado = calcularCorrecao(questao, respostaAluno);
+
+  // 3. Prepara input para o repositório
+  const dadosParaSalvar = {
+    listaId,
+    questaoId,
+    resposta: respostaAluno,
+    pontuacaoMaxima: resultado.pontuacaoMaxima,
+    pontuacaoObtida: resultado.pontuacaoObtida,
+    isCorrect: resultado.isCorrect,
+    finalizado: true // Assume que ao enviar, finalizou a tentativa dessa questão
+  };
+
+  // 4. Salva no banco
+  const respostaSalva = await upsertRespostaAluno(userId, dadosParaSalvar);
+
+  return respostaSalva;
+}
