@@ -30,10 +30,10 @@ export async function GET(
     }
 
     // Buscar respostas do aluno para as questões desta lista
-    const questoesIds = (lista.questoesIds || []).map((id: any) => 
+    const questoesIds = (lista.questoesIds || []).map((id: any) =>
       typeof id === 'string' ? id : id.toString()
     );
-    
+
     // Buscar respostas filtrando por listaId
     const respostas = await RespostaAlunoService.listRespostasAluno(userId, listaId);
 
@@ -41,7 +41,7 @@ export async function GET(
     const respostasMap: Record<string, any> = {};
     let finalizado = false;
     let dataFinalizacao: Date | null = null;
-    
+
     respostas.forEach(r => {
       respostasMap[r.questaoId.toString()] = r.resposta;
       // Se qualquer resposta está finalizada, considera a lista como finalizada
@@ -88,14 +88,14 @@ export async function POST(
     // Verificar se as respostas desta lista já foram finalizadas
     const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId, listaId);
     const respostaFinalizada = respostasExistentes.find(r => r.finalizado === true);
-    
+
     if (respostaFinalizada) {
       return badRequest("As respostas já foram finalizadas e não podem ser modificadas");
     }
 
     const db = await getDb();
     const questoesCollection = db.collection("questoes");
-    
+
     // Buscar todas as questões para corrigir as respostas
     const questoesIds = respostas.map(r => new ObjectId(r.questaoId));
     const questoes = await questoesCollection
@@ -106,7 +106,7 @@ export async function POST(
 
     // Processar e salvar cada resposta
     const respostasSalvas: any[] = [];
-    
+
     for (const respostaData of respostas) {
       const { questaoId, resposta, pontuacaoMaxima } = respostaData;
       const questao = questoesMap.get(questaoId);
@@ -153,10 +153,10 @@ export async function POST(
  * Corrige uma resposta baseada no tipo de questão
  */
 function corrigirResposta(
-  questao: any, 
-  resposta: any, 
+  questao: any,
+  resposta: any,
   pontuacaoMaxima: number
-): { pontuacaoObtida: number; isCorrect: boolean } {
+): { pontuacaoObtida: number | null; isCorrect: boolean } {
   const tipo = questao.tipo;
 
   switch (tipo) {
@@ -164,10 +164,10 @@ function corrigirResposta(
       // Múltipla escolha: resposta é uma letra (A, B, C, etc)
       const alternativaCorreta = questao.alternativas?.find((a: any) => a.correta);
       const letraCorreta = alternativaCorreta?.letra;
-      
+
       const isCorrect = resposta === letraCorreta;
       const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
+
       return { pontuacaoObtida, isCorrect };
     }
 
@@ -188,7 +188,7 @@ function corrigirResposta(
 
       const isCorrect = acertos === total;
       const pontuacaoObtida = (acertos / total) * pontuacaoMaxima;
-      
+
       return { pontuacaoObtida, isCorrect };
     }
 
@@ -200,7 +200,7 @@ function corrigirResposta(
 
       const isCorrect = Number(resposta) === somaCorreta;
       const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
+
       return { pontuacaoObtida, isCorrect };
     }
 
@@ -212,14 +212,14 @@ function corrigirResposta(
 
       const isCorrect = Math.abs(respostaNum - respostaCorreta) <= margemErro;
       const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
+
       return { pontuacaoObtida, isCorrect };
     }
 
     case 'dissertativa': {
       // Dissertativa: não corrige automaticamente
-      // Professor deve corrigir manualmente depois
-      return { pontuacaoObtida: 0, isCorrect: false };
+      // TODO: Professor deve corrigir manualmente depois
+      return { pontuacaoObtida: null, isCorrect: false };
     }
 
     default:

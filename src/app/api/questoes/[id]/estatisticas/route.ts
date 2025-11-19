@@ -123,19 +123,82 @@ function aggregateStats(questao: any, respostas: any[]) {
 
         // E. Dissertativa
         case 'dissertativa': {
-            // DADOS NÃO EXISTEM AINDA
-            // TODO: A correção manual precisa ser implementada primeiro.
-            // O front-end espera dados em faixas e meta.
-            const dados = [
-                { nome: '0 - 2.0', Respostas: 0 },
-                { nome: '2.1 - 4.0', Respostas: 0 },
-                { nome: '4.1 - 6.0', Respostas: 0 },
-                { nome: '6.1 - 8.0', Respostas: 0 },
-                { nome: '8.1 - 10.0', Respostas: 0 },
-            ];
-            const meta = { qtdNotaZero: 0, qtdNotaDez: 0 };
+            const respostasCorrigidas = respostas.filter(r => {
+                const nota = r.pontuacaoObtida;
+                return (
+                    nota !== null &&
+                    nota !== undefined &&
+                    !isNaN(nota) &&
+                    typeof nota === 'number' &&
+                    (r.pontuacaoMaxima || 0) > 0
+                );
+            });
 
-            // TODO: Implementar a agregação de 'pontuacaoObtida' quando a correção manual for criada.
+            const maxNotaPadrao = questao.pontuacao || 10;
+            const maxNotaGlobal = respostasCorrigidas.length > 0
+                ? Math.max(...respostasCorrigidas.map(r => r.pontuacaoMaxima || maxNotaPadrao))
+                : maxNotaPadrao;
+
+            const step = maxNotaGlobal / 5;
+
+            if (respostasCorrigidas.length === 0) {
+                return {
+                    dados: [
+                        { nome: `0 - ${step.toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step).toFixed(1)} - ${(step * 2).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 2).toFixed(1)} - ${(step * 3).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 3).toFixed(1)} - ${(step * 4).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 4).toFixed(1)} - ${maxNotaGlobal.toFixed(1)}`, Respostas: 0 },
+                    ],
+                    meta: { qtdNotaZero: 0, qtdNotaMaxima: 0, maxNotaGlobal }
+                };
+            }
+
+            const faixas = [0, 0, 0, 0, 0];
+            let qtdNotaZero = 0;
+            let qtdNotaMaxima = 0;
+
+            respostasCorrigidas.forEach(r => {
+                const nota = Number(r.pontuacaoObtida);
+                const maxDestaQuestao = r.pontuacaoMaxima || maxNotaGlobal;
+
+                // Contagem de extremos
+                if (nota === 0) {
+                    qtdNotaZero++;
+                }
+
+                // Verifica se tirou nota máxima (com margem de 0.01 para arredondamentos)
+                if (Math.abs(nota - maxDestaQuestao) <= 0.01) {
+                    qtdNotaMaxima++;
+                }
+
+                // Classificação nas faixas
+                if (nota < step) {
+                    faixas[0]++;
+                } else if (nota < step * 2) {
+                    faixas[1]++;
+                } else if (nota < step * 3) {
+                    faixas[2]++;
+                } else if (nota < step * 4) {
+                    faixas[3]++;
+                } else {
+                    faixas[4]++;
+                }
+            });
+
+            const dados = [
+                { nome: `0 - ${(step - 0.01).toFixed(2)}`, Respostas: faixas[0] },
+                { nome: `${step.toFixed(2)} - ${(step * 2 - 0.01).toFixed(2)}`, Respostas: faixas[1] },
+                { nome: `${(step * 2).toFixed(2)} - ${(step * 3 - 0.01).toFixed(2)}`, Respostas: faixas[2] },
+                { nome: `${(step * 3).toFixed(2)} - ${(step * 4 - 0.01).toFixed(2)}`, Respostas: faixas[3] },
+                { nome: `${(step * 4).toFixed(2)} - ${maxNotaGlobal.toFixed(2)}`, Respostas: faixas[4] },
+            ];
+
+            const meta = {
+                qtdNotaZero,
+                qtdNotaMaxima,
+                maxNotaGlobal
+            };
 
             return { dados, meta };
         }
@@ -166,7 +229,7 @@ export async function GET(
         // Buscar todas as respostas para esta questão
         const respostas = await db.collection("respostasAluno")
             .find({ questaoId: questaoId })
-            .project({ resposta: 1, isCorrect: 1, pontuacaoObtida: 1 }) // Só precisamos destes campos
+            .project({ resposta: 1, isCorrect: 1, pontuacaoObtida: 1, pontuacaoMaxima: 1 }) // Só precisamos destes campos
             .toArray();
 
         // Agregar os dados

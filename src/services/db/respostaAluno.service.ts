@@ -28,7 +28,7 @@ export interface RespostaAluno {
   resposta: any;
 
   pontuacaoMaxima: number; // Pontuação total que a questão valia
-  pontuacaoObtida: number; // Pontuação que o aluno alcançou
+  pontuacaoObtida: number | null; // Pontuação que o aluno alcançou
   isCorrect: boolean;      // A resposta foi 100% correta?
 
   finalizado?: boolean;    // Se true, a resposta foi finalizada e não pode ser modificada
@@ -48,7 +48,7 @@ export interface CreateRespostaAlunoInput {
   questaoId: string;
   resposta: any;
   pontuacaoMaxima: number;
-  pontuacaoObtida: number;
+  pontuacaoObtida: number | null;
   isCorrect: boolean;
   finalizado?: boolean;
 }

@@ -13,11 +13,11 @@ import { Typography, Box, Chip, Stack } from '@mui/material';
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
  * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
-const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
+const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) => {
 
   // Define as cores
-  const COR_CORRETA = "#2e7d32"; 
-  const COR_INCORRETA = "#d32f2f"; 
+  const COR_CORRETA = "#2e7d32";
+  const COR_INCORRETA = "#d32f2f";
 
   // Gradiente de cores para o Histograma de Notas
   const CORES_GRADIENTE_NOTAS = [
@@ -49,30 +49,30 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
     return (
       // Envolve o BarChart numa Box para centralização
-      <Box sx={{ 
-        width: '100%', 
+      <Box sx={{
+        width: '100%',
         maxWidth: '600px',
         mx: 'auto'
       }}>
         <BarChart
-          dataset={dadosProcessados} 
-          xAxis={[{ 
-            scaleType: 'band', 
+          dataset={dadosProcessados}
+          xAxis={[{
+            scaleType: 'band',
             dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
             label: labelEixoX
           }]}
-          yAxis={[{ 
+          yAxis={[{
             label: 'Nº de Respostas' // Rótulo do Eixo Y
           }]}
           series={[
-            { 
-              dataKey: 'RespostasCorretas', 
-              valueFormatter, 
+            {
+              dataKey: 'RespostasCorretas',
+              valueFormatter,
               stack: 'respostas' // Identificador do "stack"
             },
-            { 
-              dataKey: 'RespostasIncorretas', 
-              valueFormatter, 
+            {
+              dataKey: 'RespostasIncorretas',
+              valueFormatter,
               stack: 'respostas' // Mesmo identificador
             }
           ]}
@@ -90,35 +90,35 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
   // Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações)
   const renderGraficoBarrasAgrupadas = () => {
-    
+
     // O formatador do tooltip agora é simples, apenas adiciona '%'
     const valueFormatter = (value) => value === null ? '' : `${value}%`;
 
     return (
-      <Box sx={{ 
-        width: '100%', 
+      <Box sx={{
+        width: '100%',
         maxWidth: '600px',
-        mx: 'auto' 
+        mx: 'auto'
       }}>
         <BarChart
           dataset={dados} // Usará os mockDadosVFAgrupado
-          xAxis={[{ 
-            scaleType: 'band', 
+          xAxis={[{
+            scaleType: 'band',
             dataKey: 'nome', // Eixo X (Afirmação I, II, III...)
-            label: 'Afirmação' 
+            label: 'Afirmação'
           }]}
-          yAxis={[{ 
+          yAxis={[{
             label: 'Percentual de Respostas (%)',
-            max: 100 
+            max: 100
           }]}
           series={[
-            { 
-              dataKey: 'acertos', 
+            {
+              dataKey: 'acertos',
               label: 'Acertos',
               valueFormatter,
             },
-            { 
-              dataKey: 'erros', 
+            {
+              dataKey: 'erros',
               label: 'Erros',
               valueFormatter,
             }
@@ -126,9 +126,9 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
           colors={[COR_CORRETA, COR_INCORRETA]}
           height={300}
           margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Espaço para a legenda no topo
-          
+
           slotProps={{
-            legend: { hidden: true }, 
+            legend: { hidden: true },
           }}
         />
       </Box>
@@ -137,15 +137,16 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
   // Lógica para o Histograma de Notas (Dissertativa)
   const renderHistogramaNotas = () => {
+    const { qtdNotaZero = 0, qtdNotaDez = 0 } = meta || {};
 
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
-    
+
     const valueFormatter = (value) => {
       // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
-      if (value === null || value === undefined) return null 
-      
+      if (value === null || value === undefined) return null
+
       const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-      return `Nº de Alunos: ${value} (${porcentagem}%)`; 
+      return `Nº de Alunos: ${value} (${porcentagem}%)`;
     };
 
     // Formata os dados para incluir a cor baseada na faixa de nota
@@ -153,8 +154,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
       // Cria um array de 'null's
       const dataArray = new Array(dados.length).fill(null);
       // Coloca o valor da barra na posição correta
-      dataArray[index] = entry.Respostas; 
-      
+      dataArray[index] = entry.Respostas;
+
       return {
         data: dataArray, // ex: [3, null, null, null, null]
         valueFormatter,  // Aplica o formatter
@@ -167,18 +168,18 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
 
 
     return (
-      <Box sx={{ 
-        width: '100%', 
+      <Box sx={{
+        width: '100%',
         maxWidth: '600px',
-        mx: 'auto' 
+        mx: 'auto'
       }}>
         <BarChart
-          xAxis={[{ 
-            scaleType: 'band', 
+          xAxis={[{
+            scaleType: 'band',
             data: labelsEixoX,
-            label: 'Faixa de Nota' 
+            label: 'Faixa de Nota'
           }]}
-          yAxis={[{ 
+          yAxis={[{
             label: 'Nº de Alunos'
           }]}
           // Este gráfico tem apenas UMA série de dados
@@ -192,40 +193,40 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto }) => {
           tooltip={{ trigger: 'item' }} // Gatilho 'item'
         />
 
-          {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
+        {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
         <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-          <Chip 
-            label={`Nota Zero: ${qtdNotaZero} alunos`} 
+          <Chip
+            label={`Nota Mínima: ${qtdNotaZero} alunos`}
             variant="outlined"
-            sx={{ 
+            sx={{
               borderColor: '#d32f2f', // Vermelho
               color: '#d32f2f',
               fontWeight: 'bold'
-            }} 
+            }}
           />
-          <Chip 
-            label={`Nota Dez: ${qtdNotaDez} alunos`} 
+          <Chip
+            label={`Nota Máxima: ${qtdNotaDez} alunos`}
             variant="outlined"
-            sx={{ 
+            sx={{
               borderColor: '#2e7d32', // Verde
               color: '#2e7d32',
               fontWeight: 'bold'
-            }} 
+            }}
           />
         </Stack>
 
       </Box>
     );
   };
-  
-  
+
+
 
   // Lógica Principal de Renderização
   if (!dados || dados.length === 0) {
     return <Typography>Não há dados de estatística para esta questão.</Typography>;
   }
-  
-  
+
+
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'multipla-escolha':
@@ -303,59 +304,59 @@ export const TesteGraficoEstatisticas = () => {
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Múltipla Escolha
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="multipla-escolha" 
-        dados={mockDadosBarra} 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="multipla-escolha"
+        dados={mockDadosBarra}
       />
-      
-      <Box sx={{ my: 4 }} /> 
+
+      <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Verdadeiro/Falso (Agrupado)
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="verdadeiro-falso" 
-        dados={mockDadosVFAgrupado} 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="verdadeiro-falso"
+        dados={mockDadosVFAgrupado}
       />
-      
-      <Box sx={{ my: 4 }} /> 
+
+      <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Resposta Numérica
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="numerica" 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="numerica"
         dados={mockDadosNumericaFrequencia}
       />
-      
+
       <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Somatório
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="somatorio" 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="somatorio"
         dados={mockDadosSomatorio}
       />
-      
+
       <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Gráfico Dissertativa (Distribuição de Notas)
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="dissertativa" 
-        dados={mockDadosDissertativa} 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="dissertativa"
+        dados={mockDadosDissertativa}
       />
-      
+
       <Box sx={{ my: 4 }} />
 
       <Typography variant="h5" gutterBottom sx={{ textAlign: 'center', mb: 2 }}>
         Teste - Sem Dados
       </Typography>
-      <GraficoEstatisticasQuestao 
-        tipoQuestao="multipla-escolha" 
-        dados={[]} 
+      <GraficoEstatisticasQuestao
+        tipoQuestao="multipla-escolha"
+        dados={[]}
       />
     </Box>
   );
