@@ -26,9 +26,15 @@ export default function DesempenhoPage() {
 
   useEffect(() => {
     async function fetchDesempenho() {
-      const res = await fetch('/api/desempenho');
-      if (!res.ok) return;
-      const json = await res.json();
+      let json = {};
+      try {
+        const res = await fetch('/api/desempenho');
+        if (res && res.ok) {
+          json = await res.json();
+        }
+      } catch (e) {
+        // Silencia erro, json permanece vazio
+      }
       // Montar lista de cursos para o select
       const apiCourses = json.cursos?.map(c => ({ id: c.id, name: c.nome })) || [];
       setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
