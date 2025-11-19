@@ -137,7 +137,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
 
   // Lógica para o Histograma de Notas (Dissertativa)
   const renderHistogramaNotas = () => {
-    const { qtdNotaZero = 0, qtdNotaDez = 0 } = meta || {};
+    const { qndNotaMinima = 0, qndNotaMaxima = 0 } = meta || {};
 
     const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
 
@@ -196,7 +196,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
         {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
         <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
           <Chip
-            label={`Nota Mínima: ${qtdNotaZero} alunos`}
+            label={`Nota Mínima: ${qndNotaMinima} alunos`}
             variant="outlined"
             sx={{
               borderColor: '#d32f2f', // Vermelho
@@ -205,7 +205,7 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
             }}
           />
           <Chip
-            label={`Nota Máxima: ${qtdNotaDez} alunos`}
+            label={`Nota Máxima: ${qndNotaMaxima} alunos`}
             variant="outlined"
             sx={{
               borderColor: '#2e7d32', // Verde
@@ -292,8 +292,8 @@ const mockDadosDissertativa = [
   { nome: '6.1 - 8.0', Respostas: 10 },
   { nome: '8.1 - 10.0', Respostas: 7 },
 ];
-const qtdNotaZero = 2; // Exemplo
-const qtdNotaDez = 4;  // Exemplo
+const qndNotaMinima = 2; // Exemplo
+const qndNotaMaxima = 4;  // Exemplo
 
 /**
  * Componente de Teste Wrapper

@@ -123,6 +123,7 @@ function aggregateStats(questao: any, respostas: any[]) {
 
         // E. Dissertativa
         case 'dissertativa': {
+            // Filtragem: apenas respostas com pontuação válida
             const respostasCorrigidas = respostas.filter(r => {
                 const nota = r.pontuacaoObtida;
                 return (
@@ -134,42 +135,46 @@ function aggregateStats(questao: any, respostas: any[]) {
                 );
             });
 
-            const maxNotaPadrao = questao.pontuacao || 10;
-            const maxNotaGlobal = respostasCorrigidas.length > 0
-                ? Math.max(...respostasCorrigidas.map(r => r.pontuacaoMaxima || maxNotaPadrao))
-                : maxNotaPadrao;
-
-            const step = maxNotaGlobal / 5;
-
+            // Se não há respostas, retorna vazio com escala padrão
             if (respostasCorrigidas.length === 0) {
+                const maxNotaPadrao = 10; // Fallback quando não há dados
+                const step = maxNotaPadrao / 5;
+
                 return {
                     dados: [
                         { nome: `0 - ${step.toFixed(1)}`, Respostas: 0 },
-                        { nome: `${(step).toFixed(1)} - ${(step * 2).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${step.toFixed(1)} - ${(step * 2).toFixed(1)}`, Respostas: 0 },
                         { nome: `${(step * 2).toFixed(1)} - ${(step * 3).toFixed(1)}`, Respostas: 0 },
                         { nome: `${(step * 3).toFixed(1)} - ${(step * 4).toFixed(1)}`, Respostas: 0 },
-                        { nome: `${(step * 4).toFixed(1)} - ${maxNotaGlobal.toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 4).toFixed(1)} - ${maxNotaPadrao.toFixed(1)}`, Respostas: 0 },
                     ],
-                    meta: { qtdNotaZero: 0, qtdNotaMaxima: 0, maxNotaGlobal }
+                    meta: { qndNotaMinima: 0, qndNotaMaxima: 0, maxNotaGlobal: maxNotaPadrao }
                 };
             }
 
+            // Pega a pontuação máxima das respostas (não da questão)
+            const maxNotaGlobal = Math.max(
+                ...respostasCorrigidas.map(r => Number(r.pontuacaoMaxima))
+            );
+
+            const step = maxNotaGlobal / 5;
+
+            // Classificação
             const faixas = [0, 0, 0, 0, 0];
-            let qtdNotaZero = 0;
-            let qtdNotaMaxima = 0;
+            let qndNotaMinima = 0;
+            let qndNotaMaxima = 0;
 
             respostasCorrigidas.forEach(r => {
                 const nota = Number(r.pontuacaoObtida);
-                const maxDestaQuestao = r.pontuacaoMaxima || maxNotaGlobal;
+                const maxDestaResposta = Number(r.pontuacaoMaxima);
 
-                // Contagem de extremos
+                // Contagem de nota zero
                 if (nota === 0) {
-                    qtdNotaZero++;
+                    qndNotaMinima++;
                 }
 
-                // Verifica se tirou nota máxima (com margem de 0.01 para arredondamentos)
-                if (Math.abs(nota - maxDestaQuestao) <= 0.01) {
-                    qtdNotaMaxima++;
+                if (nota == maxDestaResposta) {
+                    qndNotaMaxima++;
                 }
 
                 // Classificação nas faixas
@@ -186,6 +191,7 @@ function aggregateStats(questao: any, respostas: any[]) {
                 }
             });
 
+            // Formata os dados para o frontend
             const dados = [
                 { nome: `0 - ${(step - 0.01).toFixed(2)}`, Respostas: faixas[0] },
                 { nome: `${step.toFixed(2)} - ${(step * 2 - 0.01).toFixed(2)}`, Respostas: faixas[1] },
@@ -195,8 +201,8 @@ function aggregateStats(questao: any, respostas: any[]) {
             ];
 
             const meta = {
-                qtdNotaZero,
-                qtdNotaMaxima,
+                qndNotaMinima,
+                qndNotaMaxima,
                 maxNotaGlobal
             };
 
