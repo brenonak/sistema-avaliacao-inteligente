@@ -58,17 +58,10 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchCursos() {
       try {
-        // TODO: ajustar a API para retornar apenas os cursos do aluno logado
-        const res = await fetch('/api/cursos');
-        if (!res.ok) throw new Error('Erro ao carregar cursos');
-        const json = await res.json();
+        // TODO: ajustar a API para retornar os cursos em que o aluno está matriculado
+        const cursos = [];
 
-        // Ordenar cursos por quantidade de questões (decrescente) e pegar os 6 primeiros
-        const cursosOrdenados = (json.itens || [])
-          .sort((a, b) => (b.questoesCount || 0) - (a.questoesCount || 0))
-          .slice(0, 6);
-
-        setCursos(cursosOrdenados);
+        setCursos(cursos);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
         setCursos([]);

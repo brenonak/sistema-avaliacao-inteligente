@@ -15,7 +15,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import Header from './Header';
+import HeaderAluno from './HeaderAluno';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
@@ -23,7 +23,7 @@ import Link from 'next/link';
 const drawerWidth = 220;
 const collapsedWidth = 60;
 
-export default function Overlay({ content }) {
+export default function OverlayAluno({ content }) {
   const { data: session } = useSession();
   const [open, setOpen] = React.useState(true);
   const [hovered, setHovered] = React.useState(false);
@@ -35,15 +35,15 @@ export default function Overlay({ content }) {
   const expanded = open || hovered;
 
   const sidebarItems = [
-    { text: 'Início', icon: <HomeIcon />, link: '/dashboard' },
-    { text: 'Cursos', icon: <SchoolIcon />, link: '/cursos' },
-    { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/desempenho' },
+    { text: 'Início', icon: <HomeIcon />, link: 'dashboard' },
+    { text: 'Cursos', icon: <SchoolIcon />, link: 'cursos' },
+    { text: 'Desempenho', icon: <TrendingUpIcon />, link: 'desempenho' },
   ];
 
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <Header />
+      <HeaderAluno />
       <Drawer
         variant="permanent"
         onMouseEnter={() => setHovered(true)}
