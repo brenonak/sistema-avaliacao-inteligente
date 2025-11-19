@@ -15,10 +15,13 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Card,
+  CardContent
 } from '@mui/material';
 import { Add, School } from '@mui/icons-material';
 import PerformanceSummary from "../../../components/PerformanceSummary";
 import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
+import PendingActivities from "../../../components/PendingActivities";
 
 export default function DashboardPage() {
   const [cursos, setCursos] = useState([]);
@@ -44,6 +47,13 @@ export default function DashboardPage() {
   const best = Math.max(...dataScores);
   const latest = 81;
   
+  // Dados mockados para as atividades pendentes
+  const pendingActivities = [
+    { title: "Lista 3 de Cálculo", due: "Entrega: 22/11" },
+    { title: "Exercícios de Algoritmos", due: "Entrega: 24/11" },
+    { title: "Trabalho de Física 1", due: "Entrega: 28/11" },
+  ];
+
 
   useEffect(() => {
     async function fetchCursos() {
@@ -211,19 +221,24 @@ export default function DashboardPage() {
           </Box>
         </Grid>
         <Grid size={4}>
-          <Box sx={{
-            padding: 5,
-          }}>
+          <Box sx={{ padding: 5 }}>
             <Typography gutterBottom variant="h4" component="div">
               Agenda
             </Typography>
-            <Box sx={{
-              backgroundColor: 'background.paper',
-              borderRadius: 2,
-              maxWidth: 320,
-            }}>
-              <Calendar />
-            </Box>
+            <Card sx={{ mb: 4, borderRadius: 2 }}>
+              <CardContent>
+                <Calendar />
+              </CardContent>
+            </Card>
+
+            <Typography gutterBottom variant="h4" component="div">
+              Atividades Pendentes
+            </Typography>
+            <Card sx={{ borderRadius: 2 }}>
+              <CardContent>
+                <PendingActivities activities={pendingActivities} />
+              </CardContent>
+            </Card>
           </Box>
         </Grid>
       </Grid>
@@ -248,7 +263,7 @@ export default function DashboardPage() {
           <TextField
             autoFocus
             margin="dense"
-            label="ID do Curso"
+            label="Código do Curso (feature não implementada)"
             fullWidth
             value={courseIdInput}
             onChange={(e) => setCourseIdInput(e.target.value)}
