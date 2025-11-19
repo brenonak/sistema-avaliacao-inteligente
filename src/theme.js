@@ -4,7 +4,9 @@ import { alpha } from '@mui/material/styles';
 import { responsiveFontSizes } from '@mui/material/styles';
 
 let theme = createTheme({
-  cssVariables: true,
+  cssVariables: {
+    colorSchemeSelector: 'class'
+  },
   palette: {
     // Cores principais
     primary: {
@@ -40,8 +42,7 @@ let theme = createTheme({
     },
 
     accent: {
-      main: '#1e88e5', 
-      secondary: '#9c27b0',
+      main: '#1e88e5',  
       dark: '#0D47A1',
       contrastText: '#ffffff',
     },
