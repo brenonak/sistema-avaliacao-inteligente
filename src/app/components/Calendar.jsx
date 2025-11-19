@@ -11,6 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Box from '@mui/material/Box';
 
 // Componente utilizado para mostrar os dias marcados no calendário
 function ServerDay(props) {
@@ -124,20 +125,30 @@ export default function Calendar() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-      <DateCalendar
-        value={selectedDate}
-        onChange={() => {}}
-        shouldDisableDate={() => true}
-        loading={isLoading}
-        onMonthChange={handleMonthChange}
-        renderLoading={() => <DayCalendarSkeleton />}
-        slots={{ day: ServerDay }}
-        slotProps={{
-          day: {
-            highlightedDays,
-          }
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          py: 2,
+          transform: "scale(1.1)",   
+          transformOrigin: "center", 
         }}
-      />
+      >
+        <DateCalendar
+          value={selectedDate}
+          onChange={() => {}}
+          shouldDisableDate={() => true}
+          loading={isLoading}
+          onMonthChange={handleMonthChange}
+          renderLoading={() => <DayCalendarSkeleton />}
+          slots={{ day: ServerDay }}
+          slotProps={{
+            day: { highlightedDays }
+          }}
+        />
+      </Box>
     </LocalizationProvider>
   );
 }

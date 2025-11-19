@@ -42,6 +42,8 @@ import {
   ArrowDownward,
   Clear as ClearIcon,
   Download,
+  RateReview,
+  Visibility,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -60,6 +62,7 @@ export default function CursoDetalhesPage() {
   // Estados para listas de exercícios
   const [exercícios, setExercícios] = useState([]);
   const [loadingExercícios, setLoadingExercícios] = useState(false);
+  const [listasFinalizadas, setListasFinalizadas] = useState({}); // { listaId: boolean }
 
   // Estados para o diálogo de adicionar questões existentes
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -93,6 +96,18 @@ export default function CursoDetalhesPage() {
   });
   const [selectedQuestoesProva, setSelectedQuestoesProva] = useState([]);
   const [questoesPontuacaoProva, setQuestoesPontuacaoProva] = useState({}); // Pontuação por questão na edição
+
+  //Estados para o diálogo de edição de lista de exercícios
+  const [openEditListaDialog, setOpenEditListaDialog] = useState(false);
+  const [editingLista, setEditingLista] = useState(null);
+  const [loadingEditLista, setLoadingEditLista] = useState(false);
+  const [editListaData, setEditListaData] = useState({
+    tituloLista: '',
+    nomeInstituicao: '',
+  });
+  const [selectedQuestoesLista, setSelectedQuestoesLista] = useState([]); // Apenas os IDs
+  const [usarPontuacaoLista, setUsarPontuacaoLista] = useState(false);
+  const [questoesPontuacaoLista, setQuestoesPontuacaoLista] = useState({});
 
   // Estado e handlers para diálogo "Gerar Lista de Exercícios"
   const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
@@ -286,7 +301,29 @@ export default function CursoDetalhesPage() {
       const res = await fetch(`/api/cursos/${cursoId}/listas`);
       if (!res.ok) throw new Error('Erro ao carregar listas');
       const data = await res.json();
-      setExercícios(data.items || []);
+      const listas = data.items || [];
+      setExercícios(listas);
+      
+      // Para cada lista, verificar se já foi finalizada
+      const statusMap = {};
+      await Promise.all(
+        listas.map(async (lista) => {
+          try {
+            const listaId = lista.id || lista._id;
+            const respostasRes = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`);
+            if (respostasRes.ok) {
+              const respostasData = await respostasRes.json();
+              statusMap[listaId] = respostasData.finalizado || false;
+            } else {
+              statusMap[listaId] = false;
+            }
+          } catch (err) {
+            console.error('Erro ao verificar status da lista:', err);
+            statusMap[lista.id || lista._id] = false;
+          }
+        })
+      );
+      setListasFinalizadas(statusMap);
     } catch (err) {
       console.error('Erro ao buscar listas:', err);
       setExercícios([]);
@@ -575,9 +612,6 @@ export default function CursoDetalhesPage() {
     setOpenEditProvaDialog(true);
   };
 
-  const handleOpenEditLista = async (lista) => {
-  }
-
   const handleChangeEditProva = (field) => (event) => {
     setEditProvaData({
       ...editProvaData,
@@ -696,6 +730,148 @@ export default function CursoDetalhesPage() {
       alert(error.message || 'Erro ao atualizar prova. Tente novamente.');
     } finally {
       setLoadingEditProva(false);
+    }
+  };
+
+  const handleOpenEditLista = async (lista) => {
+    setEditingLista(lista); // Armazena a lista original
+    
+    // Define os dados dos campos do formulário
+    setEditListaData({
+      tituloLista: lista.tituloLista || '',
+      nomeInstituicao: lista.nomeInstituicao || '',
+    });
+    
+    // Preenche as questões selecionadas (são apenas IDs)
+    setSelectedQuestoesLista(lista.questoesIds || []);
+    
+    // Configurar pontuação
+    setUsarPontuacaoLista(lista.usarPontuacao || false);
+    setQuestoesPontuacaoLista(lista.questoesPontuacao || {});
+    
+    setOpenEditListaDialog(true);
+  };
+
+  const handleChangeEditLista = (field) => (event) => {
+    setEditListaData({
+      ...editListaData,
+      [field]: event.target.value,
+    });
+  };
+
+  const handleToggleQuestaoLista = (questaoId) => {
+    setSelectedQuestoesLista((prev) => {
+      if (prev.includes(questaoId)) {
+        return prev.filter(q => q !== questaoId);
+      } else {
+        return [...prev, questaoId];
+      }
+    });
+  };
+
+  // Mover questão para cima na ordem (edição de lista)
+  const handleMoveUpLista = (index) => {
+    if (index === 0) return;
+    setSelectedQuestoesLista((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  };
+
+  // Mover questão para baixo na ordem (edição de lista)
+  const handleMoveDownLista = (index) => {
+    if (index === selectedQuestoesLista.length - 1) return;
+    setSelectedQuestoesLista((prev) => {
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
+  };
+
+  // Remover questão da seleção (edição de lista)
+  const handleRemoveQuestaoLista = (questaoId) => {
+    setSelectedQuestoesLista((prev) => prev.filter(q => q !== questaoId));
+    // Remover também a pontuação se estiver usando
+    if (usarPontuacaoLista) {
+      setQuestoesPontuacaoLista((prev) => {
+        const newPontuacao = { ...prev };
+        delete newPontuacao[questaoId];
+        return newPontuacao;
+      });
+    }
+  };
+
+  // Atualizar pontuação de uma questão (edição de lista)
+  const handleChangePontuacaoLista = (questaoId, valor) => {
+    const pontos = parseFloat(valor) || 0;
+    setQuestoesPontuacaoLista((prev) => ({
+      ...prev,
+      [questaoId]: pontos,
+    }));
+  };
+
+  // Calcular total de pontos (edição de lista)
+  const calcularTotalPontosLista = () => {
+    return selectedQuestoesLista.reduce((total, qId) => {
+      return total + (questoesPontuacaoLista[qId] || 0);
+    }, 0);
+  };
+
+  const handleSaveEditLista = async () => {
+    if (!editListaData.tituloLista.trim()) {
+      alert('O nome da matéria é obrigatório');
+      return;
+    }
+
+    setLoadingEditLista(true);
+    try {
+      // Preparar IDs das questões
+      const questoesIds = selectedQuestoesLista.map(qId => {
+        const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+        return questao?._id || qId;
+      });
+
+      // Preparar dados para envio
+      const listaData = {
+        ...editListaData,
+        questoesIds,
+        usarPontuacao: usarPontuacaoLista,
+      };
+
+      // Se usar pontuação, incluir as pontuações
+      if (usarPontuacaoLista) {
+        const pontuacoes = {};
+        selectedQuestoesLista.forEach(qId => {
+          const questao = curso.questoes.find(q => (q._id || q.id) === qId);
+          const realId = questao?._id || qId;
+          pontuacoes[realId] = questoesPontuacaoLista[qId] || 0;
+        });
+        listaData.questoesPontuacao = pontuacoes;
+      }
+
+      const res = await fetch(`/api/cursos/${cursoId}/listas/${editingLista.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(listaData),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Erro ao atualizar lista');
+      }
+
+      alert('Lista atualizada com sucesso!');
+      setOpenEditListaDialog(false);
+      setEditingLista(null);
+      fetchExercícios(); // Re-busca as listas
+    } catch (error) {
+      console.error('Erro ao atualizar lista:', error);
+      alert(error.message || 'Erro ao atualizar lista. Tente novamente.');
+    } finally {
+      setLoadingEditLista(false);
     }
   };
 
@@ -979,7 +1155,7 @@ export default function CursoDetalhesPage() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                        {lista.nomeMateria}
+                        {lista.tituloLista}
                       </Typography>
 
                       {lista.nomeInstituicao && (
@@ -999,15 +1175,52 @@ export default function CursoDetalhesPage() {
                             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
                               Questões: {lista.questoesIds.length}
                             </Typography>
+                            {lista.usarPontuacao && lista.questoesPontuacao && (
+                              <>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                                  •
+                                </Typography>
+                                <Chip
+                                  label={`${Object.values(lista.questoesPontuacao).reduce((sum, p) => sum + (p || 0), 0).toFixed(1)} pts`}
+                                  size="small"
+                                  color="success"
+                                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                                />
+                              </>
+                            )}
                           </Box>
                         </Box>
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                      {lista.usarPontuacao && (
+                        <IconButton
+                          color="primary"
+                          onClick={() => {
+                            const listaId = lista.id || lista._id;
+                            const isFinalizado = listasFinalizadas[listaId];
+                            if (isFinalizado) {
+                              router.push(`/cursos/${cursoId}/listas/${listaId}/visualizar`);
+                            } else {
+                              router.push(`/cursos/${cursoId}/listas/${listaId}/responder`);
+                            }
+                          }}
+                          title={listasFinalizadas[lista.id || lista._id] ? "Visualizar Respostas" : "Responder Lista"}
+                        >
+                          {listasFinalizadas[lista.id || lista._id] ? <Visibility /> : <RateReview />}
+                        </IconButton>
+                      )}
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleOpenEditLista(lista)}
+                        title="Editar lista"
+                      >
+                        <Edit />
+                      </IconButton>
                       <IconButton
                         color="success"
                         onClick={() => handleOpenGenerateDialog(lista)}
-                        title="Gerar Lista de Exercícios"
+                        title="Exportar para LaTeX"
                       >
                         <PostAdd />
                       </IconButton>
@@ -1718,6 +1931,275 @@ export default function CursoDetalhesPage() {
         )}
       </Dialog>
 
+      {/*Dialog para Editar Lista de Exercícios*/}
+      <Dialog
+        open={openEditListaDialog}
+        onClose={() => !loadingEditLista && setOpenEditListaDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Editar Lista de Exercícios</DialogTitle>
+
+        {editingLista && (
+          <>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                
+                {/* Informações básicas (Simplificado para Listas) */}
+                <TextField
+                  fullWidth
+                  required
+                  label="Conteúdo da Lista"
+                  value={editListaData.tituloLista}
+                  onChange={handleChangeEditLista('tituloLista')}
+                  variant="outlined"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Nome da Escola/Instituição"
+                  value={editListaData.nomeInstituicao}
+                  onChange={handleChangeEditLista('nomeInstituicao')}
+                  variant="outlined"
+                />
+                
+                <Divider sx={{ my: 1 }} />
+
+                {/* Questões da lista */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    Questões da Lista
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={usarPontuacaoLista}
+                        onChange={(e) => setUsarPontuacaoLista(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Usar Pontuação"
+                  />
+                </Box>
+
+                {(!curso.questoes || curso.questoes.length === 0) ? (
+                  <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                    Nenhuma questão cadastrada neste curso.
+                  </Typography>
+                ) : (
+                  <Box>
+                    {/* Questões Selecionadas - Ordenáveis */}
+                    {selectedQuestoesLista.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                            Questões Selecionadas ({selectedQuestoesLista.length})
+                          </Typography>
+                          {usarPontuacaoLista && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                                Total:
+                              </Typography>
+                              <Chip
+                                label={`${calcularTotalPontosLista().toFixed(1)} pts`}
+                                size="small"
+                                color="success"
+                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 'bold' }}
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                        <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, maxHeight: 250, overflow: 'auto' }}>
+                          {selectedQuestoesLista.map((questaoId, index) => {
+                            
+                            // LÓGICA DE BUSCA SIMPLIFICADA (A GRANDE MUDANÇA)
+                            // Listas usam Referência, então *sempre* buscamos do 'curso.questoes'
+                            const questao = curso.questoes.find(q => (q._id || q.id) === questaoId);
+                            
+                            // Se a questão foi deletada do curso, ela não aparecerá aqui.
+                            // Este é o comportamento esperado para Listas (Referência).
+                            if (!questao) return null;
+
+                            return (
+                              <ListItem
+                                key={`selected-${questaoId}`}
+                                sx={{
+                                  border: 1,
+                                  borderColor: 'primary.main',
+                                  borderRadius: 1,
+                                  mb: 1,
+                                  bgcolor: 'background.paper',
+                                  p: 1,
+                                  alignItems: 'center',
+                                  gap: 1,
+                                }}
+                              >
+                                {/* Número da ordem */}
+                                <Box
+                                  sx={{
+                                    minWidth: 32,
+                                    height: 32,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    borderRadius: 1,
+                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem',
+                                  }}
+                                >
+                                  {index + 1}
+                                </Box>
+
+                                {/* Conteúdo da questão */}
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} noWrap>
+                                    {questao.enunciado || 'Sem enunciado'}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip 
+                                        key={`sel-tag-${questaoId}-${idx}`} 
+                                        label={tag} 
+                                        size="small" 
+                                        variant="outlined" 
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+
+                                {/* Campo de pontuação (se ativado) */}
+                                {usarPontuacaoLista && (
+                                  <TextField
+                                    type="number"
+                                    label="Pts"
+                                    value={questoesPontuacaoLista[questaoId] || ''}
+                                    onChange={(e) => handleChangePontuacaoLista(questaoId, e.target.value)}
+                                    inputProps={{
+                                      min: 0,
+                                      step: 0.5,
+                                      style: { textAlign: 'center', fontSize: '0.85rem' }
+                                    }}
+                                    sx={{ width: 70 }}
+                                    size="small"
+                                  />
+                                )}
+
+                                {/* Botões de controle */}
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveUpLista(index);
+                                    }}
+                                    disabled={index === 0}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowUpward fontSize="small" />
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveDownLista(index);
+                                    }}
+                                    disabled={index === selectedQuestoesLista.length - 1}
+                                    sx={{ minWidth: 'auto', p: 0.25 }}
+                                  >
+                                    <ArrowDownward fontSize="small" />
+                                  </Button>
+                                </Box>
+
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveQuestaoLista(questaoId);
+                                  }}
+                                  sx={{ minWidth: 'auto', p: 0.5 }}
+                                >
+                                  <ClearIcon fontSize="small" />
+                                </Button>
+                              </ListItem>
+                            );
+                          })}
+                        </List>
+                      </Box>
+                    )}
+
+                    {/* Divider se houver questões selecionadas */}
+                    {selectedQuestoesLista.length > 0 && (
+                      <Divider sx={{ my: 1 }}>
+                        <Chip label="Questões Disponíveis" size="small" />
+                      </Divider>
+                    )}
+
+                    {/* Questões Disponíveis */}
+                    <List sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      {curso.questoes
+                        .filter(questao => !selectedQuestoesLista.includes(questao._id || questao.id))
+                        .map((questao) => {
+                          const questaoId = questao._id || questao.id;
+
+                          return (
+                            <ListItem
+                              key={questaoId}
+                              dense
+                              component="div"
+                              onClick={() => handleToggleQuestaoLista(questaoId)}
+                              sx={{
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'action.hover',
+                                },
+                              }}
+                            >
+                              <Checkbox
+                                checked={false}
+                                tabIndex={-1}
+                                disableRipple
+                              />
+                              <ListItemText
+                                primary={questao.enunciado || 'Sem enunciado'}
+                                secondaryTypographyProps={{ component: 'div' }}
+                                secondary={
+                                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                    {questao.tipo && (
+                                      <Chip label={questao.tipo} size="small" />
+                                    )}
+                                    {questao.tags?.slice(0, 2).map((tag, idx) => (
+                                      <Chip key={idx} label={tag} size="small" variant="outlined" />
+                                    ))}
+                                  </Box>
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
+                    </List>
+                  </Box>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenEditListaDialog(false)} disabled={loadingEditLista}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEditLista} variant="contained" disabled={loadingEditLista}>
+                {loadingEditLista ? 'Salvando...' : 'Salvar Lista'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       {/* Dialog para Gerar Lista de Exercícios */}
       <Dialog
         open={openGenerateDialog}
@@ -1728,7 +2210,7 @@ export default function CursoDetalhesPage() {
         <DialogTitle>Gerar Lista de Exercícios</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.nomeMateria}".` : 'Você está prestes a gerar uma lista de exercícios.'}
+            {listaToGenerate ? `Você está prestes a gerar a lista "${listaToGenerate.tituloLista}".` : 'Você está prestes a gerar uma lista de exercícios.'}
           </Typography>
 
           <FormControlLabel

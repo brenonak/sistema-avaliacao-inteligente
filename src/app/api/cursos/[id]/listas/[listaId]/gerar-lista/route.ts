@@ -126,7 +126,7 @@ export async function GET(
 
         // Este é o JSON COMPLETO, que será usado para o gabarito
         listaJson = {
-            titulo: `Lista de Exercícios: ${listaDefinicao.nomeMateria}`,
+            titulo: `Lista de Exercícios: ${listaDefinicao.tituloLista}`,
             instituicao: listaDefinicao.nomeInstituicao || '',
             questoes: questoesComRecursos,
         };
@@ -177,6 +177,7 @@ export async function GET(
 \\usepackage{graphicx}
 \\usepackage{grffile}
 \\usepackage{enumerate}
+\\pagestyle{empty}
 
 % REGRAS DE FORMATAÇÃO DE ESCOLHAS (FIXAS)
 \\renewcommand{\\thechoice}{\\Alph{choice}}
@@ -186,23 +187,23 @@ export async function GET(
 \\newcounter{somatorioitem}
 \\setcounter{somatorioitem}{0}
 \\newcommand{\\somatorioitemlabel}{
-    \\stepcounter{somatorioitem}
-    \\pgfmathsetmacro{\\poweroftwo}{2^(\\value{somatorioitem}-1)}
-    ( \\pgfmathprintnumber[int detect]{\\poweroftwo} )
+    \\stepcounter{somatorioitem}
+    \\pgfmathsetmacro{\\poweroftwo}{2^(\\value{somatorioitem}-1)}
+    ( \\pgfmathprintnumber[int detect]{\\poweroftwo} )
 }
 \\newenvironment{somatoriochoices}{
-    \\list{\\somatorioitemlabel}{
-        \\setlength{\\labelwidth}{4em}
-        \\setlength{\\leftmargin}{\\labelwidth}
-        \\addtolength{\\leftmargin}{\\labelsep}
-        \\setlength{\\itemsep}{0.5ex}
-        \\setlength{\\parsep}{0.3ex}
-        \\setlength{\\topsep}{0.3ex}
-        \\renewcommand{\\makelabel}[1]{\\hss##1}
-    }
-    \\setcounter{somatorioitem}{0}
+    \\list{\\somatorioitemlabel}{
+        \\setlength{\\labelwidth}{4em}
+        \\setlength{\\leftmargin}{\\labelwidth}
+        \\addtolength{\\leftmargin}{\\labelsep}
+        \\setlength{\\itemsep}{0.5ex}
+        \\setlength{\\parsep}{0.3ex}
+        \\setlength{\\topsep}{0.3ex}
+        \\renewcommand{\\makelabel}[1]{\\hss##1}
+    }
+    \\setcounter{somatorioitem}{0}
 }{
-    \\endlist
+    \\endlist
 }
 
 \\begin{document}
@@ -212,45 +213,45 @@ ${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2
 \\Large\\bfseries ${listaJson.titulo} \\\\
 \\end{center}
 \\vspace{1cm}
-    
+
 \\begin{questions}
-    `;
+    `;
 
         const latexSkeletonEnd = `
 \\end{questions}
-    `;
+    `;
 
 
         // --- 4. ATUALIZAR O PROMPT ---
         const latexTemplate = `
-    Você é um assistente especialista em LaTeX. Sua **única tarefa** é ler o objeto JSON fornecido e gerar **SOMENTE** o código LaTeX para as questões, usando o ambiente 'exam', sem **NENHUM** texto adicional ou explicação.
+    Você é um assistente especialista em LaTeX. Sua **única tarefa** é ler o objeto JSON fornecido e gerar **SOMENTE** o código LaTeX para as questões, usando o ambiente 'exam', sem **NENHUM** texto adicional ou explicação.
 
-    **NÃO INCLUA** \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\`, \`\\end{{questions}}\` ou \`\\end{{document}}\` no seu resultado e não importe nenhum \`\\package{{}}\` ou afins.
+    **NÃO INCLUA** \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\`, \`\\end{{questions}}\` ou \`\\end{{document}}\` no seu resultado e não importe nenhum \`\\package{{}}\` ou afins.
 
-      **[INSTRUÇÕES DE CONVERSÃO RIGOROSAS]**
-      1.  **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
-      2.  **SEM MARCAÇÃO:** NÃO use blocos de código Markdown (\`\`\`) no seu resultado.
-      3.  **ESCOPO:** NÃO inclua \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\` ou \`\\end{{document}}\`. Não importe \`\\package{{}}\`. Faça apenas a inserção das questões.
-      4.  **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
-      5.  **Regras de Formatação por Tipo:**
-          * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
-          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\item[($\\quad$)] <texto da alternativa>\`.
-          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
-          * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{choices}}\` insira \`\\answerline\`.
-          * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\`\\answerline\`** para o espaço de resposta.
-      6.  **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
-      7.  **Recursos (Imagens):** Se uma questão tiver imagens (nomes de arquivo em \`recursosFileNames\`), insira o seguinte código LaTeX **imediatamente após o enunciado da questão** para cada imagem:
-          \\begin{{center}}
-              \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}}
-          \\end{{center}}
-      8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
-      **[JSON DA PROVA PARA CONVERSÃO]**
-      \`\`\`json
-      {json_data}
-      \`\`\`
+    **[INSTRUÇÕES DE CONVERSÃO RIGOROSAS]**
+        1. **Formato de Saída:** O retorno deve ser **100% código LaTeX**. Não inclua NENHUMA saudação, explicação, introdução ou texto fora do código.
+        2. **SEM MARCAÇÃO:** NÃO use blocos de código Markdown (\`\`\`) no seu resultado.
+        3. **ESCOPO:** NÃO inclua \`\\documentclass\`, \`\\begin{{document}}\`, \`\\begin{{questions}}\` ou \`\\end{{document}}\`. Não importe \`\\package{{}}\`. Faça apenas a inserção das questões.
+        4. **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
+        5. **Regras de Formatação por Tipo:**
+          * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
+          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\item[($\\quad$)] <texto da alternativa>\`.
+          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
+          * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{choices}}\` insira \`\\answerline\`.
+          * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\`\\answerline\`** para o espaço de resposta.
+        6. **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
+        7. **Recursos (Imagens):** Se uma questão tiver imagens (nomes de arquivo em \`recursosFileNames\`), insira o seguinte código LaTeX **imediatamente após o enunciado da questão** para cada imagem:
+        \\begin{{center}}
+            \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}}
+        \\end{{center}}
+        8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
+        **[JSON DA PROVA PARA CONVERSÃO]**
+        \`\`\`json
+        {json_data}
+        \`\`\`
 
-      CÓDIGO LATEX GERADO (APENAS QUESTÕES):
-      `;
+        CÓDIGO LATEX GERADO (APENAS QUESTÕES):
+        `;
 
         const prompt = new PromptTemplate({
             template: latexTemplate,
@@ -273,7 +274,7 @@ ${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2
         // Concatenar tudo na ordem correta
         const fullLatexOutput = `${latexSkeletonStart}${latexQuestions}${latexSkeletonEnd}${gabaritoBlock}\n\\end{document}`;
 
-        const nomeArquivo = `lista_${listaDefinicao.nomeMateria.replace(/\s+/g, '_')}_${Date.now()}.tex`;
+        const nomeArquivo = `lista_${listaDefinicao.tituloLista.replace(/\s+/g, '_')}_${Date.now()}.tex`;
 
         console.log(`Lista gerada: ${nomeArquivo}`);
         return NextResponse.json({

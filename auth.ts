@@ -1,25 +1,15 @@
 /**
  * Configuração central do Next-Auth
- * 
- * VARIÁVEIS DE AMBIENTE NECESSÁRIAS:
- * - AUTH_SECRET: Segredo para assinar tokens JWT (gerar com: npx auth secret)
- * - GOOGLE_CLIENT_ID: Client ID do Google OAuth (Google Cloud Console)
- * - GOOGLE_CLIENT_SECRET: Client Secret do Google OAuth
- * - MONGODB_URI: URI de conexão com MongoDB
- * - MONGODB_DB: Nome do banco de dados
- * - NEXTAUTH_URL: URL base da aplicação (ex: http://localhost:3000)
- * 
- * ROTAS PROTEGIDAS (definidas no middleware.ts):
- * - /cursos/criar
- * - /cursos/[id]/editar (se implementado)
- * - /questoes/criar
- * - /questoes/[id]/editar (se implementado)
+ * Task #221: Adicionar 'isProfileComplete' aos callbacks
+ * Atualizado para suportar esquema do banco com múltiplos campos (isProfileComplete, profileComplete, profileCompleted)
  */
 
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { clientPromise } from "./src/lib/mongodb";
+import { events } from "./src/lib/auth-events";
+import { ObjectId } from 'mongodb';
 
 export const authOptions: NextAuthOptions = {
   // Adapter MongoDB oficial - cria coleções: users, accounts, sessions, verificationTokens
@@ -27,6 +17,9 @@ export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise, {
     databaseName: process.env.MONGODB_DB,
   }),
+
+  // Eventos do adapter (manipulam o banco de dados)
+  events,
   
   // Estratégia de sessão JWT (necessário para funcionar com adapter)
   session: {
@@ -55,9 +48,6 @@ export const authOptions: NextAuthOptions = {
       console.log('[Auth] ===== SIGNIN CALLBACK =====');
       console.log('[Auth] Email:', profile?.email);
       console.log('[Auth] User ID:', user?.id);
-      console.log('[Auth] Provider:', account?.provider);
-      console.log('[Auth] Provider Account ID:', account?.providerAccountId);
-      console.log('[Auth] Email Verified:', (profile as any)?.email_verified);
       
       // Bloquear qualquer provider que não seja Google
       if (account?.provider !== "google") {
@@ -67,13 +57,6 @@ export const authOptions: NextAuthOptions = {
       
       // Validação adicional: garantir que tem email verificado
       if (profile?.email && (profile as any).email_verified) {
-        console.log(`[Auth] Email verificado, permitindo login: ${profile.email}`);
-        console.log(`[Auth] MongoDB Adapter processou user ID: ${user.id}`);
-        
-        // O MongoDB Adapter já cria/atualiza o usuário e a account automaticamente
-        // Os índices únicos garantem que:
-        // 1. users.email é único (cada email = 1 usuário)
-        // 2. accounts.provider+providerAccountId é único (cada conta Google = 1 account)
         return true;
       }
       
@@ -81,75 +64,109 @@ export const authOptions: NextAuthOptions = {
       return false;
     },
     
-    // Callback de JWT: incluir userId no token
-    async jwt({ token, user, account, trigger, session }) {
-      // Na primeira vez que o JWT é criado (após login)
+    async jwt({ token, user, trigger, session }) {
+      // 1. No Login Inicial (User vem do Adapter)
       if (user) {
+        console.log("[Auth] JWT: Login inicial. 'user' está presente.");
         token.id = user.id;
-        token.profileCompleted = (user as any).profileCompleted || false;
-        console.log(`[Auth] JWT criado para userId: ${user.id}, email: ${user.email}, profileCompleted: ${token.profileCompleted}`);
+        
+        // FIX #221: Normaliza as múltiplas variações do banco para uma única propriedade no token
+        // Lê: isProfileComplete OU profileComplete OU profileCompleted
+        token.isProfileComplete = user.isProfileComplete || user.profileComplete || (user as any).profileCompleted || false;
+        
+        // Lê: role OU papel
+        token.role = user.role || (user as any).papel || null;
       }
-      
-      // Permitir atualização do token quando o perfil é completado
-      if (trigger === "update" && session?.profileCompleted !== undefined) {
-        token.profileCompleted = session.profileCompleted;
-        console.log(`[Auth] JWT atualizado - profileCompleted: ${token.profileCompleted}`);
+
+      // Se atualizarmos a sessão manualmente no cliente (ex: update({ isProfileComplete: true }))
+      if (trigger === "update" && session) {
+        if (session.isProfileComplete !== undefined) {
+            token.isProfileComplete = session.isProfileComplete;
+        }
       }
-      
-      // Incluir provider info
-      if (account) {
-        token.provider = account.provider;
+
+      if (!token.id) {
+        return token;
+      }
+
+      // 2. Em acessos subsequentes: Re-consultar o DB para dados frescos
+      try {
+        const db = (await clientPromise).db(process.env.MONGODB_DB);
+        
+        // Busca apenas os campos necessários, incluindo as variações legadas (papel, profileCompleted)
+        const dbUser = await db.collection("users").findOne(
+          { _id: new ObjectId(token.id as string) },
+          { projection: { 
+              role: 1, 
+              papel: 1,
+              isProfileComplete: 1, 
+              profileComplete: 1, 
+              profileCompleted: 1, 
+              name: 1, 
+              email: 1, 
+              image: 1 
+          }}
+        );
+
+        if (dbUser) {
+          // Lógica robusta: tenta todas as variações até achar um true
+          token.isProfileComplete = dbUser.isProfileComplete || dbUser.profileComplete || dbUser.profileCompleted || false;
+          
+          // Prioriza 'role' (PROFESSOR), mas faz fallback para 'papel' (professor)
+          token.role = dbUser.role || dbUser.papel || null;
+          
+          // Sincronizar dados de perfil
+          if (dbUser.name) token.name = dbUser.name;
+          if (dbUser.email) token.email = dbUser.email;
+          if (dbUser.image) token.picture = dbUser.image;
+          
+          console.log(`[Auth] JWT Fresco: User ${token.email} - Role: ${token.role}, ProfileComplete: ${token.isProfileComplete}`);
+        } else {
+           console.warn("[Auth] JWT: Utilizador não encontrado no DB.");
+        }
+      } catch (error) {
+        console.error("[Auth] JWT: Erro ao re-consultar usuário no DB:", error);
       }
       
       return token;
     },
     
-    // Callback de session: incluir userId e provider na sessão
+    // Callback de session: incluir userId, role e profileComplete na sessão
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string;
-        (session as any).provider = token.provider;
-        (session.user as any).profileCompleted = token.profileCompleted || false;
+        session.user.id = token.id as string;
+        
+        // FIX #221: Passando a propriedade normalizada para o frontend
+        session.user.isProfileComplete = token.isProfileComplete; 
+        session.user.role = token.role;
+        
+        if (token.name) session.user.name = token.name;
+        if (token.email) session.user.email = token.email;
+        if (token.picture) session.user.image = token.picture;
       }
       return session;
     },
     
-    // Callback de redirect: redireciona após autenticação
     async redirect({ url, baseUrl }) {
-      console.log(`[Auth] Redirect callback - url: ${url}, baseUrl: ${baseUrl}`);
+      // Se a URL é relativa (ex: "/dashboard"), permite
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
       
-      // Se é uma URL relativa, combinar com baseUrl
-      if (url.startsWith("/")) {
-        const redirectUrl = `${baseUrl}${url}`;
-        console.log(`[Auth] Redirecionando para URL relativa: ${redirectUrl}`);
-        return redirectUrl;
-      }
-      
-      // Se a URL é da mesma origem, permitir
+      // Se a URL é absoluta, mas da nossa origem, permite
       try {
-        const urlObj = new URL(url);
-        const baseUrlObj = new URL(baseUrl);
-        if (urlObj.origin === baseUrlObj.origin) {
-          console.log(`[Auth] Redirecionando para mesma origem: ${url}`);
+        if (new URL(url).origin === new URL(baseUrl).origin) {
           return url;
         }
       } catch (e) {
-        console.error(`[Auth] Erro ao processar URLs:`, e);
+        // ignora erros
       }
       
-      // Caso padrão: redirecionar para dashboard
-      const defaultUrl = `${baseUrl}/dashboard`;
-      console.log(`[Auth] Redirecionando para URL padrão: ${defaultUrl}`);
-      return defaultUrl;
+      return baseUrl;
     },
   },
   
-  // Páginas customizadas
   pages: {
     signIn: "/login",
-    // error: "/login", // Não redirecionar erros, deixar Next-Auth mostrar a mensagem
   },
   
-  // Debug em desenvolvimento
   debug: process.env.NODE_ENV === "development",
 };
