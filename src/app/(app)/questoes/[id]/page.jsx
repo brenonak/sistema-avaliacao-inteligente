@@ -289,6 +289,7 @@ export default function DetalhesQuestaoPage() {
               // Se for dissertativa, passamos o 'valorCorreto' se existir 
               // ou os dados extras que colocamos no mock
               valorCorreto={stats.meta ? null : "15.5"} // Exemplo para numérica
+              meta={stats.meta}
             />
 
             {/* Se houver metadados de notas extremas (Dissertativa), 
