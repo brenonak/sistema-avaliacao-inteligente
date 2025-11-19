@@ -27,8 +27,11 @@ export default function VisualizarRespostasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [respostas, setRespostas] = useState<Record<string, any>>({});
+  const [correcao, setCorrecao] = useState<Record<string, { isCorrect: boolean; pontuacaoObtida: number | null; pontuacaoMaxima: number }>>({});
   const [finalizado, setFinalizado] = useState(false);
   const [dataFinalizacao, setDataFinalizacao] = useState<Date | null>(null);
+  const [pontuacaoTotal, setPontuacaoTotal] = useState(0);
+  const [pontuacaoObtidaTotal, setPontuacaoObtidaTotal] = useState(0);
 
   useEffect(() => {
     fetchLista();
@@ -54,8 +57,11 @@ export default function VisualizarRespostasPage() {
       if (respostasRes.ok) {
         const respostasData = await respostasRes.json();
         setRespostas(respostasData.respostas || {});
+        setCorrecao(respostasData.correcao || {});
         setFinalizado(respostasData.finalizado || false);
         setDataFinalizacao(respostasData.dataFinalizacao ? new Date(respostasData.dataFinalizacao) : null);
+        setPontuacaoTotal(respostasData.pontuacaoTotal || 0);
+        setPontuacaoObtidaTotal(respostasData.pontuacaoObtidaTotal || 0);
       }
       
     } catch (err: any) {
@@ -68,23 +74,62 @@ export default function VisualizarRespostasPage() {
 
   const renderQuestao = (questao: any, index: number) => {
     const resposta = respostas[questao.id];
+    const correcaoQuestao = correcao[questao.id];
+    const isCorrect = correcaoQuestao?.isCorrect;
+    const pontuacaoObtida = correcaoQuestao?.pontuacaoObtida;
+    const pontuacaoMaxima = correcaoQuestao?.pontuacaoMaxima;
 
     return (
-      <Card key={questao.id} sx={{ mb: 3 }}>
+      <Card 
+        key={questao.id} 
+        sx={{ 
+          mb: 3,
+          border: finalizado ? 2 : 0,
+          borderColor: isCorrect === true ? 'success.main' : isCorrect === false ? 'error.main' : 'transparent',
+        }}
+      >
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-              Questão {index + 1}
-            </Typography>
-            {questao.pontuacao > 0 && (
-              <Chip 
-                label={`${questao.pontuacao} pts`} 
-                size="small" 
-                color="primary" 
-                sx={{ fontWeight: 'bold' }}
-              />
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                Questão {index + 1}
+              </Typography>
+              {finalizado && isCorrect !== undefined && (
+                isCorrect ? (
+                  <CheckCircle sx={{ color: 'success.main' }} />
+                ) : (
+                  <Cancel sx={{ color: 'error.main' }} />
+                )
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {questao.pontuacao > 0 && (
+                <Chip 
+                  label={`${questao.pontuacao} pts`} 
+                  size="small" 
+                  color="primary" 
+                  sx={{ fontWeight: 'bold' }}
+                />
+              )}
+              {finalizado && pontuacaoObtida !== undefined && pontuacaoObtida !== null && (
+                <Chip 
+                  label={`${pontuacaoObtida} / ${pontuacaoMaxima} pts`} 
+                  size="small" 
+                  color={isCorrect ? 'success' : 'error'}
+                  sx={{ fontWeight: 'bold' }}
+                />
+              )}
+            </Box>
           </Box>
+
+          {finalizado && (
+            <Alert 
+              severity={isCorrect ? 'success' : 'error'} 
+              sx={{ mb: 2 }}
+            >
+              {isCorrect ? '✓ Resposta correta!' : '✗ Resposta incorreta'}
+            </Alert>
+          )}
 
           <Typography variant="body1" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
             {questao.enunciado}
@@ -260,6 +305,39 @@ export default function VisualizarRespostasPage() {
             <Alert severity="info" sx={{ mb: 2 }}>
               Respostas finalizadas em {dataFinalizacao.toLocaleString('pt-BR')}
             </Alert>
+          )}
+
+          {/* Resumo de Desempenho */}
+          {finalizado && pontuacaoTotal > 0 && (
+            <Paper sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                📊 Resultado
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Pontuação
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                    {pontuacaoObtidaTotal.toFixed(1)} / {pontuacaoTotal.toFixed(1)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    ({pontuacaoTotal > 0 ? Math.round((pontuacaoObtidaTotal / pontuacaoTotal) * 100) : 0}%)
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Questões Corretas
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    {Object.values(correcao).filter(c => c.isCorrect).length} / {Object.keys(correcao).length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    ({Object.keys(correcao).length > 0 ? Math.round((Object.values(correcao).filter(c => c.isCorrect).length / Object.keys(correcao).length) * 100) : 0}%)
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
           )}
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
