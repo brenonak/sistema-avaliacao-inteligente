@@ -1,4 +1,6 @@
+"use client";
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
@@ -20,12 +22,13 @@ import Header from './Header';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
-import { ScanBarcodeIcon } from 'lucide-react';
+import { PencilIcon, ScanBarcodeIcon } from 'lucide-react';
 
 const drawerWidth = 220;
 const collapsedWidth = 60;
 
 export default function Overlay({ content }) {
+  const { data: session } = useSession();
   const [open, setOpen] = React.useState(true);
   const [hovered, setHovered] = React.useState(false);
 
@@ -43,6 +46,7 @@ export default function Overlay({ content }) {
     { text: 'Galeria', icon: <CollectionsIcon />, link: '/galeria' },
     { text: 'Questões', icon: <DescriptionIcon />, link: '/questoes' },
     { text: 'Criar Questão', icon: <NoteAddIcon />, link: '/questoes/criar' },
+    { text: 'Correção', icon: <PencilIcon />, link: '/correcao' }
   ];
 
 
@@ -90,7 +94,7 @@ export default function Overlay({ content }) {
           {expanded && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                Usuário
+                {session?.user?.name || 'Usuário'}
               </Typography>
             </Box>
           )}

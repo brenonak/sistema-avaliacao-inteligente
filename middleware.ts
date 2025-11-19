@@ -44,35 +44,10 @@ export async function middleware(request: NextRequest) {
     console.log(`[Middleware] Pathname: ${pathname}`);
     console.log(`[Middleware] URL completa: ${request.url}`);
     
-    // AUTENTICAÇÃO DESABILITADA - Permitir acesso a todas as páginas sem login
-    console.log(`[Middleware] ✅ Autenticação desabilitada - permitindo acesso sem verificação: ${pathname}`);
-    return NextResponse.next();
-    
-    /* AUTENTICAÇÃO COMENTADA - Para reativar, descomente este bloco
-    
     // Rotas públicas - permitir sem qualquer verificação
-    const publicPaths = ["/", "/login", "/dashboard"];
+    const publicPaths = ["/", "/login"];
     if (publicPaths.includes(pathname)) {
       console.log(`[Middleware] ✅ Rota pública - permitindo sem autenticação: ${pathname}`);
-      return NextResponse.next();
-    }
-    
-    // Permitir acesso a /cadastro e /api/profile (mas exigem autenticação)
-    if (pathname === "/cadastro" || pathname.startsWith("/api/profile")) {
-      console.log(`[Middleware] ✅ Rota de cadastro/profile - verificação básica`);
-      // Ainda precisa estar autenticado
-      const token = await getToken({
-        req: request,
-        secret: process.env.AUTH_SECRET,
-      });
-      
-      if (!token) {
-        const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("callbackUrl", pathname);
-        console.log(`[Middleware] ❌ Sem token - redirecionando para login`);
-        return NextResponse.redirect(loginUrl);
-      }
-      
       return NextResponse.next();
     }
     
@@ -81,44 +56,39 @@ export async function middleware(request: NextRequest) {
       req: request,
       secret: process.env.AUTH_SECRET,
     });
-    await client.close();
-
-    console.log(`[isProfileCompleted] User encontrado:`, user ? `email: ${user.email}` : 'null');
-    console.log(`[isProfileCompleted] isProfileComplete no banco:`, user?.isProfileComplete);
-    console.log(`[isProfileCompleted] profileCompleted no banco:`, user?.profileCompleted);
     
-    // Verificar ambos os campos por compatibilidade
-    const completed = user?.isProfileComplete === true || user?.profileCompleted === true;
+    // Se não tiver token (não autenticado), redirecionar para login
+    if (!token) {
+      console.log(`[Middleware] ❌ Sem token - redirecionando para login`);
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
     
     console.log(`[Middleware] ✅ Token encontrado:`);
     console.log(`[Middleware]    - Email: ${token.email}`);
     console.log(`[Middleware]    - User ID: ${token.id}`);
-    console.log(`[Middleware]    - Provider: ${token.provider}`);
+    console.log(`[Middleware]    - Role: ${token.role}`);
+    console.log(`[Middleware]    - ProfileComplete: ${token.profileComplete}`);
     
-    // Validação adicional: garantir que é login via Google
-    if (token.provider !== "google") {
-      console.warn(`[Middleware] ❌ Provider inválido: ${token.provider}`);
-      const loginUrl = new URL("/login", request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    // Verificar se o userId existe
-    const userId = token.id as string;
-    
-    if (!userId) {
-      console.error(`[Middleware] ❌ ERRO: userId não encontrado no token!`);
-      console.error(`[Middleware] Token completo:`, JSON.stringify(token, null, 2));
-      // Redirecionar para login se não tiver userId
-      const loginUrl = new URL("/login", request.url);
-      return NextResponse.redirect(loginUrl);
+    // Rotas que exigem apenas autenticação (não verificam profileComplete)
+    if (pathname === "/cadastro" || pathname.startsWith("/api/profile")) {
+      console.log(`[Middleware] ✅ Rota de cadastro/profile - permitindo acesso autenticado`);
+      
+      // Se já tiver perfil completo e tentar acessar /cadastro, redirecionar para dashboard
+      if (pathname === "/cadastro" && token.profileComplete === true) {
+        console.log(`[Middleware] 🔄 Perfil completo tentando acessar /cadastro - redirecionando para /dashboard`);
+        const dashboardUrl = new URL("/dashboard", request.url);
+        return NextResponse.redirect(dashboardUrl);
+      }
+      
+      return NextResponse.next();
     }
     
-    // Verificar profileCompleted do token (atualizado via callback do NextAuth)
-    const profileCompleted = token.profileCompleted === true;
-    console.log(`[Middleware] 📊 profileCompleted (do token) = ${profileCompleted}`);
-
-    // Se perfil incompleto, redirecionar para /cadastro
-    if (!profileCompleted) {
+    // Para todas as outras rotas protegidas, verificar se o perfil está completo
+    const profileComplete = token.profileComplete === true;
+    
+    if (!profileComplete) {
       console.log(`[Middleware] 🔄 Perfil incompleto - REDIRECIONANDO ${pathname} -> /cadastro`);
       const cadastroUrl = new URL("/cadastro", request.url);
       return NextResponse.redirect(cadastroUrl);
@@ -127,15 +97,13 @@ export async function middleware(request: NextRequest) {
     // Token válido e perfil completo, permitir acesso
     console.log(`[Middleware] ✅ Perfil completo - permitindo acesso a ${pathname}`);
     return NextResponse.next();
-    
-    FIM DO BLOCO COMENTADO */
   } catch (error) {
-    // Log do erro mas permite a requisição continuar
     console.error("[Middleware] ❌ ERRO CRÍTICO no middleware:", error);
     console.error("[Middleware] Stack trace:", error instanceof Error ? error.stack : 'N/A');
     
-    // Em caso de erro, permitir acesso para evitar quebrar a aplicação
-    return NextResponse.next();
+    // Em caso de erro, redirecionar para login por segurança
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 }
 

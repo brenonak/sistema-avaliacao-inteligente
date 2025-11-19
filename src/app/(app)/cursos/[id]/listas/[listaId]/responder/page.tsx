@@ -109,11 +109,10 @@ export default function ResponderListaPage() {
       setError(null);
       setShowConfirmDialog(false); // Fecha o diálogo
 
-      // Preparar payload com as respostas
+      // Preparar payload com as respostas (sem pontuacaoMaxima, a API busca automaticamente)
       const respostasArray = lista.questoes.map((questao: any) => ({
         questaoId: questao.id,
         resposta: respostas[questao.id],
-        pontuacaoMaxima: questao.pontuacao || 0,
       }));
 
       const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`, {
@@ -148,11 +147,10 @@ export default function ResponderListaPage() {
       setSubmitting(true);
       setError(null);
 
-      // Preparar payload com as respostas
+      // Preparar payload com as respostas (sem pontuacaoMaxima, a API busca automaticamente)
       const respostasArray = lista.questoes.map((questao: any) => ({
         questaoId: questao.id,
         resposta: respostas[questao.id],
-        pontuacaoMaxima: questao.pontuacao || 0,
       }));
 
       const res = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`, {

@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
       {
         $set: {
           name: parsed.data.nome, // Atualiza o nome também
-          papel: parsed.data.papel,
+          role: parsed.data.role,
           instituicao: parsed.data.instituicao,
           curso: parsed.data.curso,
           areasInteresse: parsed.data.areasInteresse,
-          isProfileComplete: true,
+          profileComplete: true,
+          isProfileComplete: true, // mantém compatibilidade
           profileCompleted: true, // mantém compatibilidade
           profileCompletedAt: new Date(),
           updatedAt: new Date(),
@@ -70,11 +71,11 @@ export async function POST(request: NextRequest) {
         id: user?._id?.toString(),
         name: user?.name,
         email: user?.email,
-        papel: user?.papel,
+        role: user?.role,
         instituicao: user?.instituicao,
         curso: user?.curso,
         areasInteresse: user?.areasInteresse,
-        profileCompleted: user?.profileCompleted,
+        profileComplete: user?.profileComplete,
       }
     });
   } catch (error) {
@@ -112,13 +113,12 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      isProfileComplete: user.isProfileComplete || user.profileCompleted || false,
-      profileCompleted: user.profileCompleted || user.isProfileComplete || false, // mantém compatibilidade
+      profileComplete: user.profileComplete || user.isProfileComplete || user.profileCompleted || false,
       user: {
         id: user._id?.toString(),
         name: user.name,
         email: user.email,
-        papel: user.papel,
+        role: user.role,
         instituicao: user.instituicao,
         curso: user.curso,
         areasInteresse: user.areasInteresse || [],
