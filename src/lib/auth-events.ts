@@ -11,20 +11,22 @@ export const events = {
       await client.connect();
       const db = client.db(process.env.MONGODB_DB);
 
-      // Adiciona o campo isProfileComplete como false quando um novo usuário é criado
+      // Adiciona os campos de controle de perfil como false quando um novo usuário é criado
       await db.collection("users").updateOne(
         { _id: new ObjectId(user.id) },
         { 
           $set: { 
-            isProfileComplete: false,
-            profileCompleted: false // mantém compatibilidade com o campo existente
+            profileComplete: false,
+            isProfileComplete: false, // mantém compatibilidade
+            profileCompleted: false,  // mantém compatibilidade
+            role: null
           } 
         }
       );
 
-      console.log(`[Auth] Campo isProfileComplete adicionado para usuário ${user.id}`);
+      console.log(`[Auth] Campos de perfil inicializados para usuário ${user.id} (profileComplete: false, role: null)`);
     } catch (error) {
-      console.error("[Auth] Erro ao adicionar isProfileComplete:", error);
+      console.error("[Auth] Erro ao inicializar campos de perfil:", error);
     } finally {
       await client.close();
     }
