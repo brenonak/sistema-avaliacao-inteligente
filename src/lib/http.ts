@@ -6,9 +6,9 @@ export function json(data: unknown, init: number | ResponseInit = 200) {
   });
 }
 
-export function badRequest(msg = "Bad Request") { return json({ error: msg }, 400); }
-export function notFound(msg = "Not Found") { return json({ error: msg }, 404); }
+export function badRequest(msg = "Bad Request") { return json({ message: msg }, 400); }
+export function notFound(msg = "Not Found") { return json({ message: msg }, 404); }
 export function serverError(e: unknown) {
   console.error(e);
-  return json({ error: "Internal Server Error" }, 500);
+  return json({ message: "Internal Server Error" }, 500);
 }
