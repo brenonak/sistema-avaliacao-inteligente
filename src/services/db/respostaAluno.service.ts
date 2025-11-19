@@ -18,27 +18,22 @@ import { getDb } from "../../lib/mongodb"; // Ajuste o caminho se necessário
  */
 export interface RespostaAluno {
   _id?: ObjectId;
-  listaId: ObjectId;   // Referência à lista de exercícios
+  listaId: ObjectId;   // Referência à lista de exercícios ou prova (contexto)
   questaoId: ObjectId; // Referência à questão respondida
-  ownerId: ObjectId;   // ID do aluno que respondeu
-  
+  ownerId: ObjectId;   // ID do aluno que respondeu (Target User)
+
   /**
    * A resposta real enviada pelo aluno.
-   * Pode ser de qualquer tipo dependendo da questão:
-   * - Múltipla Escolha: "C"
-   * - Discursiva: "O texto da resposta..."
-   * - Numérica: 1822
-   * - V/F: [true, false, true]
    */
   resposta: any;
-  
+
   pontuacaoMaxima: number; // Pontuação total que a questão valia
-  pontuacaoObtida: number; // Pontuação que o aluno alcançou
-  isCorrect: boolean;      // A resposta foi 100% correta?
-  
-  finalizado?: boolean;    // Se true, a resposta foi finalizada e não pode ser modificada
-  dataFinalizacao?: Date;  // Data em que a resposta foi finalizada
-  
+  pontuacaoObtida: number | null; // Pontuação que o aluno alcançou
+  isCorrect: boolean;      // A resposta foi 100% correta?
+
+  finalizado?: boolean;    // Se true, a resposta foi finalizada e não pode ser modificada
+  dataFinalizacao?: Date;  // Data em que a resposta foi finalizada
+
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -53,7 +48,7 @@ export interface CreateRespostaAlunoInput {
   questaoId: string;
   resposta: any;
   pontuacaoMaxima: number;
-  pontuacaoObtida: number;
+  pontuacaoObtida: number | null;
   isCorrect: boolean;
   finalizado?: boolean;
 }
@@ -76,10 +71,10 @@ async function validateQuestaoExists(questaoId: string): Promise<void> {
 
   const db = await getDb();
   const collection = db.collection("questoes");
-  
+
   const questao = await collection.findOne(
     { _id: new ObjectId(questaoId) },
-    { projection: { _id: 1 } } 
+    { projection: { _id: 1 } }
   );
 
   if (!questao) {
@@ -90,10 +85,10 @@ async function validateQuestaoExists(questaoId: string): Promise<void> {
 }
 
 /**
- * Cria (registra) uma nova resposta de aluno
- * @param userId - ID do aluno autenticado (será o owner)
+ * Cria ou atualiza uma resposta de aluno (upsert)
+ * @param ownerId - ID do aluno alvo (Target User)
  * @param data - Dados da resposta (já corrigida)
- * @returns RespostaAluno criada
+ * @returns RespostaAluno criada ou atualizada
  */
 export async function createRespostaAluno(
   userId: string,
@@ -111,7 +106,7 @@ export async function createRespostaAluno(
     ...data,
     listaId: new ObjectId(data.listaId),
     questaoId: new ObjectId(data.questaoId),
-    ownerId: userObjectId, 
+    ownerId: userObjectId,
     createdAt: now,
     updatedAt: now,
   };
@@ -142,11 +137,11 @@ export async function listRespostasAluno(
   const query: any = {
     ownerId: new ObjectId(userId),
   };
-  
+
   if (listaId) {
     query.listaId = new ObjectId(listaId);
   }
-  
+
   if (questaoId) {
     query.questaoId = new ObjectId(questaoId);
   }
@@ -224,7 +219,7 @@ export async function updateRespostaAluno(
  * @returns RespostaAluno criada ou atualizada
  */
 export async function upsertRespostaAluno(
-  userId: string,
+  ownerId: string,
   data: CreateRespostaAlunoInput
 ): Promise<RespostaAluno> {
   await validateQuestaoExists(data.questaoId);
@@ -232,67 +227,55 @@ export async function upsertRespostaAluno(
   const db = await getDb();
   const collection = db.collection<RespostaAluno>("respostasAluno");
 
-  const userObjectId = new ObjectId(userId);
+  const userObjectId = new ObjectId(ownerId);
   const listaObjectId = new ObjectId(data.listaId);
   const questaoObjectId = new ObjectId(data.questaoId);
   const now = new Date();
 
-  // Buscar resposta existente (agora considerando listaId)
-  const existingResposta = await collection.findOne({
+  // 1. Chave de busca: ownerId, listaId E questaoId
+  const filter = {
     ownerId: userObjectId,
     listaId: listaObjectId,
     questaoId: questaoObjectId,
-  });
+  };
 
-  if (existingResposta) {
-    // Atualizar resposta existente
-    const updateData: any = {
-      resposta: data.resposta,
-      pontuacaoMaxima: data.pontuacaoMaxima,
-      pontuacaoObtida: data.pontuacaoObtida,
-      isCorrect: data.isCorrect,
-      updatedAt: now,
-    };
-    
-    // Se finalizado = true, adiciona flag e data
-    if (data.finalizado) {
-      updateData.finalizado = true;
-      updateData.dataFinalizacao = now;
-    }
+  // 2. Dados a serem atualizados (UPDATE)
+  const updateData: any = {
+    resposta: data.resposta,
+    pontuacaoMaxima: data.pontuacaoMaxima,
+    pontuacaoObtida: data.pontuacaoObtida,
+    isCorrect: data.isCorrect,
+    updatedAt: now,
+  };
 
-    await collection.updateOne(
-      { _id: existingResposta._id },
-      { $set: updateData }
-    );
-
-    return {
-      ...existingResposta,
-      ...updateData,
-    };
-  } else {
-    // Criar nova resposta
-    const respostaAluno: any = {
-      ...data,
-      listaId: listaObjectId,
-      questaoId: questaoObjectId,
-      ownerId: userObjectId,
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // Se finalizado = true, adiciona flag e data
-    if (data.finalizado) {
-      respostaAluno.finalizado = true;
-      respostaAluno.dataFinalizacao = now;
-    }
-
-    const result = await collection.insertOne(respostaAluno);
-
-    return {
-      ...respostaAluno,
-      _id: result.insertedId,
-    };
+  // 3. Lógica de Finalização (Condicional)
+  if (data.finalizado) {
+    updateData.finalizado = true;
+    updateData.dataFinalizacao = now; // Define data de finalização no momento da submissão
   }
+
+  const result = await collection.findOneAndUpdate(
+    filter,
+    {
+      $set: updateData,
+      $setOnInsert: { // Define campos apenas na primeira criação (INSERT)
+        ownerId: userObjectId,
+        listaId: listaObjectId,
+        questaoId: questaoObjectId,
+        createdAt: now,
+      }
+    },
+    {
+      returnDocument: "after",
+      upsert: true, //Cria se não existir (atomicidade)
+    }
+  );
+
+  if (!result) {
+    throw new Error("Falha ao criar ou atualizar resposta (Erro atômico inesperado).");
+  }
+
+  return result as RespostaAluno;
 }
 
 /**
@@ -314,4 +297,146 @@ export async function deleteRespostaAluno(
   });
 
   return result.deletedCount > 0;
+}
+
+
+
+// Tipos definidos
+type TipoQuestao = "alternativa" | "afirmacoes" | "numerica" | "proposicoes" | "vf";
+
+interface QuestaoDoc {
+  _id: ObjectId;
+  tipo: TipoQuestao;
+  gabarito: any;       
+  pontuacao: number;   
+  tolerancia?: number; 
+}
+
+interface ResultadoCorrecao {
+  isCorrect: boolean;
+  pontuacaoObtida: number;
+  pontuacaoMaxima: number;
+}
+
+/**
+ * Helper: Compara dois arrays ignorando a ordem dos elementos.
+ * Útil para 'afirmacoes' e 'proposicoes' (Multi-select).
+ */
+function arraysSaoIguaisSemOrdem(arr1: any[], arr2: any[]): boolean {
+  if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
+  if (arr1.length !== arr2.length) return false;
+
+  const sorted1 = [...arr1].sort();
+  const sorted2 = [...arr2].sort();
+
+  return JSON.stringify(sorted1) === JSON.stringify(sorted2);
+}
+
+/**
+ * Função pura de correção baseada nos 5 tipos
+ */
+function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCorrecao {
+  let isCorrect = false;
+  const pontuacaoMaxima = questao.pontuacao || 0;
+
+  // Se a resposta for nula ou indefinida, já retorna erro
+  if (respostaAluno === null || respostaAluno === undefined) {
+    return { isCorrect: false, pontuacaoObtida: 0, pontuacaoMaxima };
+  }
+
+  switch (questao.tipo) {
+    // 1. Única escolha (Radio Button)
+    case "alternativa":
+      // Converte para string para evitar erros como "1" (number) !== "1" (string)
+      isCorrect = String(questao.gabarito).trim() === String(respostaAluno).trim();
+      break;
+
+    // 2. Resposta Numérica (Input Number)
+    case "numerica":
+      const valorGabarito = Number(questao.gabarito);
+      const valorAluno = Number(respostaAluno);
+      const margemErro = questao.tolerancia || 0;
+      
+      // Verifica se é um número válido e se está dentro da margem
+      if (!isNaN(valorAluno)) {
+        isCorrect = Math.abs(valorGabarito - valorAluno) <= margemErro;
+      }
+      break;
+
+    // 3. Verdadeiro ou Falso (Array Ordenado)
+    case "vf":
+      // Ex: Gabarito [true, false, true] deve ser IGUAL e na MESMA ORDEM
+      // Assumindo que respostaAluno chega como array de booleans
+      isCorrect = JSON.stringify(questao.gabarito) === JSON.stringify(respostaAluno);
+      break;
+
+    // 4. Múltiplas Escolhas / Checkbox (Array Sem Ordem)
+    case "afirmacoes":
+    case "proposicoes":
+      // Ex: Gabarito ["A", "C"]. Aluno enviou ["C", "A"]. Deve aceitar.
+      // Verifica se são arrays e compara o conteúdo ignorando ordem.
+      if (Array.isArray(questao.gabarito) && Array.isArray(respostaAluno)) {
+        isCorrect = arraysSaoIguaisSemOrdem(questao.gabarito, respostaAluno);
+      } else {
+        // Fallback caso proposições seja estilo "Soma" (número inteiro)
+        if (typeof questao.gabarito === 'number') {
+             isCorrect = Number(questao.gabarito) === Number(respostaAluno);
+        } else {
+             isCorrect = false;
+        }
+      }
+      break;
+
+    default:
+      console.warn(`Tipo de questão desconhecido: ${questao.tipo}`);
+      isCorrect = false;
+  }
+
+  const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
+
+  return {
+    isCorrect,
+    pontuacaoObtida,
+    pontuacaoMaxima
+  };
+}
+
+/**
+ * Orquestrador: Busca Questão -> Corrige -> Salva
+ */
+export async function submeterRespostaAluno(
+  userId: string,
+  listaId: string,
+  questaoId: string,
+  respostaAluno: any
+): Promise<RespostaAluno> {
+  const db = await getDb();
+  
+  // 1. Busca a questão (projeta gabarito e tipo)
+  const questao = await db.collection<QuestaoDoc>("questoes").findOne({ 
+    _id: new ObjectId(questaoId) 
+  });
+
+  if (!questao) {
+    throw new Error("Questão não encontrada.");
+  }
+
+  // 2. Executa a correção
+  const resultado = calcularCorrecao(questao, respostaAluno);
+
+  // 3. Prepara input para o repositório
+  const dadosParaSalvar = {
+    listaId,
+    questaoId,
+    resposta: respostaAluno,
+    pontuacaoMaxima: resultado.pontuacaoMaxima,
+    pontuacaoObtida: resultado.pontuacaoObtida,
+    isCorrect: resultado.isCorrect,
+    finalizado: true // Assume que ao enviar, finalizou a tentativa dessa questão
+  };
+
+  // 4. Salva no banco
+  const respostaSalva = await upsertRespostaAluno(userId, dadosParaSalvar);
+
+  return respostaSalva;
 }

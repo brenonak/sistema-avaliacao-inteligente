@@ -123,19 +123,88 @@ function aggregateStats(questao: any, respostas: any[]) {
 
         // E. Dissertativa
         case 'dissertativa': {
-            // DADOS NÃO EXISTEM AINDA
-            // TODO: A correção manual precisa ser implementada primeiro.
-            // O front-end espera dados em faixas e meta.
-            const dados = [
-                { nome: '0 - 2.0', Respostas: 0 },
-                { nome: '2.1 - 4.0', Respostas: 0 },
-                { nome: '4.1 - 6.0', Respostas: 0 },
-                { nome: '6.1 - 8.0', Respostas: 0 },
-                { nome: '8.1 - 10.0', Respostas: 0 },
-            ];
-            const meta = { qtdNotaZero: 0, qtdNotaDez: 0 };
+            // Filtragem: apenas respostas com pontuação válida
+            const respostasCorrigidas = respostas.filter(r => {
+                const nota = r.pontuacaoObtida;
+                return (
+                    nota !== null &&
+                    nota !== undefined &&
+                    !isNaN(nota) &&
+                    typeof nota === 'number' &&
+                    (r.pontuacaoMaxima || 0) > 0
+                );
+            });
 
-            // TODO: Implementar a agregação de 'pontuacaoObtida' quando a correção manual for criada.
+            // Se não há respostas, retorna vazio com escala padrão
+            if (respostasCorrigidas.length === 0) {
+                const maxNotaPadrao = 10; // Fallback quando não há dados
+                const step = maxNotaPadrao / 5;
+
+                return {
+                    dados: [
+                        { nome: `0 - ${step.toFixed(1)}`, Respostas: 0 },
+                        { nome: `${step.toFixed(1)} - ${(step * 2).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 2).toFixed(1)} - ${(step * 3).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 3).toFixed(1)} - ${(step * 4).toFixed(1)}`, Respostas: 0 },
+                        { nome: `${(step * 4).toFixed(1)} - ${maxNotaPadrao.toFixed(1)}`, Respostas: 0 },
+                    ],
+                    meta: { qndNotaMinima: 0, qndNotaMaxima: 0, maxNotaGlobal: maxNotaPadrao }
+                };
+            }
+
+            // Pega a pontuação máxima das respostas (não da questão)
+            const maxNotaGlobal = Math.max(
+                ...respostasCorrigidas.map(r => Number(r.pontuacaoMaxima))
+            );
+
+            const step = maxNotaGlobal / 5;
+
+            // Classificação
+            const faixas = [0, 0, 0, 0, 0];
+            let qndNotaMinima = 0;
+            let qndNotaMaxima = 0;
+
+            respostasCorrigidas.forEach(r => {
+                const nota = Number(r.pontuacaoObtida);
+                const maxDestaResposta = Number(r.pontuacaoMaxima);
+
+                // Contagem de nota zero
+                if (nota === 0) {
+                    qndNotaMinima++;
+                }
+
+                if (nota == maxDestaResposta) {
+                    qndNotaMaxima++;
+                }
+
+                // Classificação nas faixas
+                if (nota < step) {
+                    faixas[0]++;
+                } else if (nota < step * 2) {
+                    faixas[1]++;
+                } else if (nota < step * 3) {
+                    faixas[2]++;
+                } else if (nota < step * 4) {
+                    faixas[3]++;
+                } else {
+                    faixas[4]++;
+                }
+            });
+
+            // Formata os dados para o frontend
+            const dados = [
+                { nome: `0 - ${(step - 0.01).toFixed(2)}`, Respostas: faixas[0] },
+                { nome: `${step.toFixed(2)} - ${(step * 2 - 0.01).toFixed(2)}`, Respostas: faixas[1] },
+                { nome: `${(step * 2).toFixed(2)} - ${(step * 3 - 0.01).toFixed(2)}`, Respostas: faixas[2] },
+                { nome: `${(step * 3).toFixed(2)} - ${(step * 4 - 0.01).toFixed(2)}`, Respostas: faixas[3] },
+                { nome: `${(step * 4).toFixed(2)} - ${maxNotaGlobal.toFixed(2)}`, Respostas: faixas[4] },
+            ];
+
+            const meta = {
+                qndNotaMinima,
+                qndNotaMaxima,
+                maxNotaGlobal
+            };
 
             return { dados, meta };
         }
@@ -166,7 +235,7 @@ export async function GET(
         // Buscar todas as respostas para esta questão
         const respostas = await db.collection("respostasAluno")
             .find({ questaoId: questaoId })
-            .project({ resposta: 1, isCorrect: 1, pontuacaoObtida: 1 }) // Só precisamos destes campos
+            .project({ resposta: 1, isCorrect: 1, pontuacaoObtida: 1, pontuacaoMaxima: 1 }) // Só precisamos destes campos
             .toArray();
 
         // Agregar os dados

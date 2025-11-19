@@ -1,4 +1,6 @@
+"use client";
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
@@ -26,11 +28,15 @@ const drawerWidth = 220;
 const collapsedWidth = 60;
 
 export default function Overlay({ content }) {
+  const { data: session } = useSession();
   const [open, setOpen] = React.useState(true);
+  const [hovered, setHovered] = React.useState(false);
 
   const toggleDrawer = () => {
     setOpen(!open);
   };
+
+  const expanded = open || hovered;
 
   const sidebarItems = [
     { text: 'Início', icon: <HomeIcon />, link: '/dashboard' },
@@ -49,8 +55,10 @@ export default function Overlay({ content }) {
       <Header />
       <Drawer
         variant="permanent"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         sx={{
-          width: open ? drawerWidth : collapsedWidth,
+          width: expanded ? drawerWidth : collapsedWidth,
           flexShrink: 0,
           whiteSpace: 'nowrap',
           overflowX: 'hidden',
@@ -59,8 +67,9 @@ export default function Overlay({ content }) {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
+
           [`& .MuiDrawer-paper`]: {
-            width: open ? drawerWidth : collapsedWidth,
+            width: expanded ? drawerWidth : collapsedWidth,
             boxSizing: 'border-box',
             backgroundColor: 'sidebar.main',
             overflowX: 'hidden',
@@ -76,16 +85,16 @@ export default function Overlay({ content }) {
 
         <Box sx={{ 
           display: 'flex', 
-          justifyContent: open ? 'space-between' : 'center',
+          justifyContent: expanded ? 'space-between' : 'center',
           alignItems: 'center', 
           mt: 2, 
-          mr: open ? 1 : '1px',
+          mr: expanded ? 1 : '1px',
           height: 48, 
         }}>
-          {open && (
+          {expanded && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                Usuário
+                {session?.user?.name || 'Usuário'}
               </Typography>
             </Box>
           )}
@@ -105,19 +114,19 @@ export default function Overlay({ content }) {
                   href={link}
                   sx={{
                     minHeight: 48,
-                    justifyContent: open ? 'initial' : 'center',
+                    justifyContent: expanded ? 'initial' : 'center',
                   }}
                 >
                   <ListItemIcon
                     sx={{
                       minWidth: 0,
-                      mr: open ? 2 : 'auto',
+                      mr: expanded ? 2 : 'auto',
                       justifyContent: 'center',
                     }}
                   >
                     {icon}
                   </ListItemIcon>
-                  {open && <ListItemText primary={text} />}
+                  {expanded && <ListItemText primary={text} />}
                 </ListItemButton>
               </ListItem>
             ))}

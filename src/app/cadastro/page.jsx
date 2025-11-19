@@ -27,7 +27,7 @@ export default function PaginaCadastro() {
 
     // Estados para controlar os campos do formulário
     const [nome, setNome] = useState('');
-    const [papel, setPapel] = useState(''); // Ex: 'professor' ou 'aluno'
+    const [role, setRole] = useState(''); // 'ALUNO' ou 'PROFESSOR'
     const [instituicao, setInstituicao] = useState('');
     const [curso, setCurso] = useState('');
     const [areasInteresse, setAreasInteresse] = useState([]); // Para o Autocomplete
@@ -37,12 +37,17 @@ export default function PaginaCadastro() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Pré-preencher nome com dados da sessão
+    // Pré-preencher nome e verificar se perfil já está completo
     useEffect(() => {
         if (session?.user?.name) {
             setNome(session.user.name);
         }
-    }, [session]);
+        // Se o perfil já estiver completo, redirecionar para dashboard
+        if (session?.user?.profileComplete === true) {
+            console.log('[Cadastro] Perfil já completo, redirecionando para dashboard');
+            router.push('/dashboard');
+        }
+    }, [session, router]);
 
     // Handler para a seleção de foto
     const handleFotoChange = (event) => {
@@ -62,11 +67,10 @@ export default function PaginaCadastro() {
             // Preparar dados para envio
             const profileData = {
                 nome: nome.trim(),
-                papel,
+                role,
                 instituicao: instituicao.trim() || undefined,
                 curso: curso.trim() || undefined,
                 areasInteresse: areasInteresse.length > 0 ? areasInteresse : undefined,
-                profileCompleted: true
             };
 
             // Enviar para API
@@ -86,8 +90,15 @@ export default function PaginaCadastro() {
 
             console.log('Perfil salvo com sucesso:', data);
             
-            // Redirecionar para dashboard com parâmetro para forçar refresh do cache
-            router.push('/dashboard?refreshProfile=1');
+            // Forçar atualização da sessão (para atualizar os callbacks JWT/Session)
+            await fetch('/api/auth/session?update=1');
+            
+            // Pequeno delay para garantir que a sessão foi atualizada
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Redirecionar para dashboard
+            router.push('/dashboard');
+            router.refresh(); // Força reload da página
         } catch (err) {
             console.error('Erro ao salvar perfil:', err);
             setError(err.message || 'Erro ao salvar perfil. Tente novamente.');
@@ -150,18 +161,18 @@ export default function PaginaCadastro() {
             margin="normal"
             />
 
-            {/* Campo Papel (Professor/Aluno) */}
+            {/* Campo Role (Professor/Aluno) */}
             <FormControl fullWidth required margin="normal">
-            <InputLabel id="papel-select-label">Seu papel principal</InputLabel>
+            <InputLabel id="role-select-label">Seu papel principal</InputLabel>
             <Select
-                labelId="papel-select-label"
-                value={papel}
-                onChange={(e) => setPapel(e.target.value)}
+                labelId="role-select-label"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
                 label="Seu papel principal"
             >
                 <MenuItem value=""><em>Selecione um papel...</em></MenuItem>
-                <MenuItem value="professor">Professor</MenuItem>
-                <MenuItem value="aluno">Aluno</MenuItem>
+                <MenuItem value="PROFESSOR">Professor</MenuItem>
+                <MenuItem value="ALUNO">Aluno</MenuItem>
             </Select>
             </FormControl>
 
@@ -238,7 +249,7 @@ export default function PaginaCadastro() {
                 type="submit"
                 variant="contained"
                 fullWidth
-                disabled={loading || !papel || !nome} // Garante que campos obrigatórios estão preenchidos
+                disabled={loading || !role || !nome} // Garante que campos obrigatórios estão preenchidos
                 sx={{ mt: 3, py: 1.5, fontWeight: 600 }}
             >
                 {loading ? 'Salvando...' : 'Salvar e Continuar'}

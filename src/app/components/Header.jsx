@@ -13,8 +13,10 @@ import MenuItem from '@mui/material/MenuItem';
 import { useState } from 'react';
 import HeaderThemeSelector from './HeaderThemeSelector';
 import Divider from '@mui/material/Divider'; 
+import { useSession, signOut } from 'next-auth/react';
 
 const Header = () => {
+  const { data: session } = useSession();
   const settings = ['Perfil', 'Mudar de conta', 'Configurações', 'Sair'];
 
   const [anchorElUser, setAnchorElUser] = useState(null);
@@ -25,6 +27,11 @@ const Header = () => {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+  };
+
+  const handleLogout = async () => {
+    handleCloseUserMenu();
+    await signOut({ callbackUrl: '/' });
   };
 
   const theme = useTheme();
@@ -79,7 +86,10 @@ const Header = () => {
           <HeaderThemeSelector />
           <Tooltip title="Configurações">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-              <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+              <Avatar 
+                alt={session?.user?.name || "Usuário"} 
+                src={session?.user?.image || undefined} 
+              />
             </IconButton>
           </Tooltip>
           <Menu
@@ -117,12 +127,10 @@ const Header = () => {
               // Verifica se o item atual é "Sair"
               if (setting === 'Sair') {
                 return (
-                  // Se for "Sair", renderiza como um Link
+                  // Se for "Sair", executa o logout
                   <MenuItem 
                     key={setting} 
-                    onClick={handleCloseUserMenu} // Fecha o menu ao clicar
-                    component={Link} // Usa o componente Link do Next.js
-                    href="/"         // Define o destino como a Landing Page
+                    onClick={handleLogout}
                     sx={{ width: '100%' }}
                   >
                     <Typography sx={{ textAlign: 'center', width: '100%' }}>{setting}</Typography>
