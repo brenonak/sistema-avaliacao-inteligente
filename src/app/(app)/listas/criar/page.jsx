@@ -193,8 +193,8 @@ function CriarListaContent() {
       });
 
       if (!saveResponse.ok) {
-  const errorData = await saveResponse.json().catch(() => ({}));
-  throw new Error(errorData?.message || 'Erro ao salvar lista');
+        const errorData = await saveResponse.json().catch(() => ({}));
+        throw new Error(errorData?.message || 'Erro ao salvar lista');
       }
 
       setSuccess(true);
