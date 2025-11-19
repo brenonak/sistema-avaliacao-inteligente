@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Calendar from '../../components/Calendar';
-import { CircularProgress, Button } from '@mui/material';
+import { CircularProgress, Button, Card, CardContent   } from '@mui/material';
 import { Add, School } from '@mui/icons-material';
 
 export default function DashboardPage() {
@@ -130,19 +130,16 @@ export default function DashboardPage() {
         </Box>
       </Grid>
       <Grid size={4}>
-        <Box sx={{
-          padding: 5,
-        }}>
+        <Box sx={{ padding: 5 }}>
           <Typography gutterBottom variant="h4" component="div">
             Agenda
           </Typography>
-          <Box sx={{
-            backgroundColor: 'background.paper',
-            borderRadius: 2,
-            maxWidth: 320,
-          }}>
-            <Calendar />
-          </Box>
+
+          <Card sx={{ maxWidth: 360, mb: 4, borderRadius: 2 }}>
+            <CardContent>
+              <Calendar />
+            </CardContent>
+          </Card>
         </Box>
       </Grid>
     </Grid>
