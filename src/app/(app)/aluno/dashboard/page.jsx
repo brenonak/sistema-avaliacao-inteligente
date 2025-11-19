@@ -17,19 +17,38 @@ import {
   TextField,
 } from '@mui/material';
 import { Add, School } from '@mui/icons-material';
+import PerformanceSummary from "../../../components/PerformanceSummary";
+import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
 
 export default function DashboardPage() {
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // dialog state for adding a course by ID
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [courseIdInput, setCourseIdInput] = useState('');
+
+  // Exemplos de dados (devem ser conectados à API)
+  const data = {
+    labels: ['1° Semestre', '2° Semestre', '3° Semestre', '4° Semestre', '5° Semestre', '6° Semestre'],
+    scores: [94, 85, 78, 88, 91, 85],
+  };
+
+  // Dados para as notas
+  const dataLabels = data.labels;
+  const dataScores = data.scores;
+
+
+  // Valores para o resumo de desempenho
+  const average = dataScores[dataScores.length - 1];
+  const best = Math.max(...dataScores);
+  const latest = 81;
+  
 
   useEffect(() => {
     async function fetchCursos() {
       try {
+        // TODO: ajustar a API para retornar apenas os cursos do aluno logado
         const res = await fetch('/api/cursos');
         if (!res.ok) throw new Error('Erro ao carregar cursos');
         const json = await res.json();
@@ -96,7 +115,8 @@ export default function DashboardPage() {
                 alignItems: 'center', 
                 p: 4,
                 backgroundColor: 'background.paper',
-                borderRadius: 2
+                borderRadius: 2,
+                mb: 4
               }}>
                 <CircularProgress size={30} />
                 <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando...</Typography>
@@ -108,7 +128,8 @@ export default function DashboardPage() {
                 p: 3, 
                 backgroundColor: 'background.paper',
                 borderRadius: 2,
-                textAlign: 'center'
+                textAlign: 'center',
+                mb: 4
               }}>
                 <Typography color="error">
                   {error}
@@ -121,7 +142,8 @@ export default function DashboardPage() {
                 textAlign: 'center', 
                 p: 4,
                 backgroundColor: 'background.paper',
-                borderRadius: 2
+                borderRadius: 2,
+                mb: 4
               }}>
                 <School sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                 <Typography sx={{ color: 'text.secondary', mb: 2 }}>
@@ -137,7 +159,8 @@ export default function DashboardPage() {
               <Grid container rowSpacing={4} columnSpacing={4} sx={{
                 backgroundColor: 'background.paper',
                 padding: 3,
-                borderRadius: 2
+                borderRadius: 2,
+                mb: 4
               }}>
                 {cursos.map((curso) => (
                   <Grid size={4} key={curso.id}>
@@ -154,6 +177,37 @@ export default function DashboardPage() {
                 ))}
               </Grid>
             )}
+            
+            <Box>
+              <Typography gutterBottom variant="h4" component="div">
+                Minhas Notas
+              </Typography>
+            </Box>
+            
+            <Box
+              sx={{
+                width: "100%",
+                display: "grid",
+                gap: 3,
+                gridTemplateColumns: { xs: "1fr", md: "1fr" },
+                gridAutoRows: "min-content",
+                alignItems: "stretch",
+                mt: 4
+              }}
+            >
+              <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "1", width: "100%" }}>
+                <PerformanceSummary average={average} best={best} latest={latest} />
+              </Box>
+
+              <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "2", width: "100%" }}>
+                <StudentPerformanceChart
+                  labels={dataLabels}
+                  scores={dataScores}
+                  text={"Evolução do desempenho"}
+                  height={520}
+                />
+              </Box>
+            </Box>
           </Box>
         </Grid>
         <Grid size={4}>
