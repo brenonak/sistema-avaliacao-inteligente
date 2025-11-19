@@ -88,12 +88,12 @@ export const authOptions: NextAuthOptions = {
     
     async jwt({ token, user, trigger }) {
       // 1. No Login Inicial (quando 'user' é passado pelo Adapter)
-      // O 'user' aqui já contém 'isProfileComplete: false' (graças à Task #248)
+      // O 'user' aqui já contém 'profileComplete: false' (graças aos events)
       if (user) {
         console.log("[Auth] JWT: Login inicial. 'user' está presente.");
         token.id = user.id;
-        token.isProfileComplete = (user as any).isProfileComplete;
-        token.role = (user as any).role; // (Será 'undefined' no login inicial)
+        token.profileComplete = (user as any).profileComplete || (user as any).isProfileComplete || false;
+        token.role = (user as any).role || null; // Será null no login inicial
       }
 
       // Se o 'token.id' não existir (o que não deve acontecer, mas é uma
@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Em acessos subsequentes (ex: navegação, middleware)
-      // Precisamos de re-consultar o DB para garantir que o 'role' e 'isProfileComplete' apareçam na sessão
+      // Precisamos de re-consultar o DB para garantir que o 'role' e 'profileComplete' apareçam na sessão
       
       try {
         const db = (await clientPromise).db(process.env.MONGODB_DB);
@@ -114,28 +114,43 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser) {
           // Atualiza o token com os dados FRESCOS do banco de dados
-          token.isProfileComplete = dbUser.isProfileComplete;
-          token.role = dbUser.role;
-          console.log(`[Auth] JWT: Token atualizado com dados frescos. Role: ${dbUser.role}`);
+          token.profileComplete = dbUser.profileComplete || dbUser.isProfileComplete || false;
+          token.role = dbUser.role || null;
+          
+          // Sincronizar dados de perfil do banco para o token
+          // Isso corrige o problema de nomes desatualizados ou incorretos
+          if (dbUser.name) token.name = dbUser.name;
+          if (dbUser.email) token.email = dbUser.email;
+          if (dbUser.image) token.picture = dbUser.image;
+          
+          console.log(`[Auth] JWT: Token atualizado com dados frescos. User: ${token.name}, Role: ${dbUser.role}, ProfileComplete: ${token.profileComplete}`);
         } else {
-          // O utilizador foi apagado do DB?
-          console.warn("[Auth] JWT: Utilizador não encontrado no DB. A invalidar token.");
-          return null; // Força o logout
+          // O utilizador foi apagado do DB - manter valores padrão
+          console.warn("[Auth] JWT: Utilizador não encontrado no DB.");
+          token.profileComplete = false;
+          token.role = null;
         }
       } catch (error) {
         console.error("[Auth] JWT: Erro ao re-consultar usuário no DB:", error);
-        return null; // Erro no DB, força o logout (mais seguro)
+        // Em caso de erro, manter os valores atuais do token
       }
       
       return token;
     },
     
-    // Callback de session: incluir userId e provider na sessão
+    // Callback de session: incluir userId, role e profileComplete na sessão
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).isProfileComplete = token.isProfileComplete;
-        (session.user as any).role = token.role;
+        session.user.id = token.id as string;
+        session.user.profileComplete = token.profileComplete || false;
+        session.user.role = token.role || null;
+        
+        // Garantir que a sessão use os dados atualizados do token (que vieram do banco)
+        if (token.name) session.user.name = token.name;
+        if (token.email) session.user.email = token.email;
+        if (token.picture) session.user.image = token.picture;
+        
+        console.log(`[Auth] Session: User ${session.user.email} (${session.user.name}) - Role: ${session.user.role}, ProfileComplete: ${session.user.profileComplete}`);
       }
       return session;
     },

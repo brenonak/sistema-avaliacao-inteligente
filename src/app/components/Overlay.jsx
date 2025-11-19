@@ -1,4 +1,6 @@
+"use client";
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Toolbar from '@mui/material/Toolbar';
@@ -26,6 +28,7 @@ const drawerWidth = 220;
 const collapsedWidth = 60;
 
 export default function Overlay({ content }) {
+  const { data: session } = useSession();
   const [open, setOpen] = React.useState(true);
 
   const toggleDrawer = () => {
@@ -85,7 +88,7 @@ export default function Overlay({ content }) {
           {open && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                Usuário
+                {session?.user?.name || 'Usuário'}
               </Typography>
             </Box>
           )}
