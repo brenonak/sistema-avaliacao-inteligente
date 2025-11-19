@@ -72,7 +72,9 @@ export const authOptions: NextAuthOptions = {
         
         // FIX #221: Normaliza as múltiplas variações do banco para uma única propriedade no token
         // Lê: isProfileComplete OU profileComplete OU profileCompleted
-        token.isProfileComplete = user.isProfileComplete || user.profileComplete || (user as any).profileCompleted || false;
+        const isComplete = user.isProfileComplete || user.profileComplete || (user as any).profileCompleted || false;
+        token.isProfileComplete = isComplete;
+        token.profileComplete = isComplete; // Manter compatibilidade
         
         // Lê: role OU papel
         token.role = user.role || (user as any).papel || null;
@@ -82,6 +84,7 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session) {
         if (session.isProfileComplete !== undefined) {
             token.isProfileComplete = session.isProfileComplete;
+            token.profileComplete = session.isProfileComplete;
         }
       }
 
@@ -110,7 +113,9 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser) {
           // Lógica robusta: tenta todas as variações até achar um true
-          token.isProfileComplete = dbUser.isProfileComplete || dbUser.profileComplete || dbUser.profileCompleted || false;
+          const isComplete = dbUser.isProfileComplete || dbUser.profileComplete || dbUser.profileCompleted || false;
+          token.isProfileComplete = isComplete;
+          token.profileComplete = isComplete; // Manter compatibilidade
           
           // Prioriza 'role' (PROFESSOR), mas faz fallback para 'papel' (professor)
           token.role = dbUser.role || dbUser.papel || null;

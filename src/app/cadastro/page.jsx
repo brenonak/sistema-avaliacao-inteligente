@@ -43,7 +43,8 @@ export default function PaginaCadastro() {
             setNome(session.user.name);
         }
         // Se o perfil já estiver completo, redirecionar para dashboard
-        if (session?.user?.profileComplete === true) {
+        const isProfileComplete = session?.user?.isProfileComplete === true || session?.user?.profileComplete === true;
+        if (isProfileComplete) {
             console.log('[Cadastro] Perfil já completo, redirecionando para dashboard');
             router.push('/dashboard');
         }
