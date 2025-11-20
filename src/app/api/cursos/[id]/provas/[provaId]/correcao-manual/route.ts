@@ -34,9 +34,7 @@ function corrigirResposta(
 
     // 2. LÓGICA DE AUTO-CORREÇÃO
     switch (tipo) {
-        case 'alternativa':
-        case 'multipla escolha':
-        case 'múltipla escolha': { // Adicionado variação com acento
+        case 'alternativa': {
             const correta = questao.alternativas?.find((a: any) => a.correta);
             // Tenta comparar com a letra OU com o texto (caso o frontend envie o texto)
             const letraCorreta = correta?.letra;
@@ -47,9 +45,7 @@ function corrigirResposta(
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'afirmacoes':
-        case 'verdadeiro ou falso':
-        case 'verdadeiro/falso': {
+        case 'afirmacoes': {
             if (!Array.isArray(resposta) || !Array.isArray(questao.afirmacoes)) {
                 return { pontuacaoObtida: 0, isCorrect: false };
             }
@@ -69,9 +65,7 @@ function corrigirResposta(
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'proposicoes':
-        case 'somatorio':
-        case 'somatório': {
+        case 'proposicoes': {
             const somaCorreta = questao.proposicoes
                 ?.filter((p: any) => p.correta)
                 .reduce((sum: number, p: any) => sum + (p.valor || 0), 0) || 0;
@@ -81,8 +75,7 @@ function corrigirResposta(
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'numerica':
-        case 'numérica': {
+        case 'numerica': {
             const respostaCorreta = Number(questao.respostaCorreta);
             const margemErro = Number(questao.margemErro || 0);
             const respostaNum = Number(resposta);

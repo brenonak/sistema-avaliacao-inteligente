@@ -6,6 +6,24 @@ function oid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
+function limparQuestaoParaProva(questao: any, pontuacao: number) {
+  return {
+    _id: questao._id,
+    tipo: questao.tipo,
+    enunciado: questao.enunciado,
+    alternativas: questao.alternativas || [],
+    afirmacoes: questao.afirmacoes || [],
+    proposicoes: questao.proposicoes || [],
+    respostaCorreta: questao.respostaCorreta,
+    margemErro: questao.margemErro,
+    gabarito: questao.gabarito,
+    imagemIds: questao.imagemIds || [],
+    tags: questao.tags || [],
+    pontuacao: pontuacao,
+    // Campos administrativos removidos intencionalmente
+  };
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -28,30 +46,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Buscar questões do curso que foram selecionadas
     const questoesIds = (questoesSelecionadas || [])
       .map(oid)
-      .filter(Boolean); // remove IDs inválidos
+      .filter(Boolean);
 
     let questoes: Document[] = [];
+
     if (questoesIds.length > 0) {
-      // Buscar todas as questões do banco
       const questoesFromDb = await db.collection("questoes")
         .find({ _id: { $in: questoesIds } })
         .toArray();
 
-      // Reorganizar questões na ordem em que foram selecionadas e adicionar pontuação
       questoes = questoesIds.map(qId => {
         const questao = questoesFromDb.find(q => q._id.equals(qId));
         if (!questao) return null;
-
-        // Adicionar pontuação à questão
         const pontuacao = questoesPontuacao?.[qId.toString()] || 0;
-        return {
-          ...questao,
-          pontuacao
-        };
-      }).filter(Boolean); // Remove questões não encontradas
+        return limparQuestaoParaProva(questao, pontuacao);
+      }).filter(Boolean);
     }
 
-    // Criar documento da prova
     const prova = {
       cursoId: id,
       titulo,
@@ -65,6 +76,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       observacoes: observacoes || '',
       questoes,
       criadoEm: new Date(),
+      atualizadoEm: new Date()
     };
 
     const result = await db.collection("provas").insertOne(prova);
@@ -75,6 +87,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ...prova
     });
   } catch (e) {
+    console.error("Erro ao criar prova:", e);
     return serverError(e);
   }
 }
