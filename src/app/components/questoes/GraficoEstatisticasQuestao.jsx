@@ -9,7 +9,7 @@ import { Typography, Box, Chip, Stack } from '@mui/material';
  * Componente para renderizar os gráficos de estatísticas de uma questão.
  * Task #225: Refatorado para usar @mui/x-charts em vez de recharts.
  *
- * @param {string} tipoQuestao - 'multipla-escolha', 'verdadeiro-falso', etc
+ * @param {string} tipoQuestao - 'alternativa', 'afirmacoes', etc
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
  * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
@@ -229,16 +229,16 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
 
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
-    case 'multipla-escolha':
+    case 'alternativa':
       return renderGraficoBarras('Alternativa');
 
-    case 'verdadeiro-falso':
+    case 'afirmacoes':
       return renderGraficoBarrasAgrupadas();
 
     case 'numerica':
       return renderGraficoBarras('Respostas Submetidas');
 
-    case 'somatorio':
+    case 'proposicoes':
       return renderGraficoBarras('Soma Submetida');
 
     case 'dissertativa':
@@ -305,7 +305,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Múltipla Escolha
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="multipla-escolha"
+        tipoQuestao="alternativa"
         dados={mockDadosBarra}
       />
 
@@ -315,7 +315,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Verdadeiro/Falso (Agrupado)
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="verdadeiro-falso"
+        tipoQuestao="afirmacoes"
         dados={mockDadosVFAgrupado}
       />
 
@@ -335,7 +335,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Somatório
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="somatorio"
+        tipoQuestao="proposicoes"
         dados={mockDadosSomatorio}
       />
 
@@ -355,7 +355,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Sem Dados
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="multipla-escolha"
+        tipoQuestao="alternativa"
         dados={[]}
       />
     </Box>
