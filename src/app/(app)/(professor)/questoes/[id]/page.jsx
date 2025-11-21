@@ -24,8 +24,8 @@ import { useParams } from 'next/navigation'; // Hook para pegar o ID na URL
 import { Assignment, Description, CheckCircleOutline, HighlightOff } from '@mui/icons-material';
 
 // Imports dos seus artefatos
-import GraficoEstatisticasQuestao from '../../../../app/components/questoes/GraficoEstatisticasQuestao';
-import { questaoStatsService } from '../../../../services/statsService';
+import GraficoEstatisticasQuestao from '../../../../components/questoes/GraficoEstatisticasQuestao';
+import { questaoStatsService } from '../../../../../services/statsService';
 
 export default function DetalhesQuestaoPage() {
   // Pega o ID da URL (ex: '101', '102'...)

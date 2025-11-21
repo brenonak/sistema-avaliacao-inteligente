@@ -1,12 +1,12 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../auth';
-import { getDb } from '../../lib/mongodb';
+import { authOptions } from '../../../../auth';
+import { getDb } from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 // Importando o Overlay da aplicação (o do professor/aluno)
-import Overlay from "../components/Overlay";
+import OverlayAluno from "../../components/OverlayAluno";
 
 export default async function AppLayout({ children }) {
   // Verificação Server-Side de Segurança
@@ -69,6 +69,6 @@ export default async function AppLayout({ children }) {
   // Este layout aplica o Overlay interno e renderiza
   // qualquer página aninhada (dashboard, questoes, etc.)
   return (
-    <Overlay content={children}/>
+    <OverlayAluno content={children}/>
   );
 }

@@ -4,9 +4,9 @@ import {
   Box,
   Typography,
 } from "@mui/material";
-import PerformanceSummary from "../../components/PerformanceSummary";
-import StudentPerformanceChart from "../../components/StudentPerformanceChart";
-import CourseSelect from "../../components/CourseSelect";
+import PerformanceSummary from "../../../components/PerformanceSummary";
+import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
+import CourseSelect from "../../../components/CourseSelect";
 
 export default function DesempenhoPage() {
   const [selectedCourse, setSelectedCourse] = useState('nenhum');

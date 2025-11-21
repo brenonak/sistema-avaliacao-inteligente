@@ -30,7 +30,7 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FileItem from "../../components/FileItem"; // Assumindo que este componente existe
+import FileItem from "../../../components/FileItem"; // Assumindo que este componente existe
 
 export default function CorrecaoPage() {
   const router = useRouter();
