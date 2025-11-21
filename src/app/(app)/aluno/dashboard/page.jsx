@@ -22,6 +22,7 @@ import { Add, School } from '@mui/icons-material';
 import PerformanceSummary from "../../../components/PerformanceSummary";
 import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
 import PendingActivities from "../../../components/PendingActivities";
+import { useTheme } from '@mui/material/styles';
 
 export default function DashboardPage() {
   const [cursos, setCursos] = useState([]);
@@ -208,6 +209,7 @@ export default function DashboardPage() {
                   scores={dataScores}
                   text={"Evolução do desempenho"}
                   height={520}
+                  lineColor={"#7c4dff"}
                 />
               </Box>
             </Box>
@@ -220,7 +222,7 @@ export default function DashboardPage() {
             </Typography>
             <Card sx={{ mb: 4, borderRadius: 2 }}>
               <CardContent>
-                <Calendar />
+                <Calendar iconColor={'accent.secondary'} />
               </CardContent>
             </Card>
 

@@ -65,7 +65,7 @@ const Header = () => {
             <Box
               component="img"
               src="/aluno.svg"
-              alt="Professor Icon"
+              alt="Student Icon"
               sx={{
                 height: 64,
                 width: 64,
