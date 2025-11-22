@@ -15,32 +15,28 @@ function toRoman(num: number): string {
 /**
  * Função principal de agregação
  * Processa as respostas dos alunos e formata para os gráficos
+ * @param questao Dados da questão
+ * @param respostas Array de respostas dos alunos
  */
-function aggregateStats(questao: any, respostas: any[], contextMaxScore: number) {
+function aggregateStats(questao: any, respostas: any[]) {
     const totalRespostas = respostas.length;
 
     // Normaliza para minúsculo para evitar quebras por formatação no banco
     const tipo = questao.tipo?.toLowerCase();
 
-    // Se não tem respostas, mas sabemos quanto vale a questão (contextMaxScore), podemos retornar o gráfico vazio já na escala correta (ex: 0 a 2.0).
+    // Se não tem respostas, retorna vazio
     if (totalRespostas === 0) {
         if (tipo === 'dissertativa') {
-            // Usa a nota do contexto (prova/lista) se existir, senão 10.0
-            const maxNota = contextMaxScore > 0 ? contextMaxScore : 10.0;
-            const step = maxNota / 5;
-
+            // Retorna estrutura vazia com as faixas de porcentagem padrão
             return {
-                dados: Array.from({ length: 5 }).map((_, i) => {
-                    const min = (step * i);
-                    const max = (step * (i + 1));
-                    // Ajuste visual para o último bucket fechar no valor exato
-                    const labelMax = i === 4 ? max : max - 0.01;
-                    return {
-                        nome: `${min.toFixed(1)} - ${labelMax.toFixed(1)}`,
-                        Respostas: 0
-                    };
-                }),
-                meta: { qndNotaMinima: 0, qndNotaMaxima: 0, maxNotaGlobal: maxNota }
+                dados: [
+                    { nome: '0% - 20%', Respostas: 0 },
+                    { nome: '20% - 40%', Respostas: 0 },
+                    { nome: '40% - 60%', Respostas: 0 },
+                    { nome: '60% - 80%', Respostas: 0 },
+                    { nome: '80% - 100%', Respostas: 0 },
+                ],
+                meta: { qndNotaMinima: 0, qndNotaMaxima: 0 }
             };
         }
         return { dados: [], meta: {} };
@@ -140,65 +136,49 @@ function aggregateStats(questao: any, respostas: any[], contextMaxScore: number)
             return { dados, meta: {} };
         }
 
-        // E. Dissertativa (Banco: 'dissertativa')
+        // E. Dissertativa
         case 'dissertativa': {
             const respostasValidas = respostas.filter(r =>
                 r.pontuacaoObtida !== null &&
                 r.pontuacaoObtida !== undefined &&
-                !isNaN(Number(r.pontuacaoObtida))
+                !isNaN(Number(r.pontuacaoObtida)) &&
+                Number(r.pontuacaoMaxima) > 0 // Garante que não haverá divisão por zero
             );
 
-            // Lógica de Prioridade para definir a Nota Máxima Global (escala do gráfico):
-            // 1. Tenta pegar o maior valor de "pontuacaoMaxima" encontrado no histórico das respostas.
-            let maxNotaGlobal = 0;
-            if (respostasValidas.length > 0) {
-                maxNotaGlobal = Math.max(...respostasValidas.map(r => Number(r.pontuacaoMaxima || 0)));
-            }
-
-            // 2. Se não achou nas respostas (ou é zero), usa o valor encontrado nas Provas/Listas (contextMaxScore).
-            if (maxNotaGlobal === 0 && contextMaxScore > 0) {
-                maxNotaGlobal = contextMaxScore;
-            }
-
-            // 3. Fallback final para 10.0 apenas se não houver info em lugar nenhum.
-            if (maxNotaGlobal === 0) {
-                maxNotaGlobal = 10.0;
-            }
-
-            const step = maxNotaGlobal / 5;
-            const faixas = [0, 0, 0, 0, 0];
-            let qndNotaMinima = 0;
-            let qndNotaMaxima = 0;
+            const faixas = [0, 0, 0, 0, 0]; // 0-20%, 20-40%, 40-60%, 60-80%, 80-100%
+            let qndNotaMinima = 0; // Nota Zero absoluta
+            let qndNotaMaxima = 0; // 100% da nota
 
             if (respostasValidas.length > 0) {
                 respostasValidas.forEach(r => {
                     const nota = Number(r.pontuacaoObtida);
-                    // A nota máxima desta resposta específica (pode variar de prova para prova)
-                    const maxDesta = Number(r.pontuacaoMaxima) > 0 ? Number(r.pontuacaoMaxima) : maxNotaGlobal;
+                    const maxDesta = Number(r.pontuacaoMaxima); // Máximo específico desta resposta
 
+                    // Contabiliza extremos absolutos
                     if (nota === 0) qndNotaMinima++;
                     if (nota >= maxDesta) qndNotaMaxima++;
 
-                    // Distribuição nos buckets
-                    if (nota < step) faixas[0]++;
-                    else if (nota < step * 2) faixas[1]++;
-                    else if (nota < step * 3) faixas[2]++;
-                    else if (nota < step * 4) faixas[3]++;
+                    // Calcula porcentagem de aproveitamento (0 a 100)
+                    const percentual = (nota / maxDesta) * 100;
+
+                    // Distribuição nos buckets de 20%
+                    if (percentual < 20) faixas[0]++;
+                    else if (percentual < 40) faixas[1]++;
+                    else if (percentual < 60) faixas[2]++;
+                    else if (percentual < 80) faixas[3]++;
                     else faixas[4]++;
                 });
             }
 
-            const dados = faixas.map((qtd, i) => {
-                const min = (step * i);
-                const max = (step * (i + 1));
-                const labelMax = i === 4 ? max : max - 0.01;
-                return {
-                    nome: `${min.toFixed(1)} - ${labelMax.toFixed(1)}`,
-                    Respostas: qtd
-                };
-            });
+            const dados = [
+                { nome: '0% - 20%', Respostas: faixas[0] },
+                { nome: '20% - 40%', Respostas: faixas[1] },
+                { nome: '40% - 60%', Respostas: faixas[2] },
+                { nome: '60% - 80%', Respostas: faixas[3] },
+                { nome: '80% - 100%', Respostas: faixas[4] }
+            ];
 
-            const meta = { qndNotaMinima, qndNotaMaxima, maxNotaGlobal };
+            const meta = { qndNotaMinima, qndNotaMaxima };
             return { dados, meta };
         }
 
@@ -227,57 +207,25 @@ export async function GET(
             return notFound("Questão não encontrada");
         }
 
-        // 2. Buscar Vínculos (Provas e Listas) primeiro para descobrir a pontuação configurada
-        const provas = await db.collection("provas")
-            .find({ "questoes._id": questaoId })
-            .project({ _id: 1, titulo: 1, cursoId: 1, questoes: 1 })
-            .toArray();
-
-        const listas = await db.collection("listasDeExercicios")
-            .find({ "questoesIds": id })
-            .project({ _id: 1, tituloLista: 1, cursoId: 1, questoesPontuacao: 1, usarPontuacao: 1 })
-            .toArray();
-
-        // 3. Calcular a maior pontuação atribuída a esta questão em qualquer atividade
-        let maxPontuacaoContexto = 0;
-
-        // Varre provas para achar essa questão e ver a pontuação
-        provas.forEach((p: any) => {
-            if (Array.isArray(p.questoes)) {
-                // Tenta encontrar pelo ID original
-                const q = p.questoes.find((qItem: any) =>
-                    (qItem._id && qItem._id.toString() === questaoId.toString()) ||
-                    (qItem.id === id) ||
-                    // Algumas provas podem usar um campo de referência
-                    (qItem.questaoOriginalId && qItem.questaoOriginalId.toString() === questaoId.toString())
-                );
-
-                if (q && Number(q.pontuacao) > maxPontuacaoContexto) {
-                    maxPontuacaoContexto = Number(q.pontuacao);
-                }
-            }
-        });
-
-        // Varre listas
-        listas.forEach((l: any) => {
-            if (l.usarPontuacao && l.questoesPontuacao) {
-                const pts = Number(l.questoesPontuacao[id]);
-                if (!isNaN(pts) && pts > maxPontuacaoContexto) {
-                    maxPontuacaoContexto = pts;
-                }
-            }
-        });
-
-        // 4. Buscar respostas dos alunos
+        // 2. Buscar respostas dos alunos
         const respostas = await db.collection("respostasAluno")
             .find({ questaoId: questaoId })
             .project({ resposta: 1, isCorrect: 1, pontuacaoObtida: 1, pontuacaoMaxima: 1 })
             .toArray();
 
-        // 5. Agregar estatísticas passando o contexto de pontuação encontrado
-        const { dados, meta } = aggregateStats(questao, respostas, maxPontuacaoContexto);
+        // 3. Agregar estatísticas
+        const { dados, meta } = aggregateStats(questao, respostas);
 
-        // 6. Montar resposta
+        // 4. Buscar vínculos apenas para informação visual
+        const provas = await db.collection("provas")
+            .find({ "questoes._id": questaoId }, { projection: { _id: 1, titulo: 1, cursoId: 1 } })
+            .toArray();
+
+        const listas = await db.collection("listasDeExercicios")
+            .find({ "questoesIds": id }, { projection: { _id: 1, tituloLista: 1, cursoId: 1 } })
+            .toArray();
+
+        // 5. Retornar
         return json({
             tipo: questao.tipo,
             enunciado: questao.enunciado,

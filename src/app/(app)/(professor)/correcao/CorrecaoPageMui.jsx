@@ -374,7 +374,7 @@ export default function CorrecaoPageMui() {
                       label="Nota"
                       type="number"
                       inputProps={{
-                        step: "0.1",
+                        step: "0.01",
                         min: 0,
                         max: questao.pontuacao || 10
                       }}
