@@ -4,6 +4,8 @@ import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { Typography, Box, Chip, Stack } from '@mui/material';
 
+import HistogramaNotas from './charts/HistogramaNotas';
+
 
 /**
  * Componente para renderizar os gráficos de estatísticas de uma questão.
@@ -18,15 +20,6 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
   // Define as cores
   const COR_CORRETA = "#2e7d32";
   const COR_INCORRETA = "#d32f2f";
-
-  // Gradiente de cores para o Histograma de Notas
-  const CORES_GRADIENTE_NOTAS = [
-    "#d32f2f", // Vermelho - Notas baixas (0-2)
-    "#ff9800", // Laranja - Notas médias baixas (2.1-4)
-    "#ffeb3b", // Amarelo - Notas médias (4.1-6)
-    "#8bc34a", // Verde Claro - Notas médias altas (6.1-8)
-    "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
-  ];
 
   // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
   const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
@@ -242,7 +235,8 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
       return renderGraficoBarras('Soma Submetida');
 
     case 'dissertativa':
-      return renderHistogramaNotas();
+      // USANDO O NOVO COMPONENTE
+      return <HistogramaNotas dados={dados} meta={meta} />;
 
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;

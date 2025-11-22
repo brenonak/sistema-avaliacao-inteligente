@@ -4,11 +4,9 @@ import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { Typography, Box, Chip, Stack } from '@mui/material';
 
-const HistogramaNotas = ({ dados }) => {
+const HistogramaNotas = ({ dados, meta }) => {
 
     // Definição de cores internas do componente
-    const COR_CORRETA = "#2e7d32";
-    const COR_INCORRETA = "#d32f2f";
     
     const CORES_GRADIENTE_NOTAS = [
         "#d32f2f", // Vermelho - Notas baixas (0-2)
