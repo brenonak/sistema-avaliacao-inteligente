@@ -75,10 +75,8 @@ export async function GET(
         }
 
         const db = await getDb();
-        let listaJson;
-        let listaDefinicao;
 
-        listaDefinicao = await db.collection("listasDeExercicios").findOne({ _id });
+        const listaDefinicao = await db.collection("listasDeExercicios").findOne({ _id });
 
         if (!listaDefinicao) {
             return NextResponse.json({ success: false, message: 'Lista de exercícios não encontrada.' }, { status: 404 });
@@ -99,63 +97,68 @@ export async function GET(
             throw new Error("Nenhuma questão foi encontrada para esta lista.");
         }
 
-        const questoesComRecursos = await Promise.all(
-            questoesDaLista.map(async (questao) => {
-                if (!questao.recursos || questao.recursos.length === 0) {
-                    return questao;
+        const questoesFiltradas = await Promise.all(
+            questoesDaLista.map(async (questao: any) => {
+
+                let filenames: string[] = [];
+
+                const rawImagemIds = questao.imagemIds || [];
+
+                if (Array.isArray(rawImagemIds) && rawImagemIds.length > 0) {
+                    // Normaliza IDs (string, ObjectId ou $oid)
+                    const recursoIds = rawImagemIds.map((item: any) => {
+                        if (typeof item === 'string') return oid(item);
+                        if (item instanceof ObjectId) return item;
+                        if (item && item.$oid) return oid(item.$oid); // Formato Extended JSON
+                        return null;
+                    }).filter((id): id is ObjectId => id !== null);
+
+                    if (recursoIds.length > 0) {
+
+                        const recursosDocs = await db.collection("recursos")
+                            .find({ _id: { $in: recursoIds } })
+                            .project({ filename: 1 })
+                            .toArray();
+
+                        filenames = recursosDocs
+                            .map(r => r.filename)
+                            .filter(f => f && typeof f === 'string');
+                    }
                 }
-                const recursoIds = questao.recursos.map(oid).filter(Boolean);
-                if (recursoIds.length === 0) return questao;
 
-                const recursosDocs = await db.collection("recursos")
-                    .find({ _id: { $in: recursoIds } })
-                    .project({ filename: 1 })
-                    .toArray();
-
-                const filenames = recursosDocs
-                    .map(r => r.filename)
-                    .filter(name => typeof name === 'string' && name.trim().length > 0)
-                    .map(name => name.trim());
-
+                //Retornar apenas o necessário
                 return {
-                    ...questao,
-                    recursoFilenames: filenames,
+                    tipo: questao.tipo,
+                    enunciado: questao.enunciado,
+                    alternativas: questao.alternativas,
+                    afirmacoes: questao.afirmacoes,
+                    proposicoes: questao.proposicoes,
+                    respostaCorreta: questao.respostaCorreta,
+                    margemErro: questao.margemErro,
+                    gabarito: questao.gabarito,
+                    // TODO: Futuramente, caso implementada a feature de compilação do .tex na plataforma, enviar URLs completas.
+                    recursoFilenames: filenames // Lista limpa de nomes de arquivo
                 };
             })
         );
 
-        // Este é o JSON COMPLETO, que será usado para o gabarito
-        listaJson = {
-            titulo: `Lista de Exercícios: ${listaDefinicao.tituloLista}`,
+        // Preparar JSON Limpo exclusivamente para a LLM (Sem respostas)
+        const questoesParaLLM = questoesFiltradas.map(q => {
+            const qCopy = JSON.parse(JSON.stringify(q));
+            delete qCopy.gabarito;
+            delete qCopy.respostaCorreta;
+            delete qCopy.margemErro;
+            if (qCopy.alternativas) qCopy.alternativas.forEach((a: any) => delete a.correta);
+            if (qCopy.afirmacoes) qCopy.afirmacoes.forEach((a: any) => delete a.correta);
+            if (qCopy.proposicoes) qCopy.proposicoes.forEach((p: any) => delete p.correta);
+            return qCopy;
+        });
+
+        const listaLLM = {
+            titulo: listaDefinicao.tituloLista,
             instituicao: listaDefinicao.nomeInstituicao || '',
-            questoes: questoesComRecursos,
+            questoes: questoesParaLLM
         };
-
-        console.log(`Total de questões: ${questoesComRecursos.length}`);
-
-        const listaLimpa = JSON.parse(JSON.stringify(listaJson));
-        for (const questao of listaLimpa.questoes) {
-            delete questao.gabarito;
-            delete questao.respostaCorreta;
-            delete questao.margemErro;
-            if (questao.alternativas) {
-                for (const alt of questao.alternativas) {
-                    delete alt.correta;
-                }
-            }
-            if (questao.afirmacoes) {
-                for (const af of questao.afirmacoes) {
-                    delete af.correta;
-                }
-            }
-            if (questao.proposicoes) {
-                for (const p of questao.proposicoes) {
-                    delete p.correta;
-                }
-            }
-        }
-        const jsonParaLLM = listaLimpa;
-
 
         const model = new ChatGoogleGenerativeAI({
             apiKey: process.env.GOOGLE_API_KEY,
@@ -209,8 +212,8 @@ export async function GET(
 \\begin{document}
 
 \\begin{center}
-${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2cm}` : ''}
-\\Large\\bfseries ${listaJson.titulo} \\\\
+${listaLLM.instituicao ? `\\large ${listaLLM.instituicao} \\\\ \n \\vspace{0.2cm}` : ''}
+\\Large\\bfseries ${listaLLM.titulo} \\\\
 \\end{center}
 \\vspace{1cm}
 
@@ -221,8 +224,6 @@ ${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2
 \\end{questions}
     `;
 
-
-        // --- 4. ATUALIZAR O PROMPT ---
         const latexTemplate = `
     Você é um assistente especialista em LaTeX. Sua **única tarefa** é ler o objeto JSON fornecido e gerar **SOMENTE** o código LaTeX para as questões, usando o ambiente 'exam', sem **NENHUM** texto adicional ou explicação.
 
@@ -235,17 +236,22 @@ ${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2
         4. **Estrutura de Questão:** Use o comando \`\\question\` para iniciar cada questão.
         5. **Regras de Formatação por Tipo:**
           * **Tipo 'alternativa'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\choice <texto da alternativa>\`.
-          * **Tipo 'vf' (Verdadeiro/Falso)**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\item[($\\quad$)] <texto da alternativa>\`.
-          * **Tipo 'discursiva'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
-          * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{choices}}\` insira \`\\answerline\`.
+          * **Tipo 'afirmacoes'**: Use o ambiente **\`\\begin{{choices}}\` e \`\\end{{choices}}\`**. Cada opção deve ser \`\\item[($\\quad$)] <texto da alternativa>\`.
+          * **Tipo 'dissertativa'**: Após o enunciado da questão, adicione **\`\\fillwithlines{{5cm}}\`** para o espaço de resposta.
+          * **Tipo 'proposicoes'**: Use o ambiente **\`\\begin{{somatoriochoices}}\` e \`\\end{{somatoriochoices}}\`**. Cada opção deve ser \`\\item <texto da alternativa>\`. Na linha abaixo de \`\\end{{somatoriochoices}}\` insira \`\\answerline\`.
           * **Tipo 'numerica'**: Após o enunciado da questão, adicione **\`\\answerline\`** para o espaço de resposta.
         6. **Notação Matemática:** Se o enunciado ou as alternativas contiverem fórmulas, variáveis ou símbolos matemáticos, use o ambiente matemático (ex: \`$x^2$\` ou \`$\\frac{{1}}{{2}}$\`) sem usar fórmulas centralizadas (SEMPRE fórmulas inline com cifrão simples). Tenha uma atenção especial para frações, que devem usar o comando \`$\\frac{{numerador}}{{denominador}}$\`. Também verifique se há fórmulas descritas em linguagem natural, e a corrija para o formato matemático.
-        7. **Recursos (Imagens):** Se uma questão tiver imagens (nomes de arquivo em \`recursosFileNames\`), insira o seguinte código LaTeX **imediatamente após o enunciado da questão** para cada imagem:
-        \\begin{{center}}
-            \\includegraphics[width=0.5\\textwidth]{{NOME_DO_ARQUIVO}}
-        \\end{{center}}
+        7. **Recursos (Imagens)
+           * Verifique o campo \`recursoFilenames\` no JSON. Ele é uma lista de strings.
+           * Se essa lista contiver nomes de arquivos (ex: "imagem.png"), gere o seguinte código LaTeX IMEDIATAMENTE APÓS o enunciado:
+           \\begin{{center}}
+               \\includegraphics[width=0.5\\textwidth]{{NOME_EXATO_DO_ARQUIVO}}
+           \\end{{center}}
+           * **NUNCA** invente nomes de arquivos. Use APENAS o que está em \`recursoFilenames\`.
+           * Se \`recursoFilenames\` estiver vazio, NÃO gere o comando \\includegraphics.
         8. **Correção Ortográfica**: Revise o texto do enunciado e das alternativas para corrigir erros ortográficos, gramaticais e de pontuação. **NÃO altere o conteúdo técnico ou pedagógico**.
-        **[JSON DA PROVA PARA CONVERSÃO]**
+        
+        **[JSON DA LISTA PARA CONVERSÃO]**
         \`\`\`json
         {json_data}
         \`\`\`
@@ -261,14 +267,14 @@ ${listaJson.instituicao ? `\\large ${listaJson.instituicao} \\\\ \n \\vspace{0.2
         const chain = prompt.pipe(model).pipe(new StringOutputParser());
 
         const latexQuestions = await chain.invoke({
-            json_data: JSON.stringify(jsonParaLLM, null, 2), // Envia o JSON "limpo"
+            json_data: JSON.stringify(listaLLM, null, 2),
         });
 
-        // Gerar o bloco de gabarito manualmente (rápido e confiável)
-        // SÓ se o switch foi marcado
+        // Gerar o bloco de gabarito manualmente, apenas se o switch for marcado
+        // Importante: Usa-se 'questoesFiltradas' (que ainda tem o gabarito) para gerar o bloco de respostas.
         let gabaritoBlock = "";
         if (includeGabarito) {
-            gabaritoBlock = generateGabaritoLatex(listaJson); // Usa o JSON *completo*
+            gabaritoBlock = generateGabaritoLatex({ questoes: questoesFiltradas });
         }
 
         // Concatenar tudo na ordem correta
