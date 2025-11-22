@@ -16,81 +16,86 @@ const HistogramaNotas = ({ dados, meta }) => {
         "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
     ];
 
-    // Extrai metadados ou usa defaults
     const { qndNotaMinima = 0, qndNotaMaxima = 0 } = meta || {};
 
-    // Cálculos
-    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
 
-    // Função auxiliar de formatação
-    const formatarTextoTooltip = (value) => {
-        if (value === null || value === undefined) return ''; 
-        const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-        return `Nº de Alunos: ${value} (${porcentagem}%)`; 
-    };
+    const valueFormatter = (value) => {
+      // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
+      if (value === null || value === undefined) return null
 
-    // Formata os dados para criar 5 séries empilhadas (Estratégia do Gradiente)
-    const seriesFormatadas = dados.map((entry, index) => {
-        const dataArray = new Array(dados.length).fill(null);
-        dataArray[index] = entry.Respostas; 
-        
-        return {
-        data: dataArray,
-        stack: 'total',
-        };
-    });
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      return `Nº de Alunos: ${value} (${porcentagem}%)`;
+    };
 
-    const labelsEixoX = dados.map(entry => entry.nome);
+    // Formata os dados para incluir a cor baseada na faixa de nota
+    const seriesFormatadas = dados.map((entry, index) => {
+      // Cria um array de 'null's
+      const dataArray = new Array(dados.length).fill(null);
+      // Coloca o valor da barra na posição correta
+      dataArray[index] = entry.Respostas;
 
-    // Mock dos destaques (Futuramente virão via props da API)
-    const qtdNotaZero = 2; 
-    const qtdNotaDez = 4;  
+      return {
+        data: dataArray, // ex: [3, null, null, null, null]
+        valueFormatter,  // Aplica o formatter
+        stack: 'total',  // Todas as séries ficam na mesma "pilha"
+        // O 'label' é removido para evitar o tooltip duplicado
+      };
+    });
 
-    return (
-        <Box sx={{ width: '100%', maxWidth: '600px', mx: 'auto' }}>
-        <BarChart
-            xAxis={[{ 
-            scaleType: 'band', 
-            data: labelsEixoX,
-            label: 'Faixa de Nota' 
-            }]}
-            yAxis={[{ 
-            label: 'Nº de Alunos'
-            }]}
-            series={seriesFormatadas}
-            colors={CORES_GRADIENTE_NOTAS}
-            height={300}
-            margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
-            slotProps={{
-            legend: { hidden: true }, 
-            }}
-            tooltip={{ trigger: 'item' }} // Gatilho 'item'
-        />
+    const labelsEixoX = dados.map(entry => entry.nome);
 
-        {/* Área de Destaques (Zero e Dez) */}
-                <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-                  <Chip
-                    label={`Nota Mínima: ${qndNotaMinima} alunos`}
-                    variant="outlined"
-                    sx={{
-                      borderColor: '#d32f2f', // Vermelho
-                      color: '#d32f2f',
-                      fontWeight: 'bold'
-                    }}
-                  />
-                  <Chip
-                    label={`Nota Máxima: ${qndNotaMaxima} alunos`}
-                    variant="outlined"
-                    sx={{
-                      borderColor: '#2e7d32', // Verde
-                      color: '#2e7d32',
-                      fontWeight: 'bold'
-                    }}
-                  />
-                </Stack>
-        
-              </Box>
-            );
-          };
+
+    return (
+      <Box sx={{
+        width: '100%',
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
+        <BarChart
+          xAxis={[{
+            scaleType: 'band',
+            data: labelsEixoX,
+            label: 'Faixa de Nota'
+          }]}
+          yAxis={[{
+            label: 'Nº de Alunos'
+          }]}
+          // Este gráfico tem apenas UMA série de dados
+          series={seriesFormatadas}
+          colors={CORES_GRADIENTE_NOTAS}
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
+          slotProps={{
+            legend: { hidden: true }, // Não precisa de legenda
+          }}
+          tooltip={{ trigger: 'item' }} // Gatilho 'item'
+        />
+
+        {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
+        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Chip
+            label={`Nota Mínima: ${qndNotaMinima} alunos`}
+            variant="outlined"
+            sx={{
+              borderColor: '#d32f2f', // Vermelho
+              color: '#d32f2f',
+              fontWeight: 'bold'
+            }}
+          />
+          <Chip
+            label={`Nota Máxima: ${qndNotaMaxima} alunos`}
+            variant="outlined"
+            sx={{
+              borderColor: '#2e7d32', // Verde
+              color: '#2e7d32',
+              fontWeight: 'bold'
+            }}
+          />
+        </Stack>
+
+      </Box>
+    );
+  };
 
 export default HistogramaNotas;
