@@ -4,7 +4,15 @@ import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { Typography, Box, Chip, Stack } from '@mui/material';
 
+/**
+ * Componente Orquestrador para gráficos de estatísticas.
+ * Refatorado para delegar a renderização para componentes especializados.
+ */
 import HistogramaNotas from './charts/HistogramaNotas';
+import BarChartFrequencia from './charts/BarChartFrequencia';
+import BarChartAgrupado from './charts/BarChartAgrupado';
+
+
 
 
 /**
@@ -16,117 +24,6 @@ import HistogramaNotas from './charts/HistogramaNotas';
  * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
 const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) => {
-
-  // Define as cores
-  const COR_CORRETA = "#2e7d32";
-  const COR_INCORRETA = "#d32f2f";
-
-  // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
-  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
-
-    const dadosProcessados = dados.map(entry => ({
-      nome: entry.nome,
-      RespostasCorretas: entry.correta ? entry.Respostas : undefined,
-      RespostasIncorretas: !entry.correta ? entry.Respostas : undefined,
-    }));
-
-    // Lógica para o Tooltip (Nº e %)
-    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
-    const valueFormatter = (value) => {
-      if (value === null || value === undefined) return null; // Alterado de '' para null na refatoração anterior
-      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
-      return `Nº de Respostas: ${value} (${porcentagem}%)`;
-    };
-
-
-
-    return (
-      // Envolve o BarChart numa Box para centralização
-      <Box sx={{
-        width: '100%',
-        maxWidth: '600px',
-        mx: 'auto'
-      }}>
-        <BarChart
-          dataset={dadosProcessados}
-          xAxis={[{
-            scaleType: 'band',
-            dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
-            label: labelEixoX
-          }]}
-          yAxis={[{
-            label: 'Nº de Respostas' // Rótulo do Eixo Y
-          }]}
-          series={[
-            {
-              dataKey: 'RespostasCorretas',
-              valueFormatter,
-              stack: 'respostas' // Identificador do "stack"
-            },
-            {
-              dataKey: 'RespostasIncorretas',
-              valueFormatter,
-              stack: 'respostas' // Mesmo identificador
-            }
-          ]}
-          colors={[COR_CORRETA, COR_INCORRETA]}
-          height={300}
-          margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
-          slotProps={{
-            legend: { hidden: true },
-          }}
-          tooltip={{ trigger: 'item' }}
-        />
-      </Box>
-    );
-  };
-
-  // Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações)
-  const renderGraficoBarrasAgrupadas = () => {
-
-    // O formatador do tooltip agora é simples, apenas adiciona '%'
-    const valueFormatter = (value) => value === null ? '' : `${value}%`;
-
-    return (
-      <Box sx={{
-        width: '100%',
-        maxWidth: '600px',
-        mx: 'auto'
-      }}>
-        <BarChart
-          dataset={dados} // Usará os mockDadosVFAgrupado
-          xAxis={[{
-            scaleType: 'band',
-            dataKey: 'nome', // Eixo X (Afirmação I, II, III...)
-            label: 'Afirmação'
-          }]}
-          yAxis={[{
-            label: 'Percentual de Respostas (%)',
-            max: 100
-          }]}
-          series={[
-            {
-              dataKey: 'acertos',
-              label: 'Acertos',
-              valueFormatter,
-            },
-            {
-              dataKey: 'erros',
-              label: 'Erros',
-              valueFormatter,
-            }
-          ]}
-          colors={[COR_CORRETA, COR_INCORRETA]}
-          height={300}
-          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Espaço para a legenda no topo
-
-          slotProps={{
-            legend: { hidden: true },
-          }}
-        />
-      </Box>
-    );
-  };
 
   // Lógica Principal de Renderização
   if (!dados || dados.length === 0) {
