@@ -34,16 +34,16 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
     case 'alternativa':
-      return renderGraficoBarras('Alternativa');
+      return <BarChartFrequencia dados={dados} labelEixoX="Alternativa" />;
 
     case 'afirmacoes':
-      return renderGraficoBarrasAgrupadas();
+      return <BarChartAgrupado dados={dados} />;
 
     case 'numerica':
-      return renderGraficoBarras('Respostas Submetidas');
+      return <BarChartFrequencia dados={dados} labelEixoX="Respostas Submetidas" />;
 
     case 'proposicoes':
-      return renderGraficoBarras('Soma Submetida');
+      return <BarChartFrequencia dados={dados} labelEixoX="Soma Submetida" />;
 
     case 'dissertativa':
       // USANDO O NOVO COMPONENTE
