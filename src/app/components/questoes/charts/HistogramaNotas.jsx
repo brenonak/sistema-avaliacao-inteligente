@@ -3,18 +3,9 @@
 import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { Typography, Box, Chip, Stack } from '@mui/material';
+import { CHART_COLORS } from '../../../../constants/chartColors';
 
 const HistogramaNotas = ({ dados, meta }) => {
-
-    // Definição de cores internas do componente
-    
-    const CORES_GRADIENTE_NOTAS = [
-        "#d32f2f", // Vermelho - Notas baixas (0-2)
-        "#ff9800", // Laranja - Notas médias baixas (2.1-4)
-        "#ffeb3b", // Amarelo - Notas médias (4.1-6)
-        "#8bc34a", // Verde Claro - Notas médias altas (6.1-8)
-        "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
-    ];
 
     const { qndNotaMinima = 0, qndNotaMaxima = 0 } = meta || {};
 
@@ -63,7 +54,7 @@ const HistogramaNotas = ({ dados, meta }) => {
           }]}
           // Este gráfico tem apenas UMA série de dados
           series={seriesFormatadas}
-          colors={CORES_GRADIENTE_NOTAS}
+          colors={CHART_COLORS.GRADIENT_NOTES}
           height={300}
           margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
           slotProps={{
