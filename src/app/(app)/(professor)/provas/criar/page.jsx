@@ -11,10 +11,10 @@ import {
   Button,
   TextField,
   Paper,
-  Grid,
   CircularProgress,
   Alert,
   Divider,
+  Grid,
   Card,
   CardContent,
   List,
@@ -23,6 +23,10 @@ import {
   Checkbox,
   Chip,
 } from '@mui/material';
+
+
+
+
 import {
   ArrowBack,
   Save,
@@ -311,7 +315,7 @@ function CriarProvaContent() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid xs={12}>
+                <Grid size={12}>
                   <TextField
                     fullWidth
                     required
@@ -325,7 +329,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12}>
+                <Grid size={12}>
                   <TextField
                     fullWidth
                     required
@@ -339,7 +343,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12}>
+                <Grid size={12}>
                   <TextField
                     fullWidth
                     label="Observações"
@@ -366,7 +370,7 @@ function CriarProvaContent() {
               </Box>
 
               <Grid container spacing={2}>
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md: 6}}>
                   <TextField
                     fullWidth
                     label="Nome da Escola/Instituição"
@@ -378,7 +382,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md:6}}>  
                   <TextField
                     fullWidth
                     label="Disciplina"
@@ -390,7 +394,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md:6}}> 
                   <TextField
                     fullWidth
                     label="Nome do Professor"
@@ -402,7 +406,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md:6}}> 
                   <TextField
                     fullWidth
                     label="Data"
@@ -417,7 +421,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md:6}}> 
                   <TextField
                     fullWidth
                     label="Duração"
@@ -428,7 +432,7 @@ function CriarProvaContent() {
                   />
                 </Grid>
 
-                <Grid xs={12} md={6}>
+                <Grid size = {{xs:12, md:6}}> 
                   <TextField
                     fullWidth
                     label="Valor Total"

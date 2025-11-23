@@ -3,6 +3,7 @@
 import React from 'react';
 import { BarChart } from '@mui/x-charts';
 import { Box } from '@mui/material';
+import { CHART_COLORS } from '../../../../constants/chartColors';
 
 const BarChartFrequencia = ({ dados, labelEixoX = 'Alternativa' }) => {
   
@@ -53,7 +54,7 @@ const BarChartFrequencia = ({ dados, labelEixoX = 'Alternativa' }) => {
                 stack: 'respostas' // Mesmo identificador
               }
             ]}
-            colors={[COR_CORRETA, COR_INCORRETA]}
+            colors={[CHART_COLORS.CORRECT, CHART_COLORS.INCORRECT]}
             height={300}
             margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
             slotProps={{
