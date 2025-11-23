@@ -49,11 +49,38 @@ const Header = () => {
     >
       <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Logo 
-              href="/dashboard" 
-              src="/professor.svg" 
-              label="Sistema Acadêmico"
+          <Button
+            component={Link}
+            href="/dashboard"
+            disableRipple
+            sx={{
+              color: 'text.primary',
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              '&:hover': { backgroundColor: 'inherit' },
+              transition: 'background-color 0ms ease, color 0ms ease',
+            }}
+          >
+            <Box
+              component="img"
+              src="/aluno.svg"
+              alt="Professor Icon"
+              sx={{
+                height: 64,
+                width: 64,
+              }}
             />
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                letterSpacing: 0.5,
+              }}
+            >
+              Sistema Acadêmico
+            </Typography>
+          </Button>
         </Box>
         <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
           <HeaderThemeSelector />
