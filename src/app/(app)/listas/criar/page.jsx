@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -50,9 +50,7 @@ function CriarListaContent() {
   // Campos do formulário
   const [formData, setFormData] = useState({
     tituloLista: '',
-    questoesIds: [],
     nomeInstituicao: '',
-
   });
 
   // Estado para questões do curso
@@ -63,6 +61,16 @@ function CriarListaContent() {
   // Estados para controle de pontuação
   const [usarPontuacao, setUsarPontuacao] = useState(false);
   const [questoesPontuacao, setQuestoesPontuacao] = useState({});
+
+  // Função utilitária para obter ID da questão
+  const getQuestaoId = (questao) => questao._id || questao.id;
+
+  // Lookup map para performance - evita .find() repetidos
+  const questoesMap = useMemo(() => {
+    const map = new Map();
+    questoes.forEach(q => map.set(getQuestaoId(q), q));
+    return map;
+  }, [questoes]);
 
   // Buscar questões do curso
   useEffect(() => {
@@ -168,7 +176,7 @@ function CriarListaContent() {
 
       // Envia os IDs reais das questões
       const questoesIds = selectedQuestoes.map(qId => {
-        const questao = questoes.find(q => (q._id || q.id) === qId);
+        const questao = questoesMap.get(qId);
         return questao?._id || qId;
       });
 
@@ -375,7 +383,7 @@ function CriarListaContent() {
                       </Box>
                       <List sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1 }}>
                         {selectedQuestoes.map((questaoId, index) => {
-                          const questao = questoes.find(q => (q._id || q.id) === questaoId);
+                          const questao = questoesMap.get(questaoId);
                           if (!questao) return null;
 
                           return (
@@ -496,9 +504,9 @@ function CriarListaContent() {
                   {/* Questões Disponíveis */}
                   <List sx={{ maxHeight: 400, overflow: 'auto' }}>
                     {questoes
-                      .filter(questao => !selectedQuestoes.includes(questao._id || questao.id))
+                      .filter(questao => !selectedQuestoes.includes(getQuestaoId(questao)))
                       .map((questao) => {
-                        const questaoId = questao._id || questao.id;
+                        const questaoId = getQuestaoId(questao);
 
                         return (
                           <ListItem
