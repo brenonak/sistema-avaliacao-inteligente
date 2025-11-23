@@ -3,15 +3,9 @@
 import React from 'react';
 import { BarChart } from '@mui/x-charts';
 import { Box } from '@mui/material';
-
-// Se você já criou o arquivo de constantes na Task #313, pode importar aqui:
-// import { CHART_COLORS } from '@/constants/chartColors';
+import { CHART_COLORS } from '../../../../constants/chartColors';
 
 const BarChartAgrupado = ({ dados }) => {
-  
-  // Se não estiver usando o arquivo de constantes, mantenha as locais:
-  const COR_CORRETA = "#2e7d32";
-  const COR_INCORRETA = "#d32f2f";
 
   // valueFormatter agora recebe o contexto ({ dataIndex }) para acessar os dados brutos
   const valueFormatter = (value, { dataIndex }) => {
@@ -58,7 +52,7 @@ const BarChartAgrupado = ({ dados }) => {
             valueFormatter,
           }
         ]}
-        colors={[COR_CORRETA, COR_INCORRETA]}
+        colors={[CHART_COLORS.CORRECT, CHART_COLORS.INCORRECT]}
         height={300}
         margin={{ top: 40, right: 20, left: 60, bottom: 30 }}
         slotProps={{
