@@ -4,6 +4,7 @@ import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Link, Container, darken, alpha} from '@mui/material';
 import { landingContent } from '../../constants/landingContent'; 
 import NextLink from 'next/link';
+import Logo from './Logo';
 
 const LandingPageHeader = () => {
   const { logoText, links, buttons } = landingContent.header;
@@ -23,46 +24,11 @@ const LandingPageHeader = () => {
       <Container maxWidth="lg">
         <Toolbar disableGutters>
           {/* *** LOGO *** */}
-          <Button
-            component={NextLink} 
+          <Logo 
             href="/" 
-            disableRipple
-            sx={{
-              color: 'text.primary',
-              display: 'flex',
-              alignItems: 'center',
-              textTransform: 'none', 
-              '&:hover': { 
-                backgroundColor: 'transparent',
-                // 1. EFEITO SALTAR NO LOGO
-                transform: 'scale(1.03) translateY(-1px)', 
-              },
-              // 2. TRANSIÇÃO SUAVE NO LOGO
-              transition: (theme) => theme.transitions.create('transform', {
-                duration: theme.transitions.duration.short,
-              }),
-            }}
-          >
-            {/* O ÍCONE DO LOGO */}
-            <Box
-              component="img"
-              src="/professor.svg" 
-              alt="Professor Icon"
-              sx={{
-                height: 64,
-                width: 64,
-                mr: 1.5,
-              }}
-            />
-            {/* O TEXTO DO LOGO */}
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ fontWeight: 'bold' }}
-            >
-              {logoText}
-            </Typography>
-          </Button>
+            src="/professor.svg"
+            label={logoText} 
+          />
 
           {/* *** LINKS DE NAVEGAÇÃO *** */}
           <Box sx={{ ml: 4, display: { xs: 'none', md: 'flex' }, gap: 3 }}>
