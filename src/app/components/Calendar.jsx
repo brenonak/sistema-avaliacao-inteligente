@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 
 // Componente utilizado para mostrar os dias marcados no calendário
 function ServerDay(props) {
-  const { day, outsideCurrentMonth, highlightedDays = [], ...other } = props;
+  const { day, outsideCurrentMonth, highlightedDays = [], iconColor, ...other } = props;
 
   const isSelected = !outsideCurrentMonth && highlightedDays.includes(day.date());
 
@@ -59,7 +59,7 @@ function ServerDay(props) {
                 left: 0,
               }}
             >
-              <AssignmentIcon sx={{ fontSize: 14, color: 'accent.main' }} />
+              <AssignmentIcon sx={{ fontSize: 14, color: iconColor ?? 'accent.main'  }} />
             </IconButton>
             <Menu
               anchorEl={anchorEl}
@@ -87,7 +87,7 @@ function ServerDay(props) {
   );
 }
 
-export default function Calendar() {
+export default function Calendar({ iconColor }) {
   // A data selecionada no calendário (valor inicial: null para evitar SSR mismatch)
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -145,7 +145,7 @@ export default function Calendar() {
           renderLoading={() => <DayCalendarSkeleton />}
           slots={{ day: ServerDay }}
           slotProps={{
-            day: { highlightedDays }
+            day: { highlightedDays, iconColor }
           }}
         />
       </Box>

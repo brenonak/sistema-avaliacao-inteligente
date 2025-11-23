@@ -3,7 +3,7 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CriarQuestaoPage from '../src/app/(app)/questoes/criar/page';
+import CriarQuestaoPage from '../src/app/(app)/(professor)/questoes/criar/page';
 import { upload } from '@vercel/blob/client'; // Importar para mock
 
 // Mock para chamadas de API

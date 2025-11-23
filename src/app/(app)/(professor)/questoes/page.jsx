@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { Box, Typography, Button, Card, CardContent, List, ListItem, ListItemText, CircularProgress, CardActions, Pagination, FormControl, InputLabel, Select, MenuItem, IconButton, TextField, InputAdornment, Chip, Autocomplete, Snackbar, Alert } from '@mui/material';
 import { ArrowUpward, ArrowDownward, Search, Clear, FilterList, Assessment } from '@mui/icons-material';
-import EditQuestionModal from '../../components/EditQuestionModal';
-import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
+import EditQuestionModal from '../../../components/EditQuestionModal';
+import ConfirmDeleteDialog from '../../../components/ConfirmDeleteDialog';
 import VisibilityIcon from '@mui/icons-material/Visibility'; 
 import AssessmentIcon from '@mui/icons-material/Assessment';
 

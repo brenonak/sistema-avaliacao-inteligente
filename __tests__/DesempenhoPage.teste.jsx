@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DesempenhoPage from '../src/app/(app)/desempenho/page';
+import DesempenhoPage from '../src/app/(app)/(professor)/desempenho/page';
 
 
 jest.mock('../src/app/components/PerformanceSummary', () => {
