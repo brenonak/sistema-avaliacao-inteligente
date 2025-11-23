@@ -18,7 +18,7 @@ export default function Logo({ href, src, label, sx = [] }) {
           textTransform: 'none',
           '&:hover': {
             backgroundColor: 'transparent',
-            transform: 'scale(1.02) translateY(-1px)', // Efeito sutil de "pulo"
+            transform: 'scale(1.03) translateY(-1px)', // Efeito sutil de "pulo"
           },
           transition: (theme) => theme.transitions.create('transform', {
             duration: theme.transitions.duration.short,
@@ -32,7 +32,7 @@ export default function Logo({ href, src, label, sx = [] }) {
         component="img"
         src={src}
         alt={`${label} Logo`}
-        sx={{ height: 40, width: 40, mr: 1.5 }}
+        sx={{ height: 64, width: 64, mr: 1.5 }}
       />
       <Typography 
         variant="h6" 
