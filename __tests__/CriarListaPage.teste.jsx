@@ -13,12 +13,7 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(),
 }));
 
-global.fetch = jest.fn(() =>
-    Promise.resolve({
-      ok: true, 
-      json: () => Promise.resolve({ message: 'Lista criada com sucesso' }),
-    })
-  );
+global.fetch = jest.fn();
 
 // --- Dados Mockados ---
 
