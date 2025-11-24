@@ -236,6 +236,32 @@ describe('CriarQuestaoPage', () => {
       await selectQuestionType(user, /Múltipla escolha/i);
       expect(screen.getByPlaceholderText('Alternativa A')).toHaveValue(''); // Deve estar limpo
     });
+
+    it('deve adicionar um FileItem quando um arquivo for enviado', async () => {
+      renderWithTheme(<CriarQuestaoPage />);
+
+      let fileInput =
+        screen.queryByTestId('file-upload-input') ||
+        screen.queryByLabelText(/upload/i) ||
+        screen.queryByLabelText(/arquivo/i);
+
+      if (!fileInput) {
+        fileInput = document.querySelector('input[type="file"]');
+      }
+
+      expect(fileInput).not.toBeNull();
+
+      const fakeFile = new File(['conteudo'], 'arquivo-teste.png', {
+        type: 'image/png',
+      });
+
+      await user.upload(fileInput, fakeFile);
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('arquivo-teste.png')).toBeInTheDocument();
+      });
+    });
+
   });
 
   // --- TESTES DE VALIDAÇÃO E ERROS ---
