@@ -127,7 +127,7 @@ export default function VisualizarRespostasPage() {
               severity={isCorrect ? 'success' : 'error'} 
               sx={{ mb: 2 }}
             >
-              {isCorrect ? '✓ Resposta correta!' : '✗ Resposta incorreta'}
+              {isCorrect ? 'Resposta correta!' : 'Resposta incorreta'}
             </Alert>
           )}
 
