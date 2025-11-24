@@ -142,13 +142,20 @@ describe('VisualizarRespostasPage', () => {
     // Verificar resumo de desempenho
     expect(screen.getByText('📊 Resultado')).toBeInTheDocument();
     expect(screen.getByText('15.0 / 15.0')).toBeInTheDocument();
-    expect(screen.getByText('(100%)')).toBeInTheDocument();
+    
+    // Verificar percentuais (existem 2 ocorrências: pontuação e questões corretas)
+    const percentuais = screen.getAllByText('(100%)');
+    expect(percentuais).toHaveLength(2);
+    
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
 
     // Verificar questões exibidas
     expect(screen.getByText('Questão 1')).toBeInTheDocument();
     expect(screen.getByText('Quanto é 2 + 2?')).toBeInTheDocument();
-    expect(screen.getByText('Resposta correta!')).toBeInTheDocument();
+    
+    // Verificar alertas de respostas corretas (2 questões corretas)
+    const alertasCorretos = screen.getAllByText('Resposta correta!');
+    expect(alertasCorretos).toHaveLength(2);
 
     expect(screen.getByText('Questão 2')).toBeInTheDocument();
     expect(screen.getByText('Quanto é 5 x 3?')).toBeInTheDocument();
