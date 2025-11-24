@@ -5,9 +5,9 @@ name: CI - testes automatizados
 # Define quando o workflow deve ser acionado
 on:
   push:
-    branches: [ "main" , "develop" ]
+    branches: [ "main" , "develop" , "AVT-TESTE-Miguel"]
   pull_request:
-    branches: [ "main" , "develop" ]
+    branches: [ "main" , "develop", "AVT-TESTE-Miguel" ]
 
 
 # Define os trabalhos (jobs) a serem executados
