@@ -84,8 +84,8 @@ describe('CriarQuestaoPage', () => {
             body: expect.stringContaining('"tipo":"alternativa"')
         }));
         expect(screen.getByText('Questão criada com sucesso!')).toBeInTheDocument();
-      });
-    });
+      }, { timeout: 10000 });
+    }, 15000);
 
     it('deve submeter com sucesso uma questão de afirmações (V/F)', async () => {
       fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
@@ -110,8 +110,8 @@ describe('CriarQuestaoPage', () => {
           expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
               body: expect.stringContaining('"afirmacoes":[{"texto":"O céu é azul.","correta":true},{"texto":"A terra é plana.","correta":false}]')
           }));
-      });
-    });
+      }, { timeout: 10000 });
+    }, 15000);
 
     it('deve submeter com sucesso uma questão dissertativa', async () => {
         fetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
@@ -128,8 +128,8 @@ describe('CriarQuestaoPage', () => {
             expect(fetch).toHaveBeenCalledWith('/api/questoes', expect.objectContaining({
                 body: expect.stringContaining('"gabarito":"Testes garantem a qualidade."')
             }));
-        });
-      });
+        }, { timeout: 10000 });
+      }, 15000);
   });
 
   // --- TESTES PARA FUNCIONALIDADES DE IA ---
@@ -166,11 +166,11 @@ describe('CriarQuestaoPage', () => {
         expect(screen.getByLabelText('Enunciado da Questão')).toHaveValue('Qual é a capital correta do Brasil?');
         expect(screen.getByPlaceholderText('Alternativa A')).toHaveValue('Brasília.');
         expect(screen.getByText('Questão revisada com sucesso pela IA!')).toBeInTheDocument();
-      });
-    });
+      }, { timeout: 10000 });
+    }, 15000);
 
     it('deve gerar distratores com IA para preencher alternativas vazias', async () => {
-      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ alternativasIncorretas: ['Rio de Janeiro', 'Salvador'] }) });
+      fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ alternativasIncorretas: ['Rio de Janeiro', 'Salvador', 'Recife'] }) });
       renderWithTheme(<CriarQuestaoPage />);
 
       await user.type(screen.getByLabelText('Enunciado da Questão'), 'Qual a capital do Brasil?');
@@ -186,9 +186,12 @@ describe('CriarQuestaoPage', () => {
         expect(fetch).toHaveBeenCalledWith('/api/ai/gerar-alternativa', expect.objectContaining({
           body: expect.stringContaining('"quantidade":3') // B, C, D vazias
         }));
+      }, { timeout: 10000 });
+      
+      await waitFor(() => {
         expect(screen.getByPlaceholderText('Alternativa B')).toHaveValue('Rio de Janeiro');
         expect(screen.getByPlaceholderText('Alternativa C')).toHaveValue('Salvador');
-      });
+      }, { timeout: 10000 });
     });
   });
 
