@@ -384,6 +384,7 @@ export default function ResultadoProvaPage() {
                           }}
                         >
                           <Typography 
+                            component="div"
                             sx={{ 
                               fontWeight: alt.letra === questao.respostaAluno ? 'bold' : 'normal',
                               width: '100%'
