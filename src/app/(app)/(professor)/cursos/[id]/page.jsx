@@ -44,6 +44,7 @@ import {
   Download,
   RateReview,
   Visibility,
+  CheckCircle,
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -1154,9 +1155,20 @@ export default function CursoDetalhesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                        {lista.tituloLista}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                          {lista.tituloLista}
+                        </Typography>
+                        {listasFinalizadas[lista.id || lista._id] && (
+                          <Chip 
+                            icon={<CheckCircle />}
+                            label="Finalizado" 
+                            color="success" 
+                            size="small"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        )}
+                      </Box>
 
                       {lista.nomeInstituicao && (
                         <Box sx={{ display: 'inline-block'}}>
