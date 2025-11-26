@@ -17,9 +17,8 @@ import {
   ArrowBack,
   CheckCircle,
   Cancel,
-  Info,
   Comment as CommentIcon,
-  Assignment
+  Assessment
 } from '@mui/icons-material';
 
 export default function ResultadoProvaPage() {
@@ -196,37 +195,80 @@ export default function ResultadoProvaPage() {
 
           {/* Resumo de Desempenho */}
           <Paper sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-              📊 Resultado
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Nota Final
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: resultado.desempenho.nota >= (resultado.prova.valorTotal * 0.6) ? 'success.main' : 'error.main' }}>
-                  {resultado.desempenho.nota.toFixed(1)} / {resultado.prova.valorTotal.toFixed(1)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  ({resultado.prova.valorTotal > 0 ? Math.round((resultado.desempenho.nota / resultado.prova.valorTotal) * 100) : 0}%)
-                </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Assessment color="primary" />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Resultado
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Roda de Porcentagem */}
+              <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                <CircularProgress
+                  variant="determinate"
+                  value={resultado.prova.valorTotal > 0 ? Math.round((resultado.desempenho.nota / resultado.prova.valorTotal) * 100) : 0}
+                  size={120}
+                  thickness={5}
+                  color={resultado.desempenho.nota >= (resultado.prova.valorTotal * 0.6) ? 'success' : 'error'}
+                  sx={{ opacity: 0.3 }}
+                />
+                <CircularProgress
+                  variant="determinate"
+                  value={resultado.prova.valorTotal > 0 ? Math.round((resultado.desempenho.nota / resultado.prova.valorTotal) * 100) : 0}
+                  size={120}
+                  thickness={5}
+                  color={resultado.desempenho.nota >= (resultado.prova.valorTotal * 0.6) ? 'success' : 'error'}
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    strokeLinecap: 'round',
+                  }}
+                />
+                <Box
+                  sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', color: resultado.desempenho.nota >= (resultado.prova.valorTotal * 0.6) ? 'success.main' : 'error.main' }}>
+                    {resultado.prova.valorTotal > 0 ? Math.round((resultado.desempenho.nota / resultado.prova.valorTotal) * 100) : 0}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Acertos
+                  </Typography>
+                </Box>
               </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Questões Corretas
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                  {resultado.questoes.filter(q => q.notaObtida === q.valor).length} / {resultado.questoes.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  ({resultado.questoes.length > 0 ? Math.round((resultado.questoes.filter(q => q.notaObtida === q.valor).length / resultado.questoes.length) * 100) : 0}%)
-                </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Nota Final
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: resultado.desempenho.nota >= (resultado.prova.valorTotal * 0.6) ? 'success.main' : 'error.main' }}>
+                    {resultado.desempenho.nota.toFixed(1)} / {resultado.prova.valorTotal.toFixed(1)}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Questões Corretas
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    {resultado.questoes.filter(q => q.notaObtida === q.valor).length} / {resultado.questoes.length}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Paper>
 
           {resultado.prova.instrucoes && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
                 Instruções:
               </Typography>
@@ -448,10 +490,10 @@ export default function ResultadoProvaPage() {
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
-            onClick={() => router.push(`/aluno/cursos/${cursoId}`)}
+            onClick={() => router.back()}
             size="large"
           >
-            Voltar ao Curso
+            Voltar
           </Button>
         </Box>
       </Paper>
