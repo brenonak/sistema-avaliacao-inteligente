@@ -76,13 +76,13 @@ function CriarQuestaoForm() {
 
   useEffect(() => {
     const isAnyFieldFilled =
-      enunciado.trim() !== '' ||
-      tagsInput.trim() !== '' ||
-      (tipo === 'alternativa' && alternativas.some(a => a.texto.trim() !== '')) ||
-      (tipo === 'afirmacoes' && afirmacoes.some(a => a.texto.trim() !== '')) ||
-      (tipo === 'numerica' && (respostaNumerica.trim() !== '' || margemErro.trim() !== '')) ||
-      (tipo === 'proposicoes' && proposicoes.some(p => p.texto.trim() !== '')) ||
-      (tipo === 'dissertativa' && (gabarito.trim() !== '' || palavrasChave.trim() !== ''));
+      (enunciado && enunciado.trim() !== '') ||
+      (tagsInput && tagsInput.trim() !== '') ||
+      (tipo === 'alternativa' && alternativas.some(a => a.texto && a.texto.trim() !== '')) ||
+      (tipo === 'afirmacoes' && afirmacoes.some(a => a.texto && a.texto.trim() !== '')) ||
+      (tipo === 'numerica' && ((respostaNumerica && respostaNumerica.trim() !== '') || (margemErro && margemErro.trim() !== ''))) ||
+      (tipo === 'proposicoes' && proposicoes.some(p => p.texto && p.texto.trim() !== '')) ||
+      (tipo === 'dissertativa' && ((gabarito && gabarito.trim() !== '') || (palavrasChave && palavrasChave.trim() !== '')));
 
     setIsFormFilled(isAnyFieldFilled);
   }, [enunciado, tagsInput, tipo, alternativas, afirmacoes, respostaNumerica, margemErro, proposicoes, gabarito, palavrasChave]);
@@ -512,8 +512,14 @@ useEffect(() => {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || `Falha ao salvar (HTTP ${res.status})`);
+        let errorMessage = `Falha ao salvar (HTTP ${res.status})`;
+        try {
+          const err = await res.json();
+          errorMessage = err?.error || err?.message || errorMessage;
+        } catch (jsonErr) {
+          // Se não conseguir fazer parse do JSON, usa mensagem padrão
+        }
+        throw new Error(errorMessage);
       }
 
       const created = await res.json();
