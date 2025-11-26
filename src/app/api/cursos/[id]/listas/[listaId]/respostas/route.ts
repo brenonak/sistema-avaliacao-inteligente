@@ -5,10 +5,6 @@ import * as RespostaAlunoService from "../../../../../../../services/db/resposta
 import { getDb } from "../../../../../../../lib/mongodb";
 import { ObjectId } from "mongodb";
 
-/**
- * GET /api/cursos/:id/listas/:listaId/respostas
- * Busca as respostas já salvas do aluno para uma lista de exercícios
- */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string, listaId: string }> }
@@ -30,20 +26,36 @@ export async function GET(
     }
 
     // Buscar respostas do aluno para as questões desta lista
-    const questoesIds = (lista.questoesIds || []).map((id: any) => 
+    const questoesIds = (lista.questoesIds || []).map((id: any) =>
       typeof id === 'string' ? id : id.toString()
     );
-    
+
     // Buscar respostas filtrando por listaId
     const respostas = await RespostaAlunoService.listRespostasAluno(userId, listaId);
 
     // Transformar em um objeto: { questaoId: resposta }
     const respostasMap: Record<string, any> = {};
+    const correcaoMap: Record<string, { isCorrect: boolean; pontuacaoObtida: number | null; pontuacaoMaxima: number }> = {};
     let finalizado = false;
     let dataFinalizacao: Date | null = null;
-    
+    let pontuacaoTotal = 0;
+    let pontuacaoObtidaTotal = 0;
+
     respostas.forEach(r => {
-      respostasMap[r.questaoId.toString()] = r.resposta;
+      const questaoIdStr = r.questaoId.toString();
+      respostasMap[questaoIdStr] = r.resposta;
+      
+      // Informações de correção
+      correcaoMap[questaoIdStr] = {
+        isCorrect: r.isCorrect,
+        pontuacaoObtida: r.pontuacaoObtida,
+        pontuacaoMaxima: r.pontuacaoMaxima,
+      };
+      
+      // Acumular pontuação
+      pontuacaoTotal += r.pontuacaoMaxima;
+      pontuacaoObtidaTotal += r.pontuacaoObtida ?? 0;
+      
       // Se qualquer resposta está finalizada, considera a lista como finalizada
       if (r.finalizado) {
         finalizado = true;
@@ -54,8 +66,11 @@ export async function GET(
     return json({
       ok: true,
       respostas: respostasMap,
+      correcao: correcaoMap,
       finalizado,
       dataFinalizacao,
+      pontuacaoTotal,
+      pontuacaoObtidaTotal,
     });
   } catch (e) {
     console.error("Erro ao buscar respostas:", e);
@@ -65,8 +80,8 @@ export async function GET(
 
 /**
  * POST /api/cursos/:id/listas/:listaId/respostas
- * Salva as respostas do aluno para uma lista de exercícios
- * Body: { respostas: Array<{ questaoId, resposta, pontuacaoMaxima }> }
+ * Salva as respostas do aluno para uma lista de exercícios com correção automática
+ * Body: { respostas: Array<{ questaoId, resposta }>, finalizado?: boolean }
  */
 export async function POST(
   request: Request,
@@ -88,141 +103,70 @@ export async function POST(
     // Verificar se as respostas desta lista já foram finalizadas
     const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId, listaId);
     const respostaFinalizada = respostasExistentes.find(r => r.finalizado === true);
-    
+
     if (respostaFinalizada) {
       return badRequest("As respostas já foram finalizadas e não podem ser modificadas");
     }
 
-    const db = await getDb();
-    const questoesCollection = db.collection("questoes");
-    
-    // Buscar todas as questões para corrigir as respostas
-    const questoesIds = respostas.map(r => new ObjectId(r.questaoId));
-    const questoes = await questoesCollection
-      .find({ _id: { $in: questoesIds } })
-      .toArray();
-
-    const questoesMap = new Map(questoes.map(q => [q._id.toString(), q]));
-
-    // Processar e salvar cada resposta
+    // Processar e salvar cada resposta usando a função de correção automática
     const respostasSalvas: any[] = [];
-    
+    let pontuacaoTotalObtida = 0;
+    let pontuacaoTotalMaxima = 0;
+
     for (const respostaData of respostas) {
-      const { questaoId, resposta, pontuacaoMaxima } = respostaData;
-      const questao = questoesMap.get(questaoId);
+      const { questaoId, resposta } = respostaData;
 
-      if (!questao) {
-        console.warn(`Questão ${questaoId} não encontrada`);
-        continue;
+      try {
+        // Usar a função submeterRespostaAluno que faz correção automática
+        const respostaSalva = await RespostaAlunoService.submeterRespostaAluno(
+          userId,
+          listaId,
+          questaoId,
+          resposta
+        );
+
+        // Acumular pontuações
+        pontuacaoTotalMaxima += respostaSalva.pontuacaoMaxima;
+        pontuacaoTotalObtida += respostaSalva.pontuacaoObtida ?? 0;
+
+        respostasSalvas.push({
+          ...respostaSalva,
+          _id: respostaSalva._id?.toString(),
+          questaoId: respostaSalva.questaoId.toString(),
+          listaId: respostaSalva.listaId.toString(),
+          ownerId: respostaSalva.ownerId.toString(),
+        });
+      } catch (err: any) {
+        console.error(`Erro ao processar questão ${questaoId}:`, err);
+        // Continuar com as outras questões
       }
-
-      // Corrigir a resposta baseada no tipo de questão
-      const { pontuacaoObtida, isCorrect } = corrigirResposta(questao, resposta, pontuacaoMaxima);
-
-      // Salvar ou atualizar a resposta no banco (upsert)
-      const respostaSalva = await RespostaAlunoService.upsertRespostaAluno(userId, {
-        listaId,
-        questaoId,
-        resposta,
-        pontuacaoMaxima,
-        pontuacaoObtida,
-        isCorrect,
-        finalizado,
-      });
-
-      respostasSalvas.push({
-        ...respostaSalva,
-        _id: respostaSalva._id?.toString(),
-        questaoId: respostaSalva.questaoId.toString(),
-        ownerId: respostaSalva.ownerId.toString(),
-      });
     }
+
+    // Calcular estatísticas
+    const totalQuestoes = respostasSalvas.length;
+    const questoesCorretas = respostasSalvas.filter(r => r.isCorrect).length;
+    const percentualAcerto = totalQuestoes > 0 ? (questoesCorretas / totalQuestoes) * 100 : 0;
 
     return json({
       ok: true,
-      message: `${respostasSalvas.length} respostas salvas com sucesso!`,
+      message: finalizado 
+        ? `Respostas finalizadas! Você acertou ${questoesCorretas} de ${totalQuestoes} questões.`
+        : `${respostasSalvas.length} respostas salvas com sucesso!`,
       respostas: respostasSalvas,
+      estatisticas: {
+        totalQuestoes,
+        questoesCorretas,
+        questoesErradas: totalQuestoes - questoesCorretas,
+        percentualAcerto: Math.round(percentualAcerto * 100) / 100,
+        pontuacaoObtida: pontuacaoTotalObtida,
+        pontuacaoMaxima: pontuacaoTotalMaxima,
+        percentualPontuacao: pontuacaoTotalMaxima > 0 
+          ? Math.round((pontuacaoTotalObtida / pontuacaoTotalMaxima) * 100 * 100) / 100 
+          : 0,
+      },
     });
   } catch (e) {
     console.error("Erro ao salvar respostas:", e);
     return serverError(e);
-  }
-}
-
-/**
- * Corrige uma resposta baseada no tipo de questão
- */
-function corrigirResposta(
-  questao: any, 
-  resposta: any, 
-  pontuacaoMaxima: number
-): { pontuacaoObtida: number; isCorrect: boolean } {
-  const tipo = questao.tipo;
-
-  switch (tipo) {
-    case 'alternativa': {
-      // Múltipla escolha: resposta é uma letra (A, B, C, etc)
-      const alternativaCorreta = questao.alternativas?.find((a: any) => a.correta);
-      const letraCorreta = alternativaCorreta?.letra;
-      
-      const isCorrect = resposta === letraCorreta;
-      const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
-      return { pontuacaoObtida, isCorrect };
-    }
-
-    case 'afirmacoes': {
-      // V/F: resposta é um array de booleanos
-      if (!Array.isArray(resposta) || !Array.isArray(questao.afirmacoes)) {
-        return { pontuacaoObtida: 0, isCorrect: false };
-      }
-
-      let acertos = 0;
-      const total = questao.afirmacoes.length;
-
-      questao.afirmacoes.forEach((afirmacao: any, index: number) => {
-        if (resposta[index] === afirmacao.correta) {
-          acertos++;
-        }
-      });
-
-      const isCorrect = acertos === total;
-      const pontuacaoObtida = (acertos / total) * pontuacaoMaxima;
-      
-      return { pontuacaoObtida, isCorrect };
-    }
-
-    case 'proposicoes': {
-      // Proposições (somatório): resposta é um número
-      const somaCorreta = questao.proposicoes
-        ?.filter((p: any) => p.correta)
-        .reduce((sum: number, p: any) => sum + p.valor, 0) || 0;
-
-      const isCorrect = Number(resposta) === somaCorreta;
-      const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
-      return { pontuacaoObtida, isCorrect };
-    }
-
-    case 'numerica': {
-      // Resposta numérica: verifica com margem de erro
-      const respostaCorreta = questao.respostaCorreta;
-      const margemErro = questao.margemErro || 0;
-      const respostaNum = Number(resposta);
-
-      const isCorrect = Math.abs(respostaNum - respostaCorreta) <= margemErro;
-      const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
-      
-      return { pontuacaoObtida, isCorrect };
-    }
-
-    case 'dissertativa': {
-      // Dissertativa: não corrige automaticamente
-      // Professor deve corrigir manualmente depois
-      return { pontuacaoObtida: 0, isCorrect: false };
-    }
-
-    default:
-      return { pontuacaoObtida: 0, isCorrect: false };
   }
 }

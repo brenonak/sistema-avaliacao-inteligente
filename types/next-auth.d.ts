@@ -16,6 +16,7 @@ declare module "next-auth" {
       image?: string | null;
       role?: "ALUNO" | "PROFESSOR" | null;
       profileComplete?: boolean;
+      isProfileComplete?: boolean;
     };
     provider?: string;
   }
@@ -24,6 +25,7 @@ declare module "next-auth" {
     id: string;
     role?: "ALUNO" | "PROFESSOR" | null;
     profileComplete?: boolean;
+    isProfileComplete?: boolean;
   }
 }
 
@@ -33,5 +35,6 @@ declare module "next-auth/jwt" {
     provider?: string;
     role?: "ALUNO" | "PROFESSOR" | null;
     profileComplete?: boolean;
+    isProfileComplete?: boolean;
   }
 }

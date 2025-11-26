@@ -3,7 +3,14 @@ import * as React from 'react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Card, CardContent, Typography, useTheme, Box } from '@mui/material';
 
-export default function StudentPerformanceChart({ labels = [], scores = [], text, height = 480, disabledTitle = 'Sem dados disponíveis' }) {
+export default function StudentPerformanceChart({ 
+  labels = [], 
+  scores = [], 
+  text, 
+  height = 480, 
+  disabledTitle = 'Sem dados disponíveis',
+  lineColor,
+ }) {
   const theme = useTheme();
 
   const hasLabelData = Array.isArray(labels) && labels.length > 0;
@@ -30,7 +37,10 @@ export default function StudentPerformanceChart({ labels = [], scores = [], text
               {
                 data: scores,
                 label: 'Nota',
-                color: theme.palette.accent?.main || theme.palette.primary.main,
+                color:
+                  lineColor ??
+                  theme.palette.accent?.main ??
+                  theme.palette.primary.main, 
               },
             ]}
             margin={{ left: 20, right: 50, top: 30, bottom: 40 }}

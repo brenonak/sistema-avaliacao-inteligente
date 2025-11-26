@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import CriarListaPage from '../src/app/(app)/listas/criar/page'; 
+import CriarListaPage from '../src/app/(app)/(professor)/listas/criar/page'; 
 
 // --- Mocks Globais ---
 
@@ -267,11 +267,14 @@ describe('CriarListaPage', () => {
         '/api/cursos/curso123/listas', 
         expect.objectContaining({
           method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
           body: JSON.stringify({
             
-            tituloLista: 'Lista Teste', 
+            tituloLista: 'Lista Teste',
+            nomeInstituicao: 'UNIFESP', 
             questoesIds: [mockQuestao2._id, mockQuestao1._id],
-            nomeInstituicao: 'UNIFESP',
             usarPontuacao: false,
             // A ordem de seleção foi Q2, depois Q1.
              

@@ -11,10 +11,11 @@ import IconButton from '@mui/material/IconButton';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Box from '@mui/material/Box';
 
 // Componente utilizado para mostrar os dias marcados no calendário
 function ServerDay(props) {
-  const { day, outsideCurrentMonth, highlightedDays = [], ...other } = props;
+  const { day, outsideCurrentMonth, highlightedDays = [], iconColor, ...other } = props;
 
   const isSelected = !outsideCurrentMonth && highlightedDays.includes(day.date());
 
@@ -58,7 +59,7 @@ function ServerDay(props) {
                 left: 0,
               }}
             >
-              <AssignmentIcon sx={{ fontSize: 14, color: 'accent.main' }} />
+              <AssignmentIcon sx={{ fontSize: 14, color: iconColor ?? 'accent.main'  }} />
             </IconButton>
             <Menu
               anchorEl={anchorEl}
@@ -86,7 +87,7 @@ function ServerDay(props) {
   );
 }
 
-export default function Calendar() {
+export default function Calendar({ iconColor }) {
   // A data selecionada no calendário (valor inicial: null para evitar SSR mismatch)
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -124,20 +125,30 @@ export default function Calendar() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-      <DateCalendar
-        value={selectedDate}
-        onChange={() => {}}
-        shouldDisableDate={() => true}
-        loading={isLoading}
-        onMonthChange={handleMonthChange}
-        renderLoading={() => <DayCalendarSkeleton />}
-        slots={{ day: ServerDay }}
-        slotProps={{
-          day: {
-            highlightedDays,
-          }
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          py: 2,
+          transform: "scale(1.1)",   
+          transformOrigin: "center", 
         }}
-      />
+      >
+        <DateCalendar
+          value={selectedDate}
+          onChange={() => {}}
+          shouldDisableDate={() => true}
+          loading={isLoading}
+          onMonthChange={handleMonthChange}
+          renderLoading={() => <DayCalendarSkeleton />}
+          slots={{ day: ServerDay }}
+          slotProps={{
+            day: { highlightedDays, iconColor }
+          }}
+        />
+      </Box>
     </LocalizationProvider>
   );
 }
