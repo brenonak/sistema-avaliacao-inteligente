@@ -24,7 +24,7 @@ import StudentPerformanceChart from "../../../../components/StudentPerformanceCh
 import PendingActivities from "../../../../components/PendingActivities";
 import { useTheme } from '@mui/material/styles';
 
-export default function DashboardPage() {
+export default function DashboardAlunoPage() {
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

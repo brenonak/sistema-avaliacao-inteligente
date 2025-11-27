@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -22,16 +21,8 @@ import CourseSelect from "../../../../components/CourseSelect";
 
 export default function DesempenhoPage() {
   const [selectedCourse, setSelectedCourse] = useState('nenhum');
-
-  const courses = [
-    { id: 'nenhum', name: 'Nenhum' },
-    { id: 'logicaprogramacao', name: 'Lógica de Programação' },
-    { id: 'calculo', name: 'Cálculo I' },
-    { id: 'fisica', name: 'Física Geral' },
-  ];
-
-  // Exemplos de dados (devem ser conectados à API)
-  const dataByCourse = {
+  const [courses, setCourses] = useState([{ id: 'nenhum', name: 'Nenhum' }]);
+  const [dataByCourse, setDataByCourse] = useState({
     no_course_selected: {
       examsLabels: [],
       examsScores: [],
@@ -41,62 +32,47 @@ export default function DesempenhoPage() {
       combinedScores: [],
       history: []
     },
-    logicaprogramacao: {
-      examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
-      examsScores: [72, 78, 91],
-      listsLabels: ['Lista 1', 'Lista 2'],
-      listsScores: [85, 88],
-      combinedLabels: ['Prova 1', 'Lista 1', 'Prova 2', 'Lista 2', 'Prova 3'],
-      combinedScores: [72, 85, 78, 88, 91],
-      history: [
-        { id: 'p1', type: 'Prova', title: 'Prova 1', date: '2023-09-10', score: 7.2, maxScore: 10, status: 'Corrigida' },
-        { id: 'l1', type: 'Lista', title: 'Lista 1', date: '2023-09-15', score: 8.5, maxScore: 10, status: 'Corrigida' },
-        { id: 'p2', type: 'Prova', title: 'Prova 2', date: '2023-10-10', score: 7.8, maxScore: 10, status: 'Corrigida' },
-        { id: 'l2', type: 'Lista', title: 'Lista 2', date: '2023-10-15', score: 8.8, maxScore: 10, status: 'Corrigida' },
-        { id: 'p3', type: 'Prova', title: 'Prova 3', date: '2023-11-10', score: 9.1, maxScore: 10, status: 'Corrigida' },
-      ]
-    },
-    calculo: {
-      examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
-      examsScores: [68, 74, 80],
-      listsLabels: ['Lista 1', 'Lista 2', 'Lista 3', 'Lista 4'],
-      listsScores: [82, 86, 51, 23],
-      combinedLabels: ['Prova 1', 'Lista 1', 'Prova 2', 'Lista 2', 'Prova 3', 'Lista 3', 'Lista 4'],
-      combinedScores: [68, 82, 74, 86, 80, 51, 23],
-      history: [
-        { id: 'p1', type: 'Prova', title: 'Prova 1', date: '2023-09-05', score: 6.8, maxScore: 10, status: 'Corrigida' },
-        { id: 'l1', type: 'Lista', title: 'Lista 1', date: '2023-09-12', score: 8.2, maxScore: 10, status: 'Corrigida' },
-      ]
-    },
-    fisica: {
-      examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
-      examsScores: [79, 85, 77],
-      listsLabels: ['Lista 1', 'Lista 2', 'Lista 3', 'Lista 4'],
-      listsScores: [88, 90, 100, 45],
-      combinedLabels: ['Prova 1', 'Lista 1', 'Prova 2', 'Lista 2', 'Prova 3', 'Lista 3', 'Lista 4'],
-      combinedScores: [79, 88, 85, 90, 77],
-      history: []
-    },
-  };
+  });
+
+  useEffect(() => {
+    async function fetchDesempenho() {
+      const res = await fetch('/api/desempenho');
+      if (!res.ok) return;
+      const json = await res.json();
+      // Montar lista de cursos para o select
+      const apiCourses = json.cursos?.map(c => ({ id: c.id, name: c.nome })) || [];
+      setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
+
+      // Montar dados dos gráficos por curso
+      const data = { no_course_selected: {
+        examsLabels: [], examsScores: [], listsLabels: [], listsScores: [], combinedLabels: [], combinedScores: []
+      }};
+      for (const curso of json.cursos || []) {
+        // Aqui você pode adaptar para usar os dados reais do endpoint
+        // Exemplo: buscar json.graficosPorCurso[curso.id] se o backend retornar assim
+        data[curso.id] = json.graficosPorCurso?.[curso.id] || {
+          examsLabels: [], examsScores: [], listsLabels: [], listsScores: [], combinedLabels: [], combinedScores: []
+        };
+      }
+      setDataByCourse(data);
+    }
+    fetchDesempenho();
+  }, []);
 
   const active = dataByCourse[selectedCourse] || dataByCourse.no_course_selected;
 
-  // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
+    // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
   const combinedLabels = active.combinedLabels;
   const combinedScores = active.combinedScores;
-
   // Dados para os gráficos
   const examsLabels = active.examsLabels;
   const examsScores = active.examsScores;
-
   const listsLabels = active.listsLabels;
   const listsScores = active.listsScores;
-
   // Valores para o resumo de desempenho
   const average = combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length;
   const best = Math.max(...combinedScores);
   const latest = combinedScores[combinedScores.length - 1];
-
   return (
     <Box
       sx={{
@@ -117,7 +93,6 @@ export default function DesempenhoPage() {
       >
         Desempenho
       </Typography>
-
       <Box
         sx={{
           width: "100%",
@@ -131,7 +106,6 @@ export default function DesempenhoPage() {
         <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "1", width: "100%" }}>
           <PerformanceSummary average={average} best={best} latest={latest} />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "2" }, gridRow: "1", width: "100%" }}>
           <CourseSelect
             courses={courses}
@@ -139,7 +113,6 @@ export default function DesempenhoPage() {
             onCourseChange={setSelectedCourse}
           />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "2", width: "100%" }}>
           <StudentPerformanceChart
             labels={examsLabels}
@@ -148,7 +121,6 @@ export default function DesempenhoPage() {
             height={520}
           />
         </Box>
-
         <Box sx={{ gridColumn: { xs: "1", md: "2" }, gridRow: "2", width: "100%" }}>
           <StudentPerformanceChart
             labels={listsLabels}
