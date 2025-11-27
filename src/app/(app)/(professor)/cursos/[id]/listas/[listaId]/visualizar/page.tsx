@@ -16,7 +16,7 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
-import { ArrowBack, CheckCircle, Cancel } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Cancel, Assessment } from '@mui/icons-material';
 
 export default function VisualizarRespostasPage() {
   const params = useParams();
@@ -160,33 +160,88 @@ export default function VisualizarRespostasPage() {
 
           {/* Múltipla Escolha */}
           {questao.tipo === 'alternativa' && (
-            <RadioGroup value={resposta || ''}>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Sua Resposta:
+              </Typography>
               {questao.alternativas?.map((alt: any) => (
-                <FormControlLabel
-                  key={alt.letra}
-                  value={alt.letra}
-                  control={<Radio disabled />}
-                  label={`${alt.letra}) ${alt.texto}`}
-                />
+                <Box 
+                  key={alt.letra} 
+                  sx={{ 
+                    p: 1.5, 
+                    mb: 1, 
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    bgcolor: 
+                      alt.letra === resposta 
+                        ? (isCorrect ? 'success.light' : 'error.light')
+                        : (finalizado && alt.letra === questao.gabarito && !isCorrect ? 'success.light' : 'transparent'),
+                    border: 1,
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Typography 
+                    component="div"
+                    sx={{ 
+                      fontWeight: alt.letra === resposta ? 'bold' : 'normal',
+                      width: '100%'
+                    }}
+                  >
+                    <span style={{ fontWeight: 'bold', marginRight: 8 }}>{alt.letra})</span> 
+                    {alt.texto}
+                    {alt.letra === resposta && (
+                      <Chip 
+                        label="Sua escolha" 
+                        size="small" 
+                        sx={{ ml: 2, height: 20 }} 
+                        color={isCorrect ? 'success' : 'error'} 
+                      />
+                    )}
+                    {finalizado && alt.letra === questao.gabarito && !isCorrect && (
+                      <Chip 
+                        label="Correta" 
+                        size="small" 
+                        sx={{ ml: 2, height: 20 }} 
+                        color="success" 
+                      />
+                    )}
+                  </Typography>
+                </Box>
               ))}
-            </RadioGroup>
+            </Box>
           )}
 
           {/* Verdadeiro/Falso */}
           {questao.tipo === 'afirmacoes' && (
             <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Sua Resposta:
+              </Typography>
               {questao.afirmacoes?.map((afirmacao: any, idx: number) => (
                 <Box key={idx} sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1 }}>
                     {afirmacao.texto}
                   </Typography>
-                  <RadioGroup
-                    row
-                    value={resposta?.[idx] === true ? 'true' : resposta?.[idx] === false ? 'false' : ''}
-                  >
-                    <FormControlLabel value="true" control={<Radio disabled />} label="Verdadeiro" />
-                    <FormControlLabel value="false" control={<Radio disabled />} label="Falso" />
-                  </RadioGroup>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Chip
+                      label={resposta?.[idx] === true ? 'Verdadeiro' : resposta?.[idx] === false ? 'Falso' : 'Não respondido'}
+                      size="small"
+                      color={
+                        finalizado && resposta?.[idx] === afirmacao.correta
+                          ? 'success'
+                          : finalizado
+                          ? 'error'
+                          : 'default'
+                      }
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                    {finalizado && resposta?.[idx] !== afirmacao.correta && (
+                      <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold' }}>
+                        Correto: {afirmacao.correta ? 'Verdadeiro' : 'Falso'}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               ))}
             </Box>
@@ -195,13 +250,13 @@ export default function VisualizarRespostasPage() {
           {/* Proposições (Somatório) */}
           {questao.tipo === 'proposicoes' && (
             <Box>
-              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                Proposições corretas somadas:
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Proposições:
               </Typography>
               
               <Box sx={{ mb: 2 }}>
                 {questao.proposicoes?.map((prop: any, idx: number) => (
-                  <Box key={idx} sx={{ mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                  <Box key={idx} sx={{ mb: 1, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: 1, borderColor: 'divider' }}>
                     <Typography variant="body2">
                       <strong>({prop.valor})</strong> {prop.texto}
                     </Typography>
@@ -209,9 +264,12 @@ export default function VisualizarRespostasPage() {
                 ))}
               </Box>
 
-              <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-                <Typography variant="h6">
-                  Resposta: {resposta || 'Não respondido'}
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Sua Resposta:
+              </Typography>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                  {resposta || 'Não respondido'}
                 </Typography>
               </Paper>
             </Box>
@@ -219,28 +277,43 @@ export default function VisualizarRespostasPage() {
 
           {/* Numérica */}
           {questao.tipo === 'numerica' && (
-            <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-              <Typography variant="h6">
-                Resposta: {resposta !== undefined && resposta !== '' ? resposta : 'Não respondido'}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Sua Resposta:
               </Typography>
-              {questao.margemErro > 0 && (
-                <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
-                  Margem de erro: ±{questao.margemErro}
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                  {resposta !== undefined && resposta !== '' ? resposta : 'Não respondido'}
                 </Typography>
+              </Paper>
+              {finalizado && questao.gabarito && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Resposta Esperada / Gabarito:
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'success.light' }}>
+                    <Typography variant="body1" color="success.dark" sx={{ fontWeight: 'bold' }}>
+                      {questao.gabarito}
+                      {questao.margemErro > 0 && ` (±${questao.margemErro})`}
+                    </Typography>
+                  </Paper>
+                </Box>
               )}
-            </Paper>
+            </Box>
           )}
 
           {/* Dissertativa */}
           {questao.tipo === 'dissertativa' && (
-            <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Sua resposta:
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Sua Resposta:
               </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                {resposta || 'Não respondido'}
-              </Typography>
-            </Paper>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {resposta || 'Não respondido'}
+                </Typography>
+              </Paper>
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -296,8 +369,14 @@ export default function VisualizarRespostasPage() {
           </Box>
           
           {lista?.nomeInstituicao && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+              <strong>Instituição:</strong> {lista.nomeInstituicao}
+            </Typography>
+          )}
+          
+          {lista?.dataPublicacao && (
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-              {lista.nomeInstituicao}
+              <strong>Data:</strong> {new Date(lista.dataPublicacao).toLocaleDateString('pt-BR')}
             </Typography>
           )}
 
@@ -310,31 +389,74 @@ export default function VisualizarRespostasPage() {
           {/* Resumo de Desempenho */}
           {finalizado && pontuacaoTotal > 0 && (
             <Paper sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                📊 Resultado
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Pontuação
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                    {pontuacaoObtidaTotal.toFixed(1)} / {pontuacaoTotal.toFixed(1)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    ({pontuacaoTotal > 0 ? Math.round((pontuacaoObtidaTotal / pontuacaoTotal) * 100) : 0}%)
-                  </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <Assessment color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Resultado
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Roda de Porcentagem */}
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <CircularProgress
+                    variant="determinate"
+                    value={pontuacaoTotal > 0 ? Math.round((pontuacaoObtidaTotal / pontuacaoTotal) * 100) : 0}
+                    size={120}
+                    thickness={5}
+                    color={pontuacaoObtidaTotal >= (pontuacaoTotal * 0.6) ? 'success' : 'error'}
+                    sx={{ opacity: 0.3 }}
+                  />
+                  <CircularProgress
+                    variant="determinate"
+                    value={pontuacaoTotal > 0 ? Math.round((pontuacaoObtidaTotal / pontuacaoTotal) * 100) : 0}
+                    size={120}
+                    thickness={5}
+                    color={pontuacaoObtidaTotal >= (pontuacaoTotal * 0.6) ? 'success' : 'error'}
+                    sx={{
+                      position: 'absolute',
+                      left: 0,
+                      strokeLinecap: 'round',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      right: 0,
+                      position: 'absolute',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', color: pontuacaoObtidaTotal >= (pontuacaoTotal * 0.6) ? 'success.main' : 'error.main' }}>
+                      {pontuacaoTotal > 0 ? Math.round((pontuacaoObtidaTotal / pontuacaoTotal) * 100) : 0}%
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Acertos
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Questões Corretas
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                    {Object.values(correcao).filter(c => c.isCorrect).length} / {Object.keys(correcao).length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    ({Object.keys(correcao).length > 0 ? Math.round((Object.values(correcao).filter(c => c.isCorrect).length / Object.keys(correcao).length) * 100) : 0}%)
-                  </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Pontuação Final
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: pontuacaoObtidaTotal >= (pontuacaoTotal * 0.6) ? 'success.main' : 'error.main' }}>
+                      {pontuacaoObtidaTotal.toFixed(1)} / {pontuacaoTotal.toFixed(1)}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Questões Corretas
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                      {Object.values(correcao).filter(c => c.isCorrect).length} / {Object.keys(correcao).length}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             </Paper>
