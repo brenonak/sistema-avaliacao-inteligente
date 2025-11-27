@@ -96,8 +96,12 @@ export default function PaginaCadastro() {
             // Pequeno delay para garantir que a sessão foi atualizada
             await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Redirecionar para dashboard
-            router.push('/dashboard');
+            // Redirecionar para dashboard baseado na role
+            if (role === 'ALUNO') {
+                router.push('/aluno/dashboard');
+            } else {
+                router.push('/dashboard');
+            }
             router.refresh(); // Força reload da página
         } catch (err) {
             console.error('Erro ao salvar perfil:', err);
