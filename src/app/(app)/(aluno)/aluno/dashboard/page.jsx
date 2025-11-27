@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import ClassroomCard from '../../../components/ClassroomCard';
+import ClassroomCard from '../../../../components/ClassroomCard';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import Calendar from '../../../components/Calendar';
+import Calendar from '../../../../components/Calendar';
 import {
   CircularProgress,
   Button,
@@ -19,9 +19,9 @@ import {
   CardContent
 } from '@mui/material';
 import { Add, School } from '@mui/icons-material';
-import PerformanceSummary from "../../../components/PerformanceSummary";
-import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
-import PendingActivities from "../../../components/PendingActivities";
+import PerformanceSummary from "../../../../components/PerformanceSummary";
+import StudentPerformanceChart from "../../../../components/StudentPerformanceChart";
+import PendingActivities from "../../../../components/PendingActivities";
 import { useTheme } from '@mui/material/styles';
 
 export default function DashboardAlunoPage() {

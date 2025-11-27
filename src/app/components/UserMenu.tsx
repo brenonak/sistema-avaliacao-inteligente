@@ -37,7 +37,8 @@ export default function UserMenu() {
 
   const handleSignOut = async () => {
     handleClose();
-    await signOut({ callbackUrl: "/" });
+    await signOut({ redirect: false });
+    window.location.href = "/";
   };
 
   const handleDashboard = () => {

@@ -13,6 +13,10 @@ export default async function AppLayout({ children }) {
   // Garante que o usuário tenha o perfil completo, mesmo se o JWT estiver desatualizado
   const session = await getServerSession(authOptions);
   
+  if (!session) {
+    redirect('/login');
+  }
+
   if (session?.user?.id) {
     try {
       const db = await getDb();
@@ -46,7 +50,9 @@ export default async function AppLayout({ children }) {
   
   // Nova implementação mais limpa:
   if (session?.user?.id) {
-    let shouldRedirect = false;
+    let shouldRedirectToCadastro = false;
+    let shouldRedirectToProfessor = false;
+
     try {
       const db = await getDb();
       const user = await db.collection("users").findOne({ 
@@ -55,14 +61,24 @@ export default async function AppLayout({ children }) {
       
       const isProfileComplete = user?.profileComplete === true || user?.isProfileComplete === true || user?.profileCompleted === true;
       if (!isProfileComplete) {
-        shouldRedirect = true;
+        shouldRedirectToCadastro = true;
+      } else {
+        // Se perfil completo, verificar role
+        const role = user?.role || user?.papel;
+        if (role === 'PROFESSOR') {
+          shouldRedirectToProfessor = true;
+        }
       }
     } catch (error) {
       console.error("[AppLayout] Erro ao verificar perfil:", error);
     }
     
-    if (shouldRedirect) {
+    if (shouldRedirectToCadastro) {
       redirect('/cadastro');
+    }
+
+    if (shouldRedirectToProfessor) {
+      redirect('/dashboard');
     }
   }
 
