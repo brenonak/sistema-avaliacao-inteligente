@@ -468,17 +468,14 @@ export default function ResultadoProvaPage() {
 
                 {/* Feedback do Professor */}
                 {questao.feedback && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1, display: 'flex', gap: 2 }}>
-                    <CommentIcon color="info" />
-                    <Box>
-                      <Typography variant="subtitle2" color="info.dark" fontWeight="bold">
-                        Comentário do Professor:
-                      </Typography>
-                      <Typography variant="body2" color="text.primary" sx={{ mt: 0.5 }}>
-                        {questao.feedback}
-                      </Typography>
-                    </Box>
-                  </Box>
+                  <Alert severity="info" icon={<CommentIcon />} sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                      Comentário do Professor:
+                    </Typography>
+                    <Typography variant="body2">
+                      {questao.feedback}
+                    </Typography>
+                  </Alert>
                 )}
               </CardContent>
             </Card>
