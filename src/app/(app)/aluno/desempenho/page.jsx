@@ -3,7 +3,18 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Chip
 } from "@mui/material";
+import { Visibility } from "@mui/icons-material";
+import Link from "next/link";
 import PerformanceSummary from "../../../components/PerformanceSummary";
 import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
 import CourseSelect from "../../../components/CourseSelect";
@@ -19,6 +30,7 @@ export default function DesempenhoPage() {
       listsScores: [],
       combinedLabels: [],
       combinedScores: [],
+      history: []
     },
   });
 
@@ -117,6 +129,65 @@ export default function DesempenhoPage() {
             height={520}
           />
         </Box>
+
+        {/* Histórico Detalhado */}
+        {selectedCourse !== 'nenhum' && active.history && active.history.length > 0 && (
+          <Box sx={{ gridColumn: { xs: "1", md: "1 / span 2" }, gridRow: "3", width: "100%" }}>
+            <Paper sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                Histórico de Avaliações
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Avaliação</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Data</TableCell>
+                      <TableCell>Nota</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right">Ações</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {active.history.map((item) => (
+                      <TableRow key={item.id} hover>
+                        <TableCell sx={{ fontWeight: 'bold' }}>{item.title}</TableCell>
+                        <TableCell>{item.type}</TableCell>
+                        <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={`${item.score} / ${item.maxScore}`} 
+                            color={item.score >= (item.maxScore * 0.6) ? "success" : "error"}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={item.status} color="success" size="small" />
+                        </TableCell>
+                        <TableCell align="right">
+                          {item.type === 'Prova' && (
+                            <Button 
+                              component={Link}
+                              href={`/aluno/cursos/${selectedCourse}/provas/${item.id}/resultado`}
+                              variant="contained" 
+                              size="small" 
+                              startIcon={<Visibility />}
+                            >
+                              Ver Correção
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </Box>
+        )}
       </Box>
     </Box>
   );
