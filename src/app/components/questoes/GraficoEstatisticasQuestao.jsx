@@ -4,26 +4,222 @@ import React from 'react';
 import { BarChart, PieChart } from '@mui/x-charts';
 import { Typography, Box, Chip, Stack } from '@mui/material';
 
-/**
- * Componente Orquestrador para gráficos de estatísticas.
- * Refatorado para delegar a renderização para componentes especializados.
- */
-import HistogramaNotas from './charts/HistogramaNotas';
-import BarChartFrequencia from './charts/BarChartFrequencia';
-import BarChartAgrupado from './charts/BarChartAgrupado';
-
-
-
 
 /**
  * Componente para renderizar os gráficos de estatísticas de uma questão.
  * Task #225: Refatorado para usar @mui/x-charts em vez de recharts.
  *
- * @param {string} tipoQuestao - 'alternativa', 'afirmacoes', etc
+ * @param {string} tipoQuestao - 'multipla-escolha', 'verdadeiro-falso', etc
  * @param {Array<object>} dados - Os dados da API (ex: [{ nome: 'A', Respostas: 10, correta: false }, ...])
  * @param {string|number} [valorCorreto] - (Opcional) O valor exato da resposta correta (ex: 15.5)
  */
 const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) => {
+
+  // Define as cores
+  const COR_CORRETA = "#2e7d32";
+  const COR_INCORRETA = "#d32f2f";
+
+  // Gradiente de cores para o Histograma de Notas
+  const CORES_GRADIENTE_NOTAS = [
+    "#d32f2f", // Vermelho - Notas baixas (0-2)
+    "#ff9800", // Laranja - Notas médias baixas (2.1-4)
+    "#ffeb3b", // Amarelo - Notas médias (4.1-6)
+    "#8bc34a", // Verde Claro - Notas médias altas (6.1-8)
+    "#2e7d32", // Verde Escuro - Notas altas (8.1-10)
+  ];
+
+  // Lógica para o Gráfico de Barras (Múltipla Escolha / Resposta Numérica / Somatório)
+  const renderGraficoBarras = (labelEixoX = 'Alternativa') => {
+
+    const dadosProcessados = dados.map(entry => ({
+      nome: entry.nome,
+      RespostasCorretas: entry.correta ? entry.Respostas : undefined,
+      RespostasIncorretas: !entry.correta ? entry.Respostas : undefined,
+    }));
+
+    // Lógica para o Tooltip (Nº e %)
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+    const valueFormatter = (value) => {
+      if (value === null || value === undefined) return null; // Alterado de '' para null na refatoração anterior
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      return `Nº de Respostas: ${value} (${porcentagem}%)`;
+    };
+
+
+
+    return (
+      // Envolve o BarChart numa Box para centralização
+      <Box sx={{
+        width: '100%',
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
+        <BarChart
+          dataset={dadosProcessados}
+          xAxis={[{
+            scaleType: 'band',
+            dataKey: 'nome', // Eixo X usa a chave 'nome' (A, B, C, D)
+            label: labelEixoX
+          }]}
+          yAxis={[{
+            label: 'Nº de Respostas' // Rótulo do Eixo Y
+          }]}
+          series={[
+            {
+              dataKey: 'RespostasCorretas',
+              valueFormatter,
+              stack: 'respostas' // Identificador do "stack"
+            },
+            {
+              dataKey: 'RespostasIncorretas',
+              valueFormatter,
+              stack: 'respostas' // Mesmo identificador
+            }
+          ]}
+          colors={[COR_CORRETA, COR_INCORRETA]}
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
+          slotProps={{
+            legend: { hidden: true },
+          }}
+          tooltip={{ trigger: 'item' }}
+        />
+      </Box>
+    );
+  };
+
+  // Lógica para o Gráfico de Barras Agrupadas (V/F - Múltiplas Afirmações)
+  const renderGraficoBarrasAgrupadas = () => {
+
+    // O formatador do tooltip agora é simples, apenas adiciona '%'
+    const valueFormatter = (value) => value === null ? '' : `${value}%`;
+
+    return (
+      <Box sx={{
+        width: '100%',
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
+        <BarChart
+          dataset={dados} // Usará os mockDadosVFAgrupado
+          xAxis={[{
+            scaleType: 'band',
+            dataKey: 'nome', // Eixo X (Afirmação I, II, III...)
+            label: 'Afirmação'
+          }]}
+          yAxis={[{
+            label: 'Percentual de Respostas (%)',
+            max: 100
+          }]}
+          series={[
+            {
+              dataKey: 'acertos',
+              label: 'Acertos',
+              valueFormatter,
+            },
+            {
+              dataKey: 'erros',
+              label: 'Erros',
+              valueFormatter,
+            }
+          ]}
+          colors={[COR_CORRETA, COR_INCORRETA]}
+          height={300}
+          margin={{ top: 40, right: 20, left: 60, bottom: 30 }} // Espaço para a legenda no topo
+
+          slotProps={{
+            legend: { hidden: true },
+          }}
+        />
+      </Box>
+    );
+  };
+
+  // Lógica para o Histograma de Notas (Dissertativa)
+  const renderHistogramaNotas = () => {
+    const { qndNotaMinima = 0, qndNotaMaxima = 0 } = meta || {};
+
+    const totalRespostas = dados.reduce((sum, entry) => sum + entry.Respostas, 0);
+
+    const valueFormatter = (value) => {
+      // Se o valor for nulo (o que acontecerá na maioria das séries), não mostre nada.
+      if (value === null || value === undefined) return null
+
+      const porcentagem = totalRespostas > 0 ? ((value / totalRespostas) * 100).toFixed(1) : 0;
+      return `Nº de Alunos: ${value} (${porcentagem}%)`;
+    };
+
+    // Formata os dados para incluir a cor baseada na faixa de nota
+    const seriesFormatadas = dados.map((entry, index) => {
+      // Cria um array de 'null's
+      const dataArray = new Array(dados.length).fill(null);
+      // Coloca o valor da barra na posição correta
+      dataArray[index] = entry.Respostas;
+
+      return {
+        data: dataArray, // ex: [3, null, null, null, null]
+        valueFormatter,  // Aplica o formatter
+        stack: 'total',  // Todas as séries ficam na mesma "pilha"
+        // O 'label' é removido para evitar o tooltip duplicado
+      };
+    });
+
+    const labelsEixoX = dados.map(entry => entry.nome);
+
+
+    return (
+      <Box sx={{
+        width: '100%',
+        maxWidth: '600px',
+        mx: 'auto'
+      }}>
+        <BarChart
+          xAxis={[{
+            scaleType: 'band',
+            data: labelsEixoX,
+            label: 'Faixa de Nota'
+          }]}
+          yAxis={[{
+            label: 'Nº de Alunos'
+          }]}
+          // Este gráfico tem apenas UMA série de dados
+          series={seriesFormatadas}
+          colors={CORES_GRADIENTE_NOTAS}
+          height={300}
+          margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
+          slotProps={{
+            legend: { hidden: true }, // Não precisa de legenda
+          }}
+          tooltip={{ trigger: 'item' }} // Gatilho 'item'
+        />
+
+        {/* ADIÇÃO: Área de Destaques (Zero e Dez) */}
+        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Chip
+            label={`Nota Mínima: ${qndNotaMinima} alunos`}
+            variant="outlined"
+            sx={{
+              borderColor: '#d32f2f', // Vermelho
+              color: '#d32f2f',
+              fontWeight: 'bold'
+            }}
+          />
+          <Chip
+            label={`Nota Máxima: ${qndNotaMaxima} alunos`}
+            variant="outlined"
+            sx={{
+              borderColor: '#2e7d32', // Verde
+              color: '#2e7d32',
+              fontWeight: 'bold'
+            }}
+          />
+        </Stack>
+
+      </Box>
+    );
+  };
+
+
 
   // Lógica Principal de Renderização
   if (!dados || dados.length === 0) {
@@ -33,21 +229,20 @@ const GraficoEstatisticasQuestao = ({ tipoQuestao, dados, valorCorreto, meta }) 
 
   // Decide qual gráfico renderizar
   switch (tipoQuestao) {
-    case 'alternativa':
-      return <BarChartFrequencia dados={dados} labelEixoX="Alternativa" />;
+    case 'multipla-escolha':
+      return renderGraficoBarras('Alternativa');
 
-    case 'afirmacoes':
-      return <BarChartAgrupado dados={dados} />;
+    case 'verdadeiro-falso':
+      return renderGraficoBarrasAgrupadas();
 
     case 'numerica':
-      return <BarChartFrequencia dados={dados} labelEixoX="Respostas Submetidas" />;
+      return renderGraficoBarras('Respostas Submetidas');
 
-    case 'proposicoes':
-      return <BarChartFrequencia dados={dados} labelEixoX="Soma Submetida" />;
+    case 'somatorio':
+      return renderGraficoBarras('Soma Submetida');
 
     case 'dissertativa':
-      // USANDO O NOVO COMPONENTE
-      return <HistogramaNotas dados={dados} meta={meta} />;
+      return renderHistogramaNotas();
 
     default:
       return <Typography>Tipo de questão não suportado para estatísticas.</Typography>;
@@ -110,7 +305,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Múltipla Escolha
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="alternativa"
+        tipoQuestao="multipla-escolha"
         dados={mockDadosBarra}
       />
 
@@ -120,7 +315,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Verdadeiro/Falso (Agrupado)
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="afirmacoes"
+        tipoQuestao="verdadeiro-falso"
         dados={mockDadosVFAgrupado}
       />
 
@@ -140,7 +335,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Gráfico Somatório
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="proposicoes"
+        tipoQuestao="somatorio"
         dados={mockDadosSomatorio}
       />
 
@@ -160,7 +355,7 @@ export const TesteGraficoEstatisticas = () => {
         Teste - Sem Dados
       </Typography>
       <GraficoEstatisticasQuestao
-        tipoQuestao="alternativa"
+        tipoQuestao="multipla-escolha"
         dados={[]}
       />
     </Box>

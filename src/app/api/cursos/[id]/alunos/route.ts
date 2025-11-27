@@ -1,74 +1,40 @@
-import { NextResponse } from "next/server";
-import { clientPromise } from "../../../../../lib/mongodb"; 
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../../auth"; 
-import { ObjectId } from "mongodb";
+import { NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const cursoId = params.id;
-
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+export async function GET() {
+  // MOCK: Lista estática de alunos para teste
+  //TODO: Assim que houver diferenciação de alunos e professores no sistema, é estritamente necessário ajustar este mock para a aplicação real
+  // Geram-se IDs reais do Mongo para não quebrar a validação 'oid()' do service
+  const alunosMock = [
+    { 
+      _id: new ObjectId().toString(), // Gera um ID válido aleatório
+      nome: "Aluno Exemplo 01", 
+      email: "aluno01@teste.com" 
+    },
+    { 
+      _id: new ObjectId().toString(), 
+      nome: "Aluno Exemplo 02", 
+      email: "aluno02@teste.com" 
+    },
+    { 
+      _id: new ObjectId().toString(), 
+      nome: "Aluno Exemplo 03", 
+      email: "aluno03@teste.com" 
+    },
+    { 
+      _id: new ObjectId().toString(), 
+      nome: "Aluno Exemplo 04", 
+      email: "aluno04@teste.com" 
+    },
+    { 
+      _id: new ObjectId().toString(), 
+      nome: "Aluno Exemplo 05", 
+      email: "aluno05@teste.com" 
     }
+  ];
 
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
-
-    // 2. Definição do Filtro
-    // Baseado na sua imagem, o usuário tem o campo 'curso' e 'role'/'papel'
-    // Estamos buscando:
-    // - Usuários onde 'curso' bate com o ID da URL
-    // - E que NÃO sejam professores (assumindo que você quer apenas alunos)
-    const query = {
-      curso: cursoId, 
-      
-      $or: [
-        { role: "ALUNO" }, 
-        { role: "STUDENT" },
-        { papel: "aluno" },
-        { papel: "estudante" },
-        // Fallback: Se o campo role for nulo, assumimos que é aluno (já que profs tem role definida)
-        { role: null }, 
-        { role: { $exists: false } } 
-      ]
-    };
-
-    // 3. Executa a Query com Projeção
-    // IMPORTANTE: Nunca retorne o objeto user completo (pode ter senhas, tokens, etc)
-    const alunos = await db.collection("users")
-      .find(query)
-      .project({
-        _id: 1,
-        name: 1,
-        email: 1,
-        image: 1,
-        isProfileComplete: 1, // Útil para mostrar status na lista
-        pontuacao: 1 // Caso você tenha gamificação
-      })
-      .toArray();
-
-    const formattedAlunos = alunos.map(aluno => ({
-      ...aluno,
-      _id: aluno._id.toString(),
-      nome: aluno.name || "Sem Nome", // Fallback visual
-    }));
-
-    // 5. Retorno mantendo o contrato { items: [] }
-    return NextResponse.json({ 
-      items: formattedAlunos,
-      total: formattedAlunos.length
-    });
-
-  } catch (error) {
-    console.error("[API] Erro ao listar alunos:", error);
-    return NextResponse.json(
-      { error: "Erro interno ao buscar alunos do curso." },
-      { status: 500 }
-    );
-  }
+  // Retorna no formato que o seu hook useAlunos espera ({ items: [] } ou direto [])
+  return NextResponse.json({ 
+    items: alunosMock 
+  });
 }
