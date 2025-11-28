@@ -128,8 +128,8 @@ describe('CorrecaoPageMui (Integração)', () => {
         const allNumberInputs = screen.getAllByRole('spinbutton');
         const inputNota = allNumberInputs[0]; // Primeiro input number é o da nota
 
-        await user.clear(inputNota);
-        await user.type(inputNota, '1.25');
+        // Use fireEvent.change para inputs do tipo number ao invés de user.type
+        fireEvent.change(inputNota, { target: { value: '1.25' } });
 
         await waitFor(() => {
             expect(inputNota).toHaveValue(1.25);
