@@ -32,7 +32,8 @@ const Header = () => {
 
   const handleLogout = async () => {
     handleCloseUserMenu();
-    await signOut({ callbackUrl: '/' });
+    await signOut({ redirect: false });
+    window.location.href = '/';
   };
 
   const theme = useTheme();

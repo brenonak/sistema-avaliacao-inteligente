@@ -39,14 +39,40 @@ export default function PaginaCadastro() {
 
     // Pré-preencher nome e verificar se perfil já está completo
     useEffect(() => {
-        if (session?.user?.name) {
-            setNome(session.user.name);
-        }
-        // Se o perfil já estiver completo, redirecionar para dashboard
-        if (session?.user?.profileComplete === true) {
-            console.log('[Cadastro] Perfil já completo, redirecionando para dashboard');
-            router.push('/dashboard');
-        }
+        const loadProfileData = async () => {
+            if (session?.user) {
+                // Preencher nome da sessão inicialmente
+                if (session.user.name) {
+                    setNome(session.user.name);
+                }
+
+                try {
+                    // Buscar dados completos do perfil no banco
+                    const res = await fetch('/api/profile/complete');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.user) {
+                            setNome(data.user.name || session.user.name || '');
+                            setRole(data.user.role || '');
+                            setInstituicao(data.user.instituicao || '');
+                            setCurso(data.user.curso || '');
+                            setAreasInteresse(data.user.areasInteresse || []);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados do perfil:", error);
+                }
+
+                // Se o perfil já estiver completo na sessão, redirecionar
+                // Nota: Se o objetivo for permitir edição, este redirect deve ser removido ou condicional
+                if (session.user.profileComplete === true) {
+                    console.log('[Cadastro] Perfil já completo, redirecionando para dashboard');
+                    router.push('/dashboard');
+                }
+            }
+        };
+
+        loadProfileData();
     }, [session, router]);
 
     // Handler para a seleção de foto
@@ -96,8 +122,12 @@ export default function PaginaCadastro() {
             // Pequeno delay para garantir que a sessão foi atualizada
             await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Redirecionar para dashboard
-            router.push('/dashboard');
+            // Redirecionar para dashboard baseado na role
+            if (role === 'ALUNO') {
+                router.push('/aluno/dashboard');
+            } else {
+                router.push('/dashboard');
+            }
             router.refresh(); // Força reload da página
         } catch (err) {
             console.error('Erro ao salvar perfil:', err);

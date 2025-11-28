@@ -15,9 +15,9 @@ import {
 } from "@mui/material";
 import { Visibility } from "@mui/icons-material";
 import Link from "next/link";
-import PerformanceSummary from "../../../components/PerformanceSummary";
-import StudentPerformanceChart from "../../../components/StudentPerformanceChart";
-import CourseSelect from "../../../components/CourseSelect";
+import PerformanceSummary from "../../../../components/PerformanceSummary";
+import StudentPerformanceChart from "../../../../components/StudentPerformanceChart";
+import CourseSelect from "../../../../components/CourseSelect";
 
 export default function DesempenhoPage() {
   const [selectedCourse, setSelectedCourse] = useState('nenhum');
