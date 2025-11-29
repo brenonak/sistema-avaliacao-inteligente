@@ -21,7 +21,7 @@
  * ROTAS PÚBLICAS (não afetadas):
  * - / (landing page)
  * - /login
- * - /cadastro
+ * - /perfil/cadastro
  * - /api/auth/* (Next-Auth)
  */
 
@@ -72,12 +72,12 @@ export async function middleware(request: NextRequest) {
     console.log(`[Middleware]    - ProfileComplete: ${token.profileComplete}`);
     
     // Rotas que exigem apenas autenticação (não verificam profileComplete)
-    if (pathname === "/cadastro" || pathname.startsWith("/api/profile")) {
+    if (pathname === "/perfil/cadastro" || pathname.startsWith("/api/profile")) {
       console.log(`[Middleware] ✅ Rota de cadastro/profile - permitindo acesso autenticado`);
       
-      // Se já tiver perfil completo e tentar acessar /cadastro, redirecionar para dashboard
-      if (pathname === "/cadastro" && token.profileComplete === true) {
-        console.log(`[Middleware] 🔄 Perfil completo tentando acessar /cadastro - redirecionando para /dashboard`);
+      // Se já tiver perfil completo e tentar acessar /perfil/cadastro, redirecionar para dashboard
+      if (pathname === "/perfil/cadastro" && token.profileComplete === true) {
+        console.log(`[Middleware] 🔄 Perfil completo tentando acessar /perfil/cadastro - redirecionando para /dashboard`);
         const dashboardUrl = new URL("/dashboard", request.url);
         return NextResponse.redirect(dashboardUrl);
       }
@@ -89,8 +89,8 @@ export async function middleware(request: NextRequest) {
     const profileComplete = token.profileComplete === true;
     
     if (!profileComplete) {
-      console.log(`[Middleware] 🔄 Perfil incompleto - REDIRECIONANDO ${pathname} -> /cadastro`);
-      const cadastroUrl = new URL("/cadastro", request.url);
+      console.log(`[Middleware] 🔄 Perfil incompleto - REDIRECIONANDO ${pathname} -> /perfil/cadastro`);
+      const cadastroUrl = new URL("/perfil/cadastro", request.url);
       return NextResponse.redirect(cadastroUrl);
     }
     
