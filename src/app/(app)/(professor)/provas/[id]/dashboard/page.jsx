@@ -87,11 +87,12 @@ export default function DashboardProvaPage() {
             sx={{ 
               color: color, 
               p: 1.5, 
-              borderRadius: 3, // Canto arredondado moderno
+              borderRadius: 3, // Canto arredondado
               bgcolor: `${color}15`, // Fundo transparente da cor do ícone
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
+              
             }}
           >
             {/* Clona o ícone para aumentar o tamanho dele */}
