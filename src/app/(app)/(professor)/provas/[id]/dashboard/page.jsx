@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { dashboardService } from '@/services/dashboardService';
+import { dashboardService } from '../../../../../../services/dashboardService';
 
 export default function DashboardProvaPage() {
   const params = useParams();
@@ -50,20 +50,52 @@ export default function DashboardProvaPage() {
     fetchData();
   }, [id]);
 
+  // Função auxiliar para renderizar um Card de Resumo (KPI)
   const renderSummaryCard = (title, value, icon, color) => (
-    <Card elevation={2} sx={{ height: '100%', borderLeft: `4px solid ${color}` }}>
-      <CardContent>
+    <Card 
+      elevation={0} // Remove a sombra padrão para um look mais limpo
+      sx={{ 
+        height: '100%', 
+        borderLeft: `6px solid ${color}`, // Borda colorida mais grossa
+        borderTop: '1px solid #e0e0e0',
+        borderRight: '1px solid #e0e0e0',
+        borderBottom: '1px solid #e0e0e0',
+        borderRadius: 2,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-4px)', // Efeito de "levantar" ao passar o mouse
+          boxShadow: '0 4px 20px 0 rgba(0,0,0,0.12)'
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}> {/* Mais padding */}
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            <Typography 
+              variant="overline" 
+              color="text.secondary" 
+              fontWeight="bold" 
+              sx={{ letterSpacing: 1.2, display: 'block', mb: 1 }}
+            >
               {title}
             </Typography>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography variant="h3" fontWeight="800" sx={{ color: 'text.primary' }}>
               {value}
             </Typography>
           </Box>
-          <Box sx={{ color: color, p: 1, borderRadius: '50%', bgcolor: `${color}15` }}>
-            {icon}
+          <Box 
+            sx={{ 
+              color: color, 
+              p: 1.5, 
+              borderRadius: 3, // Canto arredondado moderno
+              bgcolor: `${color}15`, // Fundo transparente da cor do ícone
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {/* Clona o ícone para aumentar o tamanho dele */}
+            {React.cloneElement(icon, { sx: { fontSize: 32 } })}
           </Box>
         </Stack>
       </CardContent>
