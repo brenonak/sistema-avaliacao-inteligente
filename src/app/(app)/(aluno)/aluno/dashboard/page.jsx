@@ -59,10 +59,13 @@ export default function DashboardAlunoPage() {
   useEffect(() => {
     async function fetchCursos() {
       try {
-        // TODO: ajustar a API para retornar os cursos em que o aluno está matriculado
-        const cursos = [];
-
-        setCursos(cursos);
+        // Buscar os cursos em que o aluno está matriculado
+        const response = await fetch('/api/cursos/aluno');
+        if (!response.ok) {
+          throw new Error('Erro ao carregar cursos');
+        }
+        const data = await response.json();
+        setCursos(data.itens || []);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
         setCursos([]);
@@ -83,11 +86,40 @@ export default function DashboardAlunoPage() {
   }
 
   async function handleSubmitCourse() {
+    if (!courseIdInput.trim()) {
+      alert('Por favor, insira o código do curso');
+      return;
+    }
+
     try {
-      // TODO: implementar a lógica de adicionar uma turma pelo ID
+      const response = await fetch('/api/cursos/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          codigo: courseIdInput.trim().toUpperCase(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao adicionar curso');
+      }
+
+      // Recarregar lista de cursos
+      const cursosResponse = await fetch('/api/cursos/aluno');
+      if (cursosResponse.ok) {
+        const cursosData = await cursosResponse.json();
+        setCursos(cursosData.itens || []);
+      }
+
       handleCloseAddDialog();
+      alert(`Você foi matriculado no curso: ${data.curso.nome}`);
     } catch (e) {
       console.error(e);
+      alert(e.message || 'Erro ao adicionar curso');
     }
   }
 
@@ -258,10 +290,11 @@ export default function DashboardAlunoPage() {
           <TextField
             autoFocus
             margin="dense"
-            label="Código do Curso (feature não implementada)"
+            label="Código do Curso"
+            placeholder="Digite o código do curso"
             fullWidth
             value={courseIdInput}
-            onChange={(e) => setCourseIdInput(e.target.value)}
+            onChange={(e) => setCourseIdInput(e.target.value.toUpperCase())}
           />
         </DialogContent>
 
