@@ -3,7 +3,7 @@
 import React from 'react';
 import { BarChart } from '@mui/x-charts';
 import { Box } from '@mui/material';
-import { CHART_COLORS } from '@/constants/chartColors'; // Supondo que criou na task anterior
+import { CHART_COLORS } from '../../../../constants/chartColors'; 
 
 const DesempenhoQuestoes = ({ dados }) => {
   
