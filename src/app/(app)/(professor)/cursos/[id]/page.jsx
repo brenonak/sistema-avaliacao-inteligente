@@ -928,6 +928,15 @@ export default function CursoDetalhesPage() {
               <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                 {curso.nome}
               </Typography>
+              {curso.codigo && (
+                <Chip 
+                  label={`Código: ${curso.codigo}`} 
+                  color="primary" 
+                  variant="outlined"
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
+              )}
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -950,7 +959,7 @@ export default function CursoDetalhesPage() {
           </Box>
 
           {curso.descricao && (
-            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
+            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
               {curso.descricao}
             </Typography>
           )}
