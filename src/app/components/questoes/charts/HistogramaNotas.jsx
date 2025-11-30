@@ -56,7 +56,7 @@ const HistogramaNotas = ({ dados, meta }) => {
           series={seriesFormatadas}
           colors={CHART_COLORS.GRADIENT_NOTES}
           height={300}
-          margin={{ top: 20, right: 20, left: 50, bottom: 30 }}
+          margin={{ top: 20, right: 70, left: 20, bottom: 30 }}
           slotProps={{
             legend: { hidden: true }, // Não precisa de legenda
           }}

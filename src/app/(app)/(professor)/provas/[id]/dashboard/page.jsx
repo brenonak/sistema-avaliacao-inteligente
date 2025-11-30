@@ -11,6 +11,7 @@ import {
   CardContent, 
   CircularProgress, 
   Stack,
+  Paper,
   Divider,
   Alert
 } from '@mui/material';
@@ -24,6 +25,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { dashboardService } from '../../../../../../services/dashboardService';
+import HistogramaNotas from '../../../../../components/questoes/charts/HistogramaNotas';
 
 export default function DashboardProvaPage() {
   const params = useParams();
@@ -145,11 +147,11 @@ export default function DashboardProvaPage() {
       </Stack>
 
       {/* 2. Seção de Cards de Resumo (KPIs) */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium' }}>
+      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium', textAlign: 'center'}}>
         Resumo Geral
       </Typography>
       
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 6 }} justifyContent="center">
         <Grid item xs={12} sm={6} md={3}>
           {renderSummaryCard('Média da Turma', resumo.mediaGeral.toFixed(1), <FunctionsIcon />, '#1976d2')}
         </Grid>
@@ -166,12 +168,14 @@ export default function DashboardProvaPage() {
 
       <Divider sx={{ mb: 4 }} />
 
-      {/* Placeholder para os Gráficos */}
-      <Box sx={{ p: 4, border: '1px dashed grey', borderRadius: 2, textAlign: 'center', bgcolor: '#f5f5f5' }}>
-        <Typography color="text.secondary">
-          Gráficos de distribuição e desempenho serão carregados aqui.
-        </Typography>
-      </Box>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center', mb: 4 }}>
+              Distribuição de Notas
+      </Typography>
+
+      <HistogramaNotas 
+        dados={data.distribuicaoNotas.dados} 
+        meta={data.distribuicaoNotas.meta} 
+      />
     </Container>
   );
 }
