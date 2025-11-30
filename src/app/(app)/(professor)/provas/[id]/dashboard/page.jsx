@@ -11,6 +11,7 @@ import {
   CardContent, 
   CircularProgress, 
   Stack,
+  Paper,
   Divider,
   Alert
 } from '@mui/material';
@@ -146,7 +147,7 @@ export default function DashboardProvaPage() {
       </Stack>
 
       {/* 2. Seção de Cards de Resumo (KPIs) */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium' }}>
+      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium', textAlign: 'center'}}>
         Resumo Geral
       </Typography>
       
@@ -166,6 +167,10 @@ export default function DashboardProvaPage() {
       </Grid>
 
       <Divider sx={{ mb: 4 }} />
+
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center', mb: 4 }}>
+              Distribuição de Notas
+      </Typography>
 
       <HistogramaNotas 
         dados={data.distribuicaoNotas.dados} 
