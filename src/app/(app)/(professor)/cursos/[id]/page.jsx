@@ -963,7 +963,7 @@ export default function CursoDetalhesPage() {
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
             Provas ({provas.length})
           </Typography>
-          <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+          <Link href={`/provas?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
             <Button
               variant="contained"
               color="primary"
