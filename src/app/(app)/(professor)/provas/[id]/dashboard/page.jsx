@@ -24,6 +24,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { dashboardService } from '../../../../../../services/dashboardService';
+import HistogramaNotas from '../../../../../components/questoes/charts/HistogramaNotas';
 
 export default function DashboardProvaPage() {
   const params = useParams();
@@ -166,12 +167,10 @@ export default function DashboardProvaPage() {
 
       <Divider sx={{ mb: 4 }} />
 
-      {/* Placeholder para os Gráficos */}
-      <Box sx={{ p: 4, border: '1px dashed grey', borderRadius: 2, textAlign: 'center', bgcolor: '#f5f5f5' }}>
-        <Typography color="text.secondary">
-          Gráficos de distribuição e desempenho serão carregados aqui.
-        </Typography>
-      </Box>
+      <HistogramaNotas 
+        dados={data.distribuicaoNotas.dados} 
+        meta={data.distribuicaoNotas.meta} 
+      />
     </Container>
   );
 }
