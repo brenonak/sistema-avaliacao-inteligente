@@ -1104,14 +1104,13 @@ export default function CursoDetalhesPage() {
                       >
                         <Edit />
                       </IconButton>
-                      <Link href={`/aluno/cursos/${cursoId}/provas/${prova.id}/resultado`} passHref>
-                        <IconButton
-                          color="info"
-                          title="Ver como Aluno (Teste)"
-                        >
-                          <Visibility />
-                        </IconButton>
-                      </Link>
+                      <IconButton
+                        color="info"
+                        onClick={() => router.push(`/cursos/${cursoId}/provas/${prova.id}/visualizar`)}
+                        title="Ver como Aluno (Teste)"
+                      >
+                        <Visibility />
+                      </IconButton>
                       <IconButton
                         color="success"
                         onClick={() => handleExportLatex(prova.id)}
