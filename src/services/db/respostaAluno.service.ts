@@ -319,20 +319,6 @@ interface ResultadoCorrecao {
 }
 
 /**
- * Helper: Compara dois arrays ignorando a ordem dos elementos.
- * Útil para 'afirmacoes' e 'proposicoes' (Multi-select).
- */
-function arraysSaoIguaisSemOrdem(arr1: any[], arr2: any[]): boolean {
-  if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
-  if (arr1.length !== arr2.length) return false;
-
-  const sorted1 = [...arr1].sort();
-  const sorted2 = [...arr2].sort();
-
-  return JSON.stringify(sorted1) === JSON.stringify(sorted2);
-}
-
-/**
  * Função pura de correção baseada nos 5 tipos
  */
 function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCorrecao {
@@ -346,46 +332,61 @@ function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCor
 
   switch (questao.tipo) {
     // 1. Única escolha (Radio Button)
-    case "alternativa":
-      // Converte para string para evitar erros como "1" (number) !== "1" (string)
-      isCorrect = String(questao.gabarito).trim() === String(respostaAluno).trim();
+    case "alternativa": {
+      // Buscar a alternativa correta do gabarito
+      const alternativaCorreta = (questao as any).alternativas?.find((alt: any) => alt.correta);
+      if (!alternativaCorreta) {
+        console.warn('Questão de alternativa sem resposta correta definida');
+        isCorrect = false;
+        break;
+      }
+      
+      // Comparar com a letra ou com o texto da alternativa
+      const letraCorreta = alternativaCorreta.letra;
+      const textoCorreto = alternativaCorreta.texto;
+      const respostaStr = String(respostaAluno).trim();
+      
+      isCorrect = respostaStr === letraCorreta || respostaStr === textoCorreto;
       break;
+    }
 
     // 2. Resposta Numérica (Input Number)
-    case "numerica":
-      const valorGabarito = Number(questao.gabarito);
+    case "numerica": {
+      const valorGabarito = Number((questao as any).respostaCorreta);
       const valorAluno = Number(respostaAluno);
-      const margemErro = questao.tolerancia || 0;
+      const margemErro = (questao as any).margemErro || 0;
       
       // Verifica se é um número válido e se está dentro da margem
       if (!isNaN(valorAluno)) {
         isCorrect = Math.abs(valorGabarito - valorAluno) <= margemErro;
       }
       break;
+    }
 
-    // 3. Verdadeiro ou Falso (Array Ordenado)
+    // 3. Verdadeiro ou Falso / Afirmações (Array Ordenado)
     case "vf":
-      // Ex: Gabarito [true, false, true] deve ser IGUAL e na MESMA ORDEM
+    case "afirmacoes": {
+      // Para afirmações, o gabarito é um array de booleanos na ordem das afirmações
+      const gabaritoAfirmacoes = (questao as any).afirmacoes?.map((af: any) => af.correta) || [];
+      
       // Assumindo que respostaAluno chega como array de booleans
-      isCorrect = JSON.stringify(questao.gabarito) === JSON.stringify(respostaAluno);
-      break;
-
-    // 4. Múltiplas Escolhas / Checkbox (Array Sem Ordem)
-    case "afirmacoes":
-    case "proposicoes":
-      // Ex: Gabarito ["A", "C"]. Aluno enviou ["C", "A"]. Deve aceitar.
-      // Verifica se são arrays e compara o conteúdo ignorando ordem.
-      if (Array.isArray(questao.gabarito) && Array.isArray(respostaAluno)) {
-        isCorrect = arraysSaoIguaisSemOrdem(questao.gabarito, respostaAluno);
-      } else {
-        // Fallback caso proposições seja estilo "Soma" (número inteiro)
-        if (typeof questao.gabarito === 'number') {
-             isCorrect = Number(questao.gabarito) === Number(respostaAluno);
-        } else {
-             isCorrect = false;
-        }
+      if (Array.isArray(respostaAluno)) {
+        isCorrect = JSON.stringify(gabaritoAfirmacoes) === JSON.stringify(respostaAluno);
       }
       break;
+    }
+
+    // 4. Proposições / Somatório
+    case "proposicoes": {
+      // Para proposições, calcular a soma das corretas
+      const somaCorreta = (questao as any).proposicoes
+        ?.filter((p: any) => p.correta)
+        .reduce((sum: number, p: any) => sum + (p.valor || 0), 0) || 0;
+      
+      // Comparar com a resposta do aluno (que deve ser um número)
+      isCorrect = Number(respostaAluno) === somaCorreta;
+      break;
+    }
 
     default:
       console.warn(`Tipo de questão desconhecido: ${questao.tipo}`);
