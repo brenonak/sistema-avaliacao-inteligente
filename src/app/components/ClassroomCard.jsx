@@ -18,12 +18,15 @@ export default function ClassroomCard(props) {
     onDelete,
     cursoDescricao = '',
     questoesCount,
-    href = cursoId ? `/cursos/${cursoId}` : '#'
+    href,
+    aluno = false, // adiciona aluno ao href quando verdadeiro
   } = props;
+
+  const computedHref = href ?? (cursoId ? (aluno ? `/aluno/cursos/${cursoId}` : `/cursos/${cursoId}`) : '#');
 
   return (
     <Card sx={{ width: '100%', maxWidth: 320, borderRadius: 3, mx: 'auto' }}>
-      <Link href={href} passHref style={{ textDecoration: 'none' }}>
+      <Link href={computedHref} passHref style={{ textDecoration: 'none' }}>
         <CardActionArea>
           <CardMedia
             sx={{ height: 100 }}

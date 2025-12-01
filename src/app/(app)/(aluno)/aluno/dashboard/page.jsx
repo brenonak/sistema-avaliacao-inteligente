@@ -205,6 +205,7 @@ export default function DashboardAlunoPage() {
                       imgTitle="Course Background"
                       classroomTitle={curso.nome}
                       teacherName=""
+                      aluno={true}
                       cursoId={curso.id}
                       cursoDescricao={curso.descricao}
                       questoesCount={curso.questoesCount}
