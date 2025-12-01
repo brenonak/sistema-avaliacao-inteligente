@@ -13,7 +13,7 @@ import {
   Paper,
   IconButton,
 } from '@mui/material';
-import { ArrowBack, Visibility, Description } from '@mui/icons-material';
+import { ArrowBack, Visibility, Description, School } from '@mui/icons-material';
 
 export default function CursoAlunoPage() {
   const params = useParams();
@@ -130,13 +130,14 @@ export default function CursoAlunoPage() {
 
       <Paper sx={{ p: 3, mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <School sx={{ mr: 2, fontSize: 80, color: 'primary.main' }} />
           <Box sx={{ flex: 1 }}>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{curso?.nome}</Typography>
             {curso?.codigo && <Chip label={`Código: ${curso.codigo}`} size="small" sx={{ mt: 1 }} />}
             {curso?.descricao && <Typography sx={{ color: 'text.secondary', mt: 1 }}>{curso.descricao}</Typography>}
           </Box>
           <Box>
-            <Button variant="contained" onClick={() => { navigator.clipboard?.writeText(curso?.codigo || ''); alert('Código copiado'); }}>
+            <Button variant="contained" onClick={() => { navigator.clipboard?.writeText(curso?.codigo || ''); alert('Código copiado para a área de transferência'); }}>
               Copiar Código
             </Button>
           </Box>
