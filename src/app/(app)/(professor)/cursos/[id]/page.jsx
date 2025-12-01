@@ -45,6 +45,7 @@ import {
   RateReview,
   Visibility,
   CheckCircle,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -1097,6 +1098,20 @@ export default function CursoDetalhesPage() {
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+
+                      <Link href={`/provas/${prova.id}/dashboard`} passHref style={{ textDecoration: 'none' }}>
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          color="primary"
+                          startIcon={<AssessmentIcon />}
+                          sx={{ mr: 1 }} 
+                          title="Ver estatísticas da turma"
+                        >
+                          Dashboard
+                        </Button>
+                      </Link>
+
                       <IconButton
                         color="primary"
                         onClick={() => handleOpenEditProva(prova)}
