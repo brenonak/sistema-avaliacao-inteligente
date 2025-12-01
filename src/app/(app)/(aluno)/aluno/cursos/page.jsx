@@ -17,9 +17,9 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { Add, Edit, Delete, Search, Clear, School } from '@mui/icons-material';
+import { Add, Search, Clear, School } from '@mui/icons-material';
 
-export default function CursosPage() {
+export default function CursosAlunoPage() {
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -209,7 +209,6 @@ export default function CursosPage() {
             </Box>
           )}
 
-          {/* Grid de cursos usando ClassroomCard similar à página inicial */}
           {!loading && !error && cursosFiltrados.length > 0 && (
             <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
                                                               backgroundColor: 'background.paper',
@@ -223,7 +222,8 @@ export default function CursosPage() {
                     imgTitle="Course Background"
                     classroomTitle={curso.nome}
                     teacherName=""
-                    cursoId={curso.id}
+                    cursoId={`${curso.id}`}
+                    aluno={true}
                     cursoDescricao={curso.descricao}
                     onDelete={handleDelete}
                     questoesCount={curso.questoesCount}
