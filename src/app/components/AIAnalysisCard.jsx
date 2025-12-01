@@ -109,7 +109,7 @@ const ExpandButton = styled(IconButton)(({ expanded }) => ({
 // Container para markdown com estilos
 const MarkdownContainer = styled(Box)(({ theme }) => ({
   '& h1, & h2, & h3, & h4, & h5, & h6': {
-    color: theme.palette.text.primary,
+    color: 'var(--mui-palette-text-primary)',
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(1),
     fontWeight: 600,
@@ -120,7 +120,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
   '& h4, & h5, & h6': { fontSize: '1rem' },
   
   '& p': {
-    color: theme.palette.text.secondary,
+    color: 'var(--mui-palette-text-secondary)',
     marginBottom: theme.spacing(1.5),
     lineHeight: 1.7,
   },
@@ -128,7 +128,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
   '& ul, & ol': {
     paddingLeft: theme.spacing(3),
     marginBottom: theme.spacing(1.5),
-    color: theme.palette.text.secondary,
+    color: 'var(--mui-palette-text-secondary)',
   },
   
   '& li': {
@@ -137,7 +137,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
   },
   
   '& strong': {
-    color: theme.palette.text.primary,
+    color: 'var(--mui-palette-text-primary)',
     fontWeight: 600,
   },
   
@@ -147,6 +147,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
     borderRadius: 4,
     fontSize: '0.875rem',
     fontFamily: 'monospace',
+    color: 'var(--mui-palette-text-primary)',
   },
   
   '& blockquote': {
@@ -155,7 +156,7 @@ const MarkdownContainer = styled(Box)(({ theme }) => ({
     marginLeft: 0,
     marginRight: 0,
     fontStyle: 'italic',
-    color: theme.palette.text.secondary,
+    color: 'var(--mui-palette-text-secondary)',
   },
 }));
 
@@ -351,7 +352,7 @@ const AIAnalysisCard = ({
             </IconContainer>
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'var(--mui-palette-text-primary)' }}>
                   {title}
                 </Typography>
                 <Chip
@@ -367,7 +368,7 @@ const AIAnalysisCard = ({
                   }}
                 />
               </Box>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: 'var(--mui-palette-text-secondary)' }}>
                 Insights gerados por inteligência artificial
               </Typography>
             </Box>
@@ -437,7 +438,7 @@ const AIAnalysisCard = ({
                 opacity: 0.5,
               }} 
             />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'var(--mui-palette-text-secondary)' }}>
               {emptyMessage}
             </Typography>
           </Box>
