@@ -45,7 +45,7 @@ import {
   RateReview,
   Visibility,
   CheckCircle,
-  Assessment as AssessmentIcon
+  Assessment
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -1099,17 +1099,18 @@ export default function CursoDetalhesPage() {
 
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
 
-                      <Link href={`/provas/${prova.id}/dashboard`} passHref style={{ textDecoration: 'none' }}>
-                        <Button 
-                          size="small" 
-                          variant="outlined" 
-                          color="primary"
-                          startIcon={<AssessmentIcon />}
-                          sx={{ mr: 1 }} 
-                          title="Ver estatísticas da turma"
+                      <Link href={`/provas/${prova.id}/dashboard`} passHref>
+                        <IconButton 
+                          sx={{ 
+                            color: '#9c27b0', // Um roxo/lilas para destacar que é Analytics/Inteligência
+                            border: '1px solid rgba(156, 39, 176, 0.5)', // Uma borda sutil para diferenciar levemente
+                            '&:hover': { backgroundColor: 'rgba(156, 39, 176, 0.04)' }
+                          }}
+                          title="Ver Dashboard de Desempenho" // Texto que aparece ao passar o mouse
+                          size="small"
                         >
-                          Dashboard
-                        </Button>
+                          <Assessment />
+                        </IconButton>
                       </Link>
 
                       <IconButton
