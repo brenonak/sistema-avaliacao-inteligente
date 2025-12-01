@@ -48,9 +48,8 @@ export default function CursoAlunoPage() {
     ];
 
     const mockedListas = [
-      { id: 'l1', tituloLista: 'Lista 1', nomeInstituicao: 'Unifesp', nota: 9.0 },
-      { id: 'l2', tituloLista: 'Lista 2', nomeInstituicao: 'Unifesp', nota: 5.5 },
-      { id: 'l3', tituloLista: 'Lista 3', nomeInstituicao: 'Unifesp' },
+      { id: 'l1', tituloLista: 'Lista 1', nomeInstituicao: 'Unifesp', nota: 8.5 },
+      { id: 'l2', tituloLista: 'Lista 2', nomeInstituicao: 'Unifesp' },
     ];
 
     const mockedStatus = {
@@ -210,7 +209,7 @@ export default function CursoAlunoPage() {
               const grade = Number.isFinite(lista.nota) ? lista.nota : null;
 
               const action = hasGrade
-                ? { label: 'Visualizar', href: `/aluno/cursos/${cursoId}/listas/${id}/visualizar`, icon: <Visibility /> }
+                ? { label: 'Visualizar', href: `/aluno/cursos/${cursoId}/listas/${id}/resultado`, icon: <Visibility /> }
                 : { label: 'Responder', href: `/aluno/cursos/${cursoId}/listas/${id}/responder`, icon: null };
 
               return (
