@@ -12,6 +12,7 @@ import {
   CircularProgress, 
   Stack,
   Divider,
+  Paper,
   Alert
 } from '@mui/material';
 import { 
@@ -24,6 +25,8 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { dashboardService } from '../../../../../../services/dashboardService';
+import HistogramaNotas from '../../../../../components/questoes/charts/HistogramaNotas';
+import DesempenhoQuestoes from '../../../../../components/questoes/charts/DesempenhoQuestoes';
 
 export default function DashboardProvaPage() {
   const params = useParams();
@@ -127,7 +130,7 @@ export default function DashboardProvaPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       
-      {/* 1. Cabeçalho e Navegação */}
+      {/* Cabeçalho e Navegação */}
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
         <Link href="/provas" passHref style={{ textDecoration: 'none' }}>
           <Button startIcon={<ArrowBackIcon />} color="inherit">
@@ -144,12 +147,12 @@ export default function DashboardProvaPage() {
         </Box>
       </Stack>
 
-      {/* 2. Seção de Cards de Resumo (KPIs) */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium' }}>
+      {/* Seção de Cards de Resumo (KPIs) */}
+      <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 'medium', textAlign: 'center'}}>
         Resumo Geral
       </Typography>
       
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 6 }} justifyContent="center">
         <Grid item xs={12} sm={6} md={3}>
           {renderSummaryCard('Média da Turma', resumo.mediaGeral.toFixed(1), <FunctionsIcon />, '#1976d2')}
         </Grid>
@@ -166,12 +169,43 @@ export default function DashboardProvaPage() {
 
       <Divider sx={{ mb: 4 }} />
 
-      {/* Placeholder para os Gráficos */}
-      <Box sx={{ p: 4, border: '1px dashed grey', borderRadius: 2, textAlign: 'center', bgcolor: '#f5f5f5' }}>
-        <Typography color="text.secondary">
-          Gráficos de distribuição e desempenho serão carregados aqui.
-        </Typography>
-      </Box>
+
+      {/* 3. Seção de Gráficos */}
+      <Grid container spacing={4} justifyContent="center">
+
+        {/* Histograma */}
+        <Grid item xs={12} md={10} lg={8}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center', mb: 4 }}>
+              Distribuição de Notas
+            </Typography>
+            <HistogramaNotas 
+              dados={data.distribuicaoNotas.dados} 
+              meta={data.distribuicaoNotas.meta} 
+            />
+          </Paper>
+        </Grid>
+
+        {/* Desempenho por Questão */}
+        
+
+        <Grid item xs={12} md={10} lg={8}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center', mb: 4 }}>
+              Desempenho por Questão
+            </Typography>
+            <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 2 }}>
+              Questões com acerto abaixo de 50% são destacadas em vermelho.
+            </Typography>
+            
+            <DesempenhoQuestoes 
+              dados={data.desempenhoPorQuestao} 
+            />
+          </Paper>
+        </Grid>
+
+      </Grid>
+      
     </Container>
   );
 }

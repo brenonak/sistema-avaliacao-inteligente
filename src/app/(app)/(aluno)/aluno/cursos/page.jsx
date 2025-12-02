@@ -11,16 +11,23 @@ import {
   CircularProgress, 
   IconButton,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
-import { Add, Edit, Delete, Search, Clear, School } from '@mui/icons-material';
+import { Add, Search, Clear, School } from '@mui/icons-material';
 
-export default function CursosPage() {
+export default function CursosAlunoPage() {
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [courseIdInput, setCourseIdInput] = useState('');
 
   // Debounce para busca
   useEffect(() => {
@@ -32,17 +39,18 @@ export default function CursosPage() {
 
   useEffect(() => {
     async function fetchCursos() {
-      setLoading(true);
-      setError(null);
       try {
-        const res = await fetch('/api/cursos');
-        if (!res.ok) throw new Error('Erro ao carregar cursos');
-        const json = await res.json();
-        setCursos(json.itens || []);
-        setLoading(false);
+        // Buscar os cursos em que o aluno está matriculado
+        const response = await fetch('/api/cursos/aluno');
+        if (!response.ok) {
+          throw new Error('Erro ao carregar cursos');
+        }
+        const data = await response.json();
+        setCursos(data.itens || []);
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
         setCursos([]);
+      } finally {
         setLoading(false);
       }
     }
@@ -63,6 +71,53 @@ export default function CursosPage() {
     setSearchQuery('');
   };
 
+  function handleOpenAddDialog() {
+    setCourseIdInput('');
+    setOpenAddDialog(true);
+  }
+
+  function handleCloseAddDialog() {
+    setOpenAddDialog(false);
+  }
+
+  async function handleSubmitCourse() {
+    if (!courseIdInput.trim()) {
+      alert('Por favor, insira o código do curso');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/cursos/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          codigo: courseIdInput.trim().toUpperCase(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao adicionar curso');
+      }
+
+      // Recarregar lista de cursos
+      const cursosResponse = await fetch('/api/cursos/aluno');
+      if (cursosResponse.ok) {
+        const cursosData = await cursosResponse.json();
+        setCursos(cursosData.itens || []);
+      }
+
+      handleCloseAddDialog();
+      alert(`Você foi matriculado no curso: ${data.curso.nome}`);
+    } catch (e) {
+      console.error(e);
+      alert(e.message || 'Erro ao adicionar curso');
+    }
+  }
+
   // Filtrar cursos baseado na busca
   const cursosFiltrados = cursos.filter((curso) => 
     curso.nome.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
@@ -74,21 +129,22 @@ export default function CursosPage() {
         <Box sx={{
               padding: 5,
             }}>
-          {/* Header com título e botão de criar curso */}
+          {/* Header com título e botão de criar / adicionar curso */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography gutterBottom variant="h4" component="div">
               Meus Cursos
             </Typography>
-            <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                startIcon={<Add />}
-                size="large"
-              >
-                Criar Novo Curso
-              </Button>
-            </Link>
+
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<Add />}
+              size="large"
+              onClick={handleOpenAddDialog}
+            >
+              Adicionar Curso 
+            </Button>
+
           </Box>
 
           {/* Barra de pesquisa */}
@@ -147,15 +203,12 @@ export default function CursosPage() {
                   ? 'Nenhum curso encontrado com os critérios de busca.' 
                   : 'Nenhum curso cadastrado ainda.'}
               </Typography>
-              <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-                <Button variant="contained" color="primary" startIcon={<Add />}>
-                  Criar Primeiro Curso
-                </Button>
-              </Link>
+              <Button variant="contained" color="primary" startIcon={<Add />} onClick={handleOpenAddDialog}>
+                Adicionar Curso pelo Código
+              </Button>
             </Box>
           )}
 
-          {/* Grid de cursos usando ClassroomCard similar à página inicial */}
           {!loading && !error && cursosFiltrados.length > 0 && (
             <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
                                                               backgroundColor: 'background.paper',
@@ -169,7 +222,8 @@ export default function CursosPage() {
                     imgTitle="Course Background"
                     classroomTitle={curso.nome}
                     teacherName=""
-                    cursoId={curso.id}
+                    cursoId={`${curso.id}`}
+                    aluno={true}
                     cursoDescricao={curso.descricao}
                     onDelete={handleDelete}
                     questoesCount={curso.questoesCount}
@@ -180,6 +234,48 @@ export default function CursosPage() {
           )}
         </Box>
       </Grid>
+
+      {/* Dialog para adicionar curso por código */}
+      <Dialog
+        open={openAddDialog}
+        onClose={handleCloseAddDialog}
+        fullWidth
+        maxWidth="md"
+        sx={{
+          '& .MuiPaper-root': {
+            width: 'min(500px, 95%)',
+            maxWidth: '500px',
+            borderRadius: 2,
+            p: 2,
+          },
+        }}
+      >
+        <DialogTitle>Adicionar Curso por Código</DialogTitle>
+
+        <DialogContent sx={{ pt: 1 }}>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Código do Curso"
+            placeholder="Digite o código do curso"
+            fullWidth
+            value={courseIdInput}
+            onChange={(e) => setCourseIdInput(e.target.value.toUpperCase())}
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ px: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+            <Button onClick={handleCloseAddDialog} color="inherit">
+              Cancelar
+            </Button>
+
+            <Button onClick={handleSubmitCourse} variant="contained">
+              Confirmar
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 }
