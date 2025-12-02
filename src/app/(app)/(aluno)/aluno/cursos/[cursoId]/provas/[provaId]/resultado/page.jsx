@@ -31,91 +31,68 @@ export default function ResultadoProvaPage() {
   const [resultado, setResultado] = useState(null);
 
   useEffect(() => {
-    // Simulação de busca de dados
-    // Em produção, isso seria: fetch(`/api/aluno/provas/${provaId}/resultado`)
+    // Busca dados reais: prova + respostas/correção do aluno
     const fetchResultado = async () => {
       try {
         setLoading(true);
-        
-        // TODO: Substituir por chamada real à API
-        // const response = await fetch(`/api/aluno/provas/${provaId}/resultado`);
-        // const data = await response.json();
-        
-        // Mock de dados para visualização
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockData = {
+        setError(null);
+
+        const provaRes = await fetch(`/api/cursos/${cursoId}/provas/${provaId}`);
+        if (!provaRes.ok) throw new Error('Erro ao carregar prova');
+        const provaData = await provaRes.json();
+
+        const respostasRes = await fetch(`/api/cursos/${cursoId}/provas/${provaId}/respostas`);
+        let respostasData = null;
+        if (respostasRes.ok) {
+          respostasData = await respostasRes.json();
+        } else {
+          respostasData = { respostas: {}, correcao: {}, finalizado: false, dataFinalizacao: null, pontuacaoTotal: 0, pontuacaoObtidaTotal: 0 };
+        }
+
+        const provaObj = provaData || {};
+        const respostasMap = respostasData?.respostas || {};
+        const correcaoMap = respostasData?.correcao || {};
+
+        const valorTotalFromProva = Array.isArray(provaObj.questoes)
+          ? provaObj.questoes.reduce((s, q) => s + (q.pontuacao || q.valor || 0), 0)
+          : 0;
+
+        const resultadoObj = {
           prova: {
-            titulo: 'Prova 1 - Lógica de Programação',
-            data: '2023-10-15',
-            valorTotal: 10.0,
-            professor: 'Prof. Silva',
-            instrucoes: 'Responda todas as questões com atenção.'
+            titulo: provaObj.titulo || 'Prova',
+            data: provaObj.data || provaObj.createdAt || new Date().toISOString(),
+            valorTotal: respostasData?.pontuacaoTotal ?? provaObj.valorTotal ?? valorTotalFromProva,
+            professor: provaObj.professor || null,
+            instrucoes: provaObj.instrucoes || ''
           },
           desempenho: {
-            nota: 7.5,
-            aprovado: true,
-            dataEntrega: '2023-10-15T10:30:00'
+            nota: respostasData?.pontuacaoObtidaTotal ?? respostasData?.pontuacaoObtida ?? 0,
+            dataEntrega: respostasData?.dataFinalizacao || null,
+            aprovado: (respostasData?.pontuacaoObtidaTotal ?? 0) >= ((respostasData?.pontuacaoTotal ?? provaObj.valorTotal ?? valorTotalFromProva) * 0.6),
           },
-          questoes: [
-            {
-              id: '1',
-              numero: 1,
-              enunciado: 'O que é um algoritmo?',
-              tipo: 'alternativa',
-              valor: 2.0,
-              notaObtida: 2.0,
-              respostaAluno: 'B',
-              gabarito: 'B',
-              feedback: 'Correto! Algoritmo é uma sequência de passos finitos.',
-              alternativas: [
-                { letra: 'A', texto: 'Um tipo de hardware.' },
-                { letra: 'B', texto: 'Uma sequência de passos para resolver um problema.' },
-                { letra: 'C', texto: 'Uma linguagem de programação.' },
-                { letra: 'D', texto: 'Um erro de compilação.' }
-              ]
-            },
-            {
-              id: '2',
-              numero: 2,
-              enunciado: 'Explique a diferença entre while e do-while.',
-              tipo: 'dissertativa',
-              valor: 3.0,
-              notaObtida: 2.5,
-              respostaAluno: 'O while verifica a condição antes, o do-while verifica depois.',
-              feedback: 'Muito bom, mas poderia ter mencionado que o do-while executa pelo menos uma vez.',
-            },
-            {
-              id: '3',
-              numero: 3,
-              enunciado: 'Qual o valor de X? int x = 10; x++;',
-              tipo: 'numerica',
-              valor: 2.0,
-              notaObtida: 0.0,
-              respostaAluno: '10',
-              gabarito: '11',
-              feedback: 'Atenção ao operador de pós-incremento. O valor final é 11.',
-            },
-            {
-              id: '4',
-              numero: 4,
-              enunciado: 'Analise as afirmações sobre arrays.',
-              tipo: 'afirmacoes',
-              valor: 3.0,
-              notaObtida: 3.0,
-              respostaAluno: [true, false, true],
-              gabarito: [true, false, true],
-              feedback: 'Excelente análise.',
-              afirmacoes: [
-                { texto: 'Arrays têm tamanho fixo em C.', correta: true },
-                { texto: 'Arrays podem armazenar tipos diferentes na mesma variável em Java.', correta: false },
-                { texto: 'O índice inicial é 0.', correta: true }
-              ]
-            }
-          ]
+          questoes: Array.isArray(provaObj.questoes) ? provaObj.questoes.map((q, idx) => {
+            const qId = (q.id || q._id || q._id?.toString() || idx).toString();
+            const cor = correcaoMap[qId] || {};
+            const resp = respostasMap[qId];
+
+            return {
+              id: qId,
+              numero: q.numero ?? (idx + 1),
+              enunciado: q.enunciado || q.pergunta || q.titulo || '',
+              tipo: q.tipo || q.tipoQuestao || 'dissertativa',
+              valor: q.pontuacao ?? q.valor ?? 0,
+              notaObtida: (cor.pontuacaoObtida !== undefined && cor.pontuacaoObtida !== null) ? cor.pontuacaoObtida : (cor.isCorrect ? (cor.pontuacaoMaxima ?? q.pontuacao ?? q.valor ?? 0) : (cor.isCorrect === false ? 0 : 0)),
+              respostaAluno: resp,
+              // TODO: Alterar mock de feedback do professor
+              feedback: 'Este é um mock, substituir por API real',
+              gabarito: q.gabarito,
+              alternativas: q.alternativas,
+              afirmacoes: q.afirmacoes
+            };
+          }) : []
         };
 
-        setResultado(mockData);
+        setResultado(resultadoObj);
       } catch (err) {
         console.error(err);
         setError('Não foi possível carregar o resultado da prova.');
@@ -124,7 +101,7 @@ export default function ResultadoProvaPage() {
       }
     };
 
-    if (provaId) {
+    if (provaId && cursoId) {
       fetchResultado();
     }
   }, [provaId]);
@@ -169,20 +146,20 @@ export default function ResultadoProvaPage() {
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
               {resultado.prova.titulo}
             </Typography>
-            <Chip 
+            <Chip
               icon={<CheckCircle />}
-              label="Corrigido" 
-              color="success" 
+              label="Corrigido"
+              color="success"
               sx={{ fontWeight: 'bold' }}
             />
           </Box>
-          
+
           {resultado.prova.professor && (
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
               <strong>Professor:</strong> {resultado.prova.professor}
             </Typography>
           )}
-          
+
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             <strong>Data:</strong> {new Date(resultado.prova.data).toLocaleDateString('pt-BR')}
           </Typography>
@@ -279,14 +256,14 @@ export default function ResultadoProvaPage() {
           )}
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
-            <Chip 
-              label={`${resultado.questoes.length} questões`} 
-              size="small" 
-              variant="outlined" 
+            <Chip
+              label={`${resultado.questoes.length} questões`}
+              size="small"
+              variant="outlined"
             />
-            <Chip 
+            <Chip
               label={`Total: ${resultado.prova.valorTotal} pontos`}
-              size="small" 
+              size="small"
               color="primary"
             />
           </Box>
@@ -303,184 +280,184 @@ export default function ResultadoProvaPage() {
       {/* Lista de Questões */}
       <Box sx={{ mb: 4 }}>
         {resultado.questoes.map((questao, index) => (
-            <Card 
-              key={questao.id} 
-              sx={{ 
-                mb: 3,
-                border: 2,
-                borderColor: questao.notaObtida === questao.valor ? 'success.main' : 
-                             questao.notaObtida > 0 ? 'warning.main' : 'error.main'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                {/* Cabeçalho da Questão */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                      Questão {questao.numero}
-                    </Typography>
-                    {questao.notaObtida === questao.valor ? (
-                      <CheckCircle sx={{ color: 'success.main' }} />
-                    ) : (
-                      <Cancel sx={{ color: 'error.main' }} />
-                    )}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {questao.valor > 0 && (
-                      <Chip 
-                        label={`${questao.valor} pts`} 
-                        size="small" 
-                        color="primary" 
-                        sx={{ fontWeight: 'bold' }}
-                      />
-                    )}
-                    <Chip 
-                      label={`${questao.notaObtida} / ${questao.valor} pts`}
-                      color={
-                        questao.notaObtida === questao.valor ? 'success' : 
-                        questao.notaObtida > 0 ? 'warning' : 'error'
-                      }
-                      size="small"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </Box>
-                </Box>
-
-                <Alert 
-                  severity={questao.notaObtida === questao.valor ? 'success' : 'error'} 
-                  sx={{ mb: 2 }}
-                >
-                  {questao.notaObtida === questao.valor ? 'Resposta correta!' : 'Resposta incorreta'}
-                </Alert>
-
-                {/* Enunciado */}
-                <Typography variant="body1" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
-                  {questao.enunciado}
-                </Typography>
-
-                {/* Resposta do Aluno */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Sua Resposta:
+          <Card
+            key={questao.id}
+            sx={{
+              mb: 3,
+              border: 2,
+              borderColor: questao.notaObtida === questao.valor ? 'success.main' :
+                questao.notaObtida > 0 ? 'warning.main' : 'error.main'
+            }}
+          >
+            <CardContent sx={{ p: 3 }}>
+              {/* Cabeçalho da Questão */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    Questão {questao.numero}
                   </Typography>
-                  
-                  {questao.tipo === 'alternativa' ? (
-                    <Box>
-                      {questao.alternativas.map((alt) => (
-                        <Box 
-                          key={alt.letra} 
-                          sx={{ 
-                            p: 1.5, 
-                            mb: 1, 
-                            borderRadius: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            bgcolor: 
-                              alt.letra === questao.respostaAluno 
-                                ? (questao.notaObtida > 0 ? 'success.light' : 'error.light')
-                                : (alt.letra === questao.gabarito && questao.notaObtida === 0 ? 'success.light' : 'transparent'),
-                            border: 1,
-                            borderColor: 'divider'
-                          }}
-                        >
-                          <Typography 
-                            component="div"
-                            sx={{ 
-                              fontWeight: alt.letra === questao.respostaAluno ? 'bold' : 'normal',
-                              width: '100%'
-                            }}
-                          >
-                            <span style={{ fontWeight: 'bold', marginRight: 8 }}>{alt.letra})</span> 
-                            {alt.texto}
-                            {alt.letra === questao.respostaAluno && (
-                              <Chip 
-                                label="Sua escolha" 
-                                size="small" 
-                                sx={{ ml: 2, height: 20 }} 
-                                color={questao.notaObtida > 0 ? 'success' : 'error'} 
-                              />
-                            )}
-                            {alt.letra === questao.gabarito && questao.notaObtida === 0 && (
-                              <Chip 
-                                label="Correta" 
-                                size="small" 
-                                sx={{ ml: 2, height: 20 }} 
-                                color="success" 
-                              />
-                            )}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : questao.tipo === 'afirmacoes' ? (
-                    <Box>
-                      {questao.afirmacoes?.map((afirmacao, idx) => (
-                        <Box key={idx} sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                          <Typography variant="body2" sx={{ mb: 1 }}>
-                            {afirmacao.texto}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                            <Chip
-                              label={questao.respostaAluno?.[idx] === true ? 'Verdadeiro' : questao.respostaAluno?.[idx] === false ? 'Falso' : 'Não respondido'}
-                              size="small"
-                              color={
-                                questao.respostaAluno?.[idx] === afirmacao.correta
-                                  ? 'success'
-                                  : 'error'
-                              }
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                            {questao.respostaAluno?.[idx] !== afirmacao.correta && (
-                              <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold' }}>
-                                Correto: {afirmacao.correta ? 'Verdadeiro' : 'Falso'}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      ))}
-                    </Box>
+                  {questao.notaObtida === questao.valor ? (
+                    <CheckCircle sx={{ color: 'success.main' }} />
                   ) : (
-                    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', fontFamily: questao.tipo === 'numerica' ? 'monospace' : 'inherit' }}>
-                        {Array.isArray(questao.respostaAluno) 
-                          ? questao.respostaAluno.map(v => v.toString()).join(', ') 
-                          : questao.respostaAluno || 'Não respondido'}
-                      </Typography>
-                    </Paper>
+                    <Cancel sx={{ color: 'error.main' }} />
                   )}
                 </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {questao.valor > 0 && (
+                    <Chip
+                      label={`${questao.valor} pts`}
+                      size="small"
+                      color="primary"
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  )}
+                  <Chip
+                    label={`${questao.notaObtida} / ${questao.valor} pts`}
+                    color={
+                      questao.notaObtida === questao.valor ? 'success' :
+                        questao.notaObtida > 0 ? 'warning' : 'error'
+                    }
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                </Box>
+              </Box>
 
-                {/* Gabarito (se não for alternativa, pois já mostramos acima) */}
-                {questao.tipo !== 'alternativa' && questao.tipo !== 'afirmacoes' && questao.gabarito && (
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Resposta Esperada / Gabarito:
-                    </Typography>
-                    <Paper variant="outlined" sx={{ p: 2, bgcolor: 'success.light' }}>
-                      <Typography variant="body1" color="success.dark" sx={{ fontWeight: 'bold' }}>
-                        {Array.isArray(questao.gabarito) 
-                          ? questao.gabarito.map(v => v.toString()).join(', ') 
-                          : questao.gabarito}
-                      </Typography>
-                    </Paper>
+              <Alert
+                severity={questao.notaObtida === questao.valor ? 'success' : 'error'}
+                sx={{ mb: 2 }}
+              >
+                {questao.notaObtida === questao.valor ? 'Resposta correta!' : 'Resposta incorreta'}
+              </Alert>
+
+              {/* Enunciado */}
+              <Typography variant="body1" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
+                {questao.enunciado}
+              </Typography>
+
+              {/* Resposta do Aluno */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Sua Resposta:
+                </Typography>
+
+                {questao.tipo === 'alternativa' ? (
+                  <Box>
+                    {questao.alternativas.map((alt) => (
+                      <Box
+                        key={alt.letra}
+                        sx={{
+                          p: 1.5,
+                          mb: 1,
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          bgcolor:
+                            alt.letra === questao.respostaAluno
+                              ? (questao.notaObtida > 0 ? 'success.light' : 'error.light')
+                              : (alt.letra === questao.gabarito && questao.notaObtida === 0 ? 'success.light' : 'transparent'),
+                          border: 1,
+                          borderColor: 'divider'
+                        }}
+                      >
+                        <Typography
+                          component="div"
+                          sx={{
+                            fontWeight: alt.letra === questao.respostaAluno ? 'bold' : 'normal',
+                            width: '100%'
+                          }}
+                        >
+                          <span style={{ fontWeight: 'bold', marginRight: 8 }}>{alt.letra})</span>
+                          {alt.texto}
+                          {alt.letra === questao.respostaAluno && (
+                            <Chip
+                              label="Sua escolha"
+                              size="small"
+                              sx={{ ml: 2, height: 20 }}
+                              color={questao.notaObtida > 0 ? 'success' : 'error'}
+                            />
+                          )}
+                          {alt.letra === questao.gabarito && questao.notaObtida === 0 && (
+                            <Chip
+                              label="Correta"
+                              size="small"
+                              sx={{ ml: 2, height: 20 }}
+                              color="success"
+                            />
+                          )}
+                        </Typography>
+                      </Box>
+                    ))}
                   </Box>
+                ) : questao.tipo === 'afirmacoes' ? (
+                  <Box>
+                    {questao.afirmacoes?.map((afirmacao, idx) => (
+                      <Box key={idx} sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {afirmacao.texto}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                          <Chip
+                            label={questao.respostaAluno?.[idx] === true ? 'Verdadeiro' : questao.respostaAluno?.[idx] === false ? 'Falso' : 'Não respondido'}
+                            size="small"
+                            color={
+                              questao.respostaAluno?.[idx] === afirmacao.correta
+                                ? 'success'
+                                : 'error'
+                            }
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                          {questao.respostaAluno?.[idx] !== afirmacao.correta && (
+                            <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold' }}>
+                              Correto: {afirmacao.correta ? 'Verdadeiro' : 'Falso'}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', fontFamily: questao.tipo === 'numerica' ? 'monospace' : 'inherit' }}>
+                      {Array.isArray(questao.respostaAluno)
+                        ? questao.respostaAluno.map(v => v.toString()).join(', ')
+                        : questao.respostaAluno || 'Não respondido'}
+                    </Typography>
+                  </Paper>
                 )}
+              </Box>
 
-                {/* Feedback do Professor */}
-                {questao.feedback && (
-                  <Alert severity="info" icon={<CommentIcon />} sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                      Comentário do Professor:
+              {/* Gabarito (se não for alternativa, pois já mostramos acima) */}
+              {questao.tipo !== 'alternativa' && questao.tipo !== 'afirmacoes' && questao.gabarito && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Resposta Esperada / Gabarito:
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'success.light' }}>
+                    <Typography variant="body1" color="success.dark" sx={{ fontWeight: 'bold' }}>
+                      {Array.isArray(questao.gabarito)
+                        ? questao.gabarito.map(v => v.toString()).join(', ')
+                        : questao.gabarito}
                     </Typography>
-                    <Typography variant="body2">
-                      {questao.feedback}
-                    </Typography>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+                  </Paper>
+                </Box>
+              )}
+
+              {/* Feedback do Professor */}
+              {questao.feedback && (
+                <Alert severity="info" icon={<CommentIcon />} sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Comentário do Professor:
+                  </Typography>
+                  <Typography variant="body2">
+                    {questao.feedback}
+                  </Typography>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
 
       {/* Footer com botão de voltar */}
       <Paper sx={{ p: 3, position: 'sticky', bottom: 0, zIndex: 1 }}>

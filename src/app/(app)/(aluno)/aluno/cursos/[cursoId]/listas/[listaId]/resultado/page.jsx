@@ -33,77 +33,69 @@ export default function ResultadoListaPage() {
   const [resultado, setResultado] = useState(null);
 
   useEffect(() => {
-    // mock fetch for lista resultado
+    // fetch real resultado: lista + respostas/correção do aluno
     const fetchResultado = async () => {
       try {
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 700));
+        setError(null);
 
-        const mockData = {
+        const listaRes = await fetch(`/api/cursos/${cursoId}/listas/${listaId}`);
+        if (!listaRes.ok) throw new Error('Erro ao carregar a lista');
+        const listaData = await listaRes.json();
+
+        const respostasRes = await fetch(`/api/cursos/${cursoId}/listas/${listaId}/respostas`);
+        let respostasData = null;
+        if (respostasRes.ok) {
+          respostasData = await respostasRes.json();
+        } else {
+          // Se não conseguir carregar as respostas, considerar vazio (não finalizado)
+          respostasData = { respostas: {}, correcao: {}, finalizado: false, dataFinalizacao: null, pontuacaoTotal: 0, pontuacaoObtidaTotal: 0 };
+        }
+
+        // Normalizar alguns campos e montar o objeto esperado pela UI
+        const listaObj = listaData || {};
+        const respostasMap = respostasData?.respostas || {};
+        const correcaoMap = respostasData?.correcao || {};
+
+        const valorTotalFromLista = Array.isArray(listaObj.questoes)
+          ? listaObj.questoes.reduce((s, q) => s + (q.pontuacao || q.valor || 0), 0)
+          : 0;
+
+        const resultadoObj = {
           lista: {
-            id: listaId,
-            titulo: 'Lista 1',
-            criadoEm: '2023-09-10',
-            valorTotal: 20.0,
-            professor: 'Prof. Almeida',
-            instrucoes: 'Responda em cada item o que for pedido.'
+            id: listaObj.id || listaObj._id || listaId,
+            titulo: listaObj.tituloLista || listaObj.titulo || listaObj.nome || 'Lista de Exercícios',
+            criadoEm: listaObj.criadoEm || listaObj.createdAt || new Date().toISOString(),
+            valorTotal: respostasData?.pontuacaoTotal ?? valorTotalFromLista,
+            professor: listaObj.professor || listaObj.createdBy || listaObj.ownerId || null,
+            instrucoes: listaObj.instrucoes || listaObj.descricao || ''
           },
           desempenho: {
-            nota: 17.0,
-            dataEntrega: '2023-10-01T14:20:00',
-            finalizado: true
+            nota: respostasData?.pontuacaoObtidaTotal ?? respostasData?.pontuacaoObtida ?? 0,
+            dataEntrega: respostasData?.dataFinalizacao || null,
+            finalizado: !!respostasData?.finalizado
           },
-          questoes: [
-            {
-              id: '1',
-              numero: 1,
-              enunciado: 'Resolva o sistema linear: 2x + y = 5; x - y = 1',
-              tipo: 'dissertativa',
-              valor: 5.0,
-              notaObtida: 5.0,
-              respostaAluno: 'x=2, y=1',
-              feedback: 'Resposta correta e bem apresentada.'
-            },
-            {
-              id: '2',
-              numero: 2,
-              enunciado: 'Calcule o determinante da matriz [[1,2],[3,4]]',
-              tipo: 'numerica',
-              valor: 3.0,
-              notaObtida: 3.0,
-              respostaAluno: ' -2 ',
-              feedback: 'Valor correto.'
-            },
-            {
-              id: '3',
-              numero: 3,
-              enunciado: 'Enumere as propriedades de vetores linearmente dependentes.',
-              tipo: 'dissertativa',
-              valor: 6.0,
-              notaObtida: 4.0,
-              respostaAluno: 'As propriedades principais são ...',
-              feedback: 'Boa resposta, faltou citar um exemplo prático.'
-            },
-            {
-              id: '4',
-              numero: 4,
-              enunciado: 'Complete: matriz identidade de ordem 3 tem ...',
-              tipo: 'alternativa',
-              valor: 6.0,
-              notaObtida: 5.0,
-              respostaAluno: 'B',
-              gabarito: 'B',
-              alternativas: [
-                { letra: 'A', texto: 'zeros na diagonal principal' },
-                { letra: 'B', texto: 'uns na diagonal principal e zeros fora' },
-                { letra: 'C', texto: 'uns em toda a matriz' }
-              ],
-              feedback: 'Alternativa correta, atenção na escrita.'
-            }
-          ]
+          questoes: Array.isArray(listaObj.questoes) ? listaObj.questoes.map((q, idx) => {
+            const qId = q.id || q._id || String(q._id || idx);
+            const cor = correcaoMap[qId] || {};
+            const resp = respostasMap[qId];
+
+            return {
+              id: qId,
+              numero: q.numero ?? (idx + 1),
+              enunciado: q.enunciado || q.pergunta || q.titulo || '',
+              tipo: q.tipo || q.tipoQuestao || 'dissertativa',
+              valor: q.pontuacao ?? q.valor ?? 0,
+              notaObtida: (cor.pontuacaoObtida !== undefined && cor.pontuacaoObtida !== null) ? cor.pontuacaoObtida : (cor.isCorrect ? (cor.pontuacaoMaxima ?? q.pontuacao ?? q.valor ?? 0) : (cor.isCorrect === false ? 0 : 0)),
+              respostaAluno: resp,
+              feedback: cor.feedback || q.feedback || null,
+              gabarito: q.gabarito,
+              alternativas: q.alternativas
+            };
+          }) : []
         };
 
-        setResultado(mockData);
+        setResultado(resultadoObj);
       } catch (err) {
         console.error(err);
         setError('Não foi possível carregar o resultado da lista.');
@@ -112,8 +104,8 @@ export default function ResultadoListaPage() {
       }
     };
 
-    if (listaId) fetchResultado();
-  }, [listaId]);
+    if (listaId && cursoId) fetchResultado();
+  }, [listaId, cursoId]);
 
   if (loading) {
     return (
@@ -304,7 +296,7 @@ export default function ResultadoListaPage() {
 
       <Paper sx={{ p: 3, position: 'sticky', bottom: 0, zIndex: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button variant="contained" startIcon={<ArrowBack />} onClick={() => router.back()} size="large">Voltar</Button>
+          <Button variant="contained" startIcon={<ArrowBack />} onClick={() => router.push(`/aluno/cursos/${cursoId}`)} size="large">Voltar</Button>
         </Box>
       </Paper>
     </Box>
