@@ -307,9 +307,9 @@ type TipoQuestao = "alternativa" | "afirmacoes" | "numerica" | "proposicoes" | "
 interface QuestaoDoc {
   _id: ObjectId;
   tipo: TipoQuestao;
-  gabarito: any;       
-  pontuacao: number;   
-  tolerancia?: number; 
+  gabarito: any;
+  pontuacao: number;
+  tolerancia?: number;
 }
 
 interface ResultadoCorrecao {
@@ -340,12 +340,12 @@ function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCor
         isCorrect = false;
         break;
       }
-      
+
       // Comparar com a letra ou com o texto da alternativa
       const letraCorreta = alternativaCorreta.letra;
       const textoCorreto = alternativaCorreta.texto;
       const respostaStr = String(respostaAluno).trim();
-      
+
       isCorrect = respostaStr === letraCorreta || respostaStr === textoCorreto;
       break;
     }
@@ -355,7 +355,7 @@ function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCor
       const valorGabarito = Number((questao as any).respostaCorreta);
       const valorAluno = Number(respostaAluno);
       const margemErro = (questao as any).margemErro || 0;
-      
+
       // Verifica se é um número válido e se está dentro da margem
       if (!isNaN(valorAluno)) {
         isCorrect = Math.abs(valorGabarito - valorAluno) <= margemErro;
@@ -368,7 +368,7 @@ function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCor
     case "afirmacoes": {
       // Para afirmações, o gabarito é um array de booleanos na ordem das afirmações
       const gabaritoAfirmacoes = (questao as any).afirmacoes?.map((af: any) => af.correta) || [];
-      
+
       // Assumindo que respostaAluno chega como array de booleans
       if (Array.isArray(respostaAluno)) {
         isCorrect = JSON.stringify(gabaritoAfirmacoes) === JSON.stringify(respostaAluno);
@@ -382,7 +382,7 @@ function calcularCorrecao(questao: QuestaoDoc, respostaAluno: any): ResultadoCor
       const somaCorreta = (questao as any).proposicoes
         ?.filter((p: any) => p.correta)
         .reduce((sum: number, p: any) => sum + (p.valor || 0), 0) || 0;
-      
+
       // Comparar com a resposta do aluno (que deve ser um número)
       isCorrect = Number(respostaAluno) === somaCorreta;
       break;
@@ -412,18 +412,41 @@ export async function submeterRespostaAluno(
   respostaAluno: any
 ): Promise<RespostaAluno> {
   const db = await getDb();
-  
+
   // 1. Busca a questão (projeta gabarito e tipo)
-  const questao = await db.collection<QuestaoDoc>("questoes").findOne({ 
-    _id: new ObjectId(questaoId) 
+  const questao = await db.collection<QuestaoDoc>("questoes").findOne({
+    _id: new ObjectId(questaoId)
   });
 
   if (!questao) {
     throw new Error("Questão não encontrada.");
   }
 
-  // 2. Executa a correção
-  const resultado = calcularCorrecao(questao, respostaAluno);
+  // 2. Determina a pontuação máxima considerando a configuração da lista
+  // Algumas listas podem sobrescrever a pontuação das questões em `listasDeExercicios.questoesPontuacao`.
+  let pontuacaoMaximaDaLista: number | undefined;
+  try {
+    const listaDoc = await db.collection("listasDeExercicios").findOne({ _id: new ObjectId(listaId) });
+    if (listaDoc && listaDoc.questoesPontuacao) {
+      // armazenado por chave de id da questão
+      pontuacaoMaximaDaLista = listaDoc.questoesPontuacao[questaoId] ?? listaDoc.questoesPontuacao[questaoId.toString()];
+    }
+  } catch (e) {
+    // se falhar ao obter lista, não interrompe a correção; apenas ignoramos e usamos valores da questão
+    console.warn('Não foi possível obter pontuação por lista, usando pontuação da questão.', e);
+  }
+
+  const pontuacaoMaxima = (typeof pontuacaoMaximaDaLista === 'number' && !isNaN(pontuacaoMaximaDaLista))
+    ? pontuacaoMaximaDaLista
+    : (questao.pontuacao ?? (questao as any).valor ?? 0);
+
+  // 3. Executa a correção usando a pontuação correta (priorizando a configuração da lista)
+  const questaoParaCorrecao: QuestaoDoc = {
+    ...questao,
+    pontuacao: pontuacaoMaxima,
+  };
+
+  const resultado = calcularCorrecao(questaoParaCorrecao, respostaAluno);
 
   // 3. Prepara input para o repositório
   const dadosParaSalvar = {
