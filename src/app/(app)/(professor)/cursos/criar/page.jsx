@@ -14,10 +14,12 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle
+  DialogTitle,
+  Chip
 } from '@mui/material';
-import { Save, Cancel } from '@mui/icons-material';
+import { Save, Cancel, ContentCopy } from '@mui/icons-material';
 import { set } from 'zod';
+import { generateAccessCode } from '../../../../lib/code-generator';
 
 export default function CriarCursoPage() {
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function CriarCursoPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Atualizar preview quando o nome mudar
+  // Gerar um código de acesso aleatório quando o componente carregar
   const handleNomeChange = (e) => {
     const novoNome = e.target.value;
     setNome(novoNome);
@@ -38,14 +40,8 @@ export default function CriarCursoPage() {
     if (novoNome.trim()) {
       const nomeFormatado = novoNome.trim();
       
-      // Gerar código preview
-      const codigo = nomeFormatado
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toUpperCase()
-        .replace(/[^A-Z0-9\s]/g, '')
-        .replace(/\s+/g, '')
-        .substring(0, 10);
+      // Gerar código de acesso aleatório (6 caracteres alfanuméricos)
+      const codigo = generateAccessCode(6);
       
       // Gerar slug preview
       const slug = nomeFormatado
@@ -73,15 +69,9 @@ export default function CriarCursoPage() {
       return;
     }
 
-    // Gerar código e slug a partir do nome
+    // Usar o código já gerado no preview
     const nomeFormatado = nome.trim();
-    const codigo = nomeFormatado
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, '') // Remove caracteres especiais
-      .replace(/\s+/g, '') // Remove espaços
-      .substring(0, 10); // Limita a 10 caracteres
+    const codigo = previewCodigo;
 
     const slug = nomeFormatado
       .normalize('NFD')
@@ -140,6 +130,16 @@ export default function CriarCursoPage() {
     setSnackbar({ ...snackbar, open: false });
   }
 
+  const handleCopyCodigo = () => {
+    if (previewCodigo) {
+      navigator.clipboard.writeText(previewCodigo).then(() => {
+        setSnackbar({ open: true, message: 'Código copiado para a área de transferência!', severity: 'success' });
+      }).catch(() => {
+        setSnackbar({ open: true, message: 'Erro ao copiar código', severity: 'error' });
+      });
+    }
+  };
+
   return (
     <Box 
       sx={{ 
@@ -189,6 +189,38 @@ export default function CriarCursoPage() {
           sx={{ mb: 3 }}
           helperText="Descrição opcional do curso"
         />
+
+        {/* Código de Acesso */}
+        {previewCodigo && (
+          <Box sx={{ 
+            mb: 3, 
+            p: 2, 
+            backgroundColor: 'action.hover', 
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'primary.main'
+          }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+              Código de Acesso para Alunos:
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={previewCodigo}
+                variant="filled"
+                color="primary"
+                sx={{ fontSize: '1.1rem', height: 'auto', py: 1.5, px: 2 }}
+              />
+              <Button
+                size="small"
+                startIcon={<ContentCopy />}
+                onClick={handleCopyCodigo}
+                variant="outlined"
+              >
+                Copiar
+              </Button>
+            </Box>
+          </Box>
+        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
