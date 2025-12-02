@@ -241,7 +241,11 @@ export default function CursoAlunoPage() {
           <Box sx={{ display: 'grid', gap: 2 }}>
             {provas.map((prova) => {
               const id = prova.id;
-              const grade = prova.nota; // Já calculada na API
+              // Preferir exibir a pontuação total obtida quando disponível (nota total),
+              // caso contrário cair para a nota já calculada (0-10) pela API.
+              const grade = (prova.pontuacaoObtida !== undefined && prova.pontuacaoObtida !== null)
+                ? prova.pontuacaoObtida
+                : prova.nota;
 
               return (
                 <Card key={id}>
@@ -287,8 +291,9 @@ export default function CursoAlunoPage() {
           <Box sx={{ display: 'grid', gap: 2 }}>
             {listas.map((lista) => {
               const id = lista.id;
-              const hasGrade = lista.nota !== null && Number.isFinite(lista.nota);
-              const grade = hasGrade ? lista.nota : null;
+              // Preferir pontuação total obtida quando disponível
+              const hasGrade = (lista.pontuacaoObtida !== undefined && lista.pontuacaoObtida !== null) || (lista.nota !== null && Number.isFinite(lista.nota));
+              const grade = (lista.pontuacaoObtida !== undefined && lista.pontuacaoObtida !== null) ? lista.pontuacaoObtida : (lista.nota ?? null);
 
               const action = hasGrade
                 ? { label: 'Visualizar', href: `/aluno/cursos/${cursoId}/listas/${id}/resultado`, icon: <Visibility /> }

@@ -80,6 +80,8 @@ export async function GET(
                     data: prova.data || "",
                     duracao: prova.duracao || "",
                     nota: nota, // null se não respondida, 0-10 se respondida
+                    pontuacaoObtida: pontuacaoObtida, // total de pontos obtidos
+                    pontuacaoTotal: pontuacaoTotal, // total de pontos possíveis
                     finalizada: finalizada,
                     dataFinalizacao: respostas[0]?.dataFinalizacao || null,
                 };
@@ -124,6 +126,8 @@ export async function GET(
                     tituloLista: lista.tituloLista || "Lista",
                     nomeInstituicao: lista.nomeInstituicao || "",
                     nota: nota, // null se não respondida, 0-10 se respondida
+                    pontuacaoObtida: pontuacaoObtida,
+                    pontuacaoTotal: pontuacaoTotal,
                     finalizada: finalizada,
                     dataFinalizacao: respostas[0]?.dataFinalizacao || null,
                 };
