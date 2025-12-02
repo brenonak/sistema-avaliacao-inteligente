@@ -26,27 +26,26 @@ import { useTheme } from '@mui/material/styles';
 
 export default function DashboardAlunoPage() {
   const [cursos, setCursos] = useState([]);
+  const [stats, setStats] = useState({
+    mediaGeral: 0,
+    melhorNota: 0,
+    ultimaAvaliacao: 0,
+    historico: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [courseIdInput, setCourseIdInput] = useState('');
 
-  // Exemplos de dados (devem ser conectados à API)
-  const data = {
-    labels: ['1° Semestre', '2° Semestre', '3° Semestre', '4° Semestre', '5° Semestre', '6° Semestre'],
-    scores: [94, 85, 78, 88, 91, 85],
-  };
-
   // Dados para as notas
-  const dataLabels = data.labels;
-  const dataScores = data.scores;
-
+  const dataLabels = stats.historico?.map(h => new Date(h.data).toLocaleDateString('pt-BR')) || [];
+  const dataScores = stats.historico?.map(h => h.nota) || [];
 
   // Valores para o resumo de desempenho
-  const average = dataScores[dataScores.length - 1];
-  const best = Math.max(...dataScores);
-  const latest = 81;
+  const average = stats.mediaGeral ? parseFloat(stats.mediaGeral.toFixed(1)) : 0;
+  const best = stats.melhorNota ? parseFloat(stats.melhorNota.toFixed(1)) : 0;
+  const latest = stats.ultimaAvaliacao ? parseFloat(stats.ultimaAvaliacao.toFixed(1)) : 0;
   
   // Dados mockados para as atividades pendentes
   const pendingActivities = [
@@ -57,15 +56,27 @@ export default function DashboardAlunoPage() {
 
 
   useEffect(() => {
-    async function fetchCursos() {
+    async function fetchData() {
       try {
+        setLoading(true);
+        
         // Buscar os cursos em que o aluno está matriculado
-        const response = await fetch('/api/cursos/aluno');
-        if (!response.ok) {
+        const cursosRes = await fetch('/api/cursos/aluno');
+        if (!cursosRes.ok) {
           throw new Error('Erro ao carregar cursos');
         }
-        const data = await response.json();
-        setCursos(data.itens || []);
+        const cursosData = await cursosRes.json();
+        setCursos(cursosData.itens || []);
+
+        // Buscar estatísticas de desempenho
+        const statsRes = await fetch('/api/desempenho');
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          if (statsData.studentStats) {
+            setStats(statsData.studentStats);
+          }
+        }
+
       } catch (err) {
         setError(err.message || 'Erro desconhecido');
         setCursos([]);
@@ -73,7 +84,7 @@ export default function DashboardAlunoPage() {
         setLoading(false);
       }
     }
-    fetchCursos();
+    fetchData();
   }, []);
 
   function handleOpenAddDialog() {
