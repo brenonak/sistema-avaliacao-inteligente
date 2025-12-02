@@ -173,6 +173,7 @@ export default function CursosPage() {
                     cursoDescricao={curso.descricao}
                     onDelete={handleDelete}
                     questoesCount={curso.questoesCount}
+                    codigoAcesso={curso.codigo}
                   />
                 </Grid>
               ))}

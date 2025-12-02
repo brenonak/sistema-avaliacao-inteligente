@@ -35,9 +35,9 @@ export default function OverlayAluno({ content }) {
   const expanded = open || hovered;
 
   const sidebarItems = [
-    { text: 'Início', icon: <HomeIcon />, link: 'dashboard' },
-    { text: 'Cursos', icon: <SchoolIcon />, link: 'cursos' },
-    { text: 'Desempenho', icon: <TrendingUpIcon />, link: 'desempenho' },
+    { text: 'Início', icon: <HomeIcon />, link: '/aluno/dashboard' },
+    { text: 'Cursos', icon: <SchoolIcon />, link: '/aluno/cursos' },
+    { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/aluno/desempenho' },
   ];
 
 

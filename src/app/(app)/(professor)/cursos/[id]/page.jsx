@@ -45,6 +45,7 @@ import {
   RateReview,
   Visibility,
   CheckCircle,
+  Assessment
 } from '@mui/icons-material';
 
 export default function CursoDetalhesPage() {
@@ -928,6 +929,15 @@ export default function CursoDetalhesPage() {
               <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                 {curso.nome}
               </Typography>
+              {curso.codigo && (
+                <Chip 
+                  label={`Código: ${curso.codigo}`} 
+                  color="primary" 
+                  variant="outlined"
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
+              )}
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -950,7 +960,7 @@ export default function CursoDetalhesPage() {
           </Box>
 
           {curso.descricao && (
-            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
+            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
               {curso.descricao}
             </Typography>
           )}
@@ -963,7 +973,7 @@ export default function CursoDetalhesPage() {
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
             Provas ({provas.length})
           </Typography>
-          <Link href={`/provas/criar?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
+          <Link href={`/provas?cursoId=${cursoId}&cursoNome=${encodeURIComponent(curso.nome)}`} passHref style={{ textDecoration: 'none' }}>
             <Button
               variant="contained"
               color="primary"
@@ -1088,6 +1098,21 @@ export default function CursoDetalhesPage() {
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+
+                      <Link href={`/provas/${prova.id}/dashboard`} passHref>
+                        <IconButton 
+                          sx={{ 
+                            color: '#9c27b0', // Um roxo/lilas para destacar que é Analytics/Inteligência
+                            border: '1px solid rgba(156, 39, 176, 0.5)', // Uma borda sutil para diferenciar levemente
+                            '&:hover': { backgroundColor: 'rgba(156, 39, 176, 0.04)' }
+                          }}
+                          title="Ver Dashboard de Desempenho" // Texto que aparece ao passar o mouse
+                          size="small"
+                        >
+                          <Assessment />
+                        </IconButton>
+                      </Link>
+
                       <IconButton
                         color="primary"
                         onClick={() => handleOpenEditProva(prova)}
@@ -1095,14 +1120,13 @@ export default function CursoDetalhesPage() {
                       >
                         <Edit />
                       </IconButton>
-                      <Link href={`/aluno/cursos/${cursoId}/provas/${prova.id}/resultado`} passHref>
-                        <IconButton
-                          color="info"
-                          title="Ver como Aluno (Teste)"
-                        >
-                          <Visibility />
-                        </IconButton>
-                      </Link>
+                      <IconButton
+                        color="info"
+                        onClick={() => router.push(`/cursos/${cursoId}/provas/${prova.id}/visualizar`)}
+                        title="Ver como Aluno (Teste)"
+                      >
+                        <Visibility />
+                      </IconButton>
                       <IconButton
                         color="success"
                         onClick={() => handleExportLatex(prova.id)}

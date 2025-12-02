@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DashboardAlunoPage from '../src/app/(app)/aluno/dashboard/page';
+import DashboardAlunoPage from '../src/app/(app)/(aluno)/aluno/dashboard/page';
 
 jest.mock('../src/app/components/PerformanceSummary', () => {
   return jest.fn(({ average, best, latest }) => (

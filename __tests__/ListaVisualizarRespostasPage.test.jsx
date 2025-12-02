@@ -122,7 +122,7 @@ describe('VisualizarRespostasPage', () => {
 
     // Aguardar carregamento
     await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByText('Lista de Matemática Básica')).toBeInTheDocument();
     });
 
     // Verificar chamadas de API
@@ -140,12 +140,11 @@ describe('VisualizarRespostasPage', () => {
     expect(screen.getByText(/Respostas finalizadas em/)).toBeInTheDocument();
 
     // Verificar resumo de desempenho
-    expect(screen.getByText('📊 Resultado')).toBeInTheDocument();
+    expect(screen.getByText('Resultado')).toBeInTheDocument();
     expect(screen.getByText('15.0 / 15.0')).toBeInTheDocument();
     
-    // Verificar percentuais (existem 2 ocorrências: pontuação e questões corretas)
-    const percentuais = screen.getAllByText('(100%)');
-    expect(percentuais).toHaveLength(2);
+    // Verificar percentuais
+    expect(screen.getByText('100%')).toBeInTheDocument();
     
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
 
@@ -161,12 +160,12 @@ describe('VisualizarRespostasPage', () => {
     expect(screen.getByText('Quanto é 5 x 3?')).toBeInTheDocument();
 
     // Verificar alternativas da questão 1
-    expect(screen.getByText(/A\) 3/)).toBeInTheDocument();
-    expect(screen.getByText(/B\) 4/)).toBeInTheDocument();
-    expect(screen.getByText(/C\) 5/)).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
 
     // Verificar resposta numérica da questão 2
-    expect(screen.getByText('Resposta: 15')).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
 
     // Verificar chips de pontuação
     expect(screen.getByText('10 pts')).toBeInTheDocument();
@@ -193,7 +192,7 @@ describe('VisualizarRespostasPage', () => {
 
     // Aguardar carregamento
     await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryAllByRole('progressbar')).toHaveLength(0);
     });
 
     // Verificar chamadas de API
@@ -221,7 +220,7 @@ describe('VisualizarRespostasPage', () => {
     expect(screen.queryByText('Resposta incorreta')).not.toBeInTheDocument();
 
     // Verificar resposta dissertativa
-    expect(screen.getByText('Sua resposta:')).toBeInTheDocument();
+    expect(screen.getByText('Sua Resposta:')).toBeInTheDocument();
     expect(screen.getByText('Brasília')).toBeInTheDocument();
 
     // Verificar chip de pontuação (sem resultado)

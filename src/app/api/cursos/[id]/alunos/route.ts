@@ -19,43 +19,45 @@ export async function GET(
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // 2. Definição do Filtro
-    // Baseado na sua imagem, o usuário tem o campo 'curso' e 'role'/'papel'
-    // Estamos buscando:
-    // - Usuários onde 'curso' bate com o ID da URL
-    // - E que NÃO sejam professores (assumindo que você quer apenas alunos)
-    const query = {
-      curso: cursoId, 
-      
-      $or: [
-        { role: "ALUNO" }, 
-        { role: "STUDENT" },
-        { papel: "aluno" },
-        { papel: "estudante" },
-        // Fallback: Se o campo role for nulo, assumimos que é aluno (já que profs tem role definida)
-        { role: null }, 
-        { role: { $exists: false } } 
-      ]
-    };
+    // Buscar o curso para obter o array de alunosIds
+    const curso = await db.collection("cursos").findOne({
+      _id: new ObjectId(cursoId),
+    });
 
-    // 3. Executa a Query com Projeção
-    // IMPORTANTE: Nunca retorne o objeto user completo (pode ter senhas, tokens, etc)
+    if (!curso) {
+      return NextResponse.json(
+        { error: "Curso não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Se não tem alunos matriculados, retornar array vazio
+    if (!curso.alunosIds || curso.alunosIds.length === 0) {
+      return NextResponse.json({ 
+        items: [],
+        total: 0
+      });
+    }
+
+    // Buscar os dados dos alunos
     const alunos = await db.collection("users")
-      .find(query)
+      .find({
+        _id: { $in: curso.alunosIds }
+      })
       .project({
         _id: 1,
         name: 1,
         email: 1,
         image: 1,
-        isProfileComplete: 1, // Útil para mostrar status na lista
-        pontuacao: 1 // Caso você tenha gamificação
+        isProfileComplete: 1,
+        pontuacao: 1
       })
       .toArray();
 
     const formattedAlunos = alunos.map(aluno => ({
       ...aluno,
       _id: aluno._id.toString(),
-      nome: aluno.name || "Sem Nome", // Fallback visual
+      nome: aluno.name || "Sem Nome",
     }));
 
     // 5. Retorno mantendo o contrato { items: [] }

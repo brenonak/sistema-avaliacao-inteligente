@@ -17,6 +17,7 @@ import Divider from "@mui/material/Divider";
 import FormLabel from "@mui/material/FormLabel";
 import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
+import Tooltip from '@mui/material/Tooltip';
 
 
 // Busca alunos dinamicamente, mas deixa vazio se não houver endpoint
@@ -49,6 +50,7 @@ export default function CorrecaoPageMui() {
   const [provaSelecionada, setProvaSelecionada] = useState(null);
 
   const [alunoSelecionado, setAlunoSelecionado] = useState("");
+  const [corrigidosIds, setCorrigidosIds] = useState(new Set());
 
   // Estado para as respostas (conteúdo)
   const [respostas, setRespostas] = useState({});
@@ -90,6 +92,26 @@ export default function CorrecaoPageMui() {
     setRespostas({});
     setNotasManuais({});
     setAlunoSelecionado("");
+    setCorrigidosIds(new Set());
+  }, [provaSelecionada]);
+
+  // Busca alunos já corrigidos quando uma prova é selecionada
+  useEffect(() => {
+    async function fetchCorrigidos() {
+      if (!provaSelecionada) return setCorrigidosIds(new Set());
+      const provaId = provaSelecionada._id || provaSelecionada.id;
+      if (!provaId) return setCorrigidosIds(new Set());
+      try {
+        const res = await fetch(`/api/cursos/${provaSelecionada.cursoId || provaSelecionada.curso_id}/provas/${provaId}/corrigidos`);
+        if (!res.ok) return setCorrigidosIds(new Set());
+        const json = await res.json();
+        const arr = Array.isArray(json.corrigidos) ? json.corrigidos : [];
+        setCorrigidosIds(new Set(arr));
+      } catch (e) {
+        setCorrigidosIds(new Set());
+      }
+    }
+    fetchCorrigidos();
   }, [provaSelecionada]);
 
   const handleRespostaChange = (questaoId, value) => {
@@ -237,9 +259,26 @@ export default function CorrecaoPageMui() {
             {alunos.length === 0 && (
               <MenuItem value="" disabled>Nenhum aluno encontrado</MenuItem>
             )}
-            {alunos.map(aluno => (
-              <MenuItem key={aluno._id || aluno.id} value={aluno._id || aluno.id}>{aluno.nome || aluno.email || aluno.id}</MenuItem>
-            ))}
+            {alunos.map(aluno => {
+              const aid = aluno._id || aluno.id;
+              const isCorrigido = aid && corrigidosIds.has(String(aid));
+              const label = aluno.nome || aluno.email || aluno.id || aid;
+
+              // If corrected, render a disabled MenuItem wrapped in a span so Tooltip works
+              if (isCorrigido) {
+                return (
+                  <Tooltip key={aid} title="Aluno já corrigido" placement="right">
+                    <span>
+                      <MenuItem value={aid} disabled sx={{ color: 'text.disabled' }}>{label} (Já corrigido)</MenuItem>
+                    </span>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <MenuItem key={aid} value={aid}>{label}</MenuItem>
+              );
+            })}
           </Select>
         </FormControl>
 

@@ -76,7 +76,7 @@ export default async function AppLayout({ children }) {
     }
     
     if (shouldRedirectToCadastro) {
-      redirect('/cadastro');
+      redirect('/perfil/cadastro');
     }
 
     if (shouldRedirectToAluno) {
