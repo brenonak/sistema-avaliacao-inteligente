@@ -70,6 +70,10 @@ export async function GET(
                     nota = (pontuacaoObtida / pontuacaoTotal) * 10;
                 }
 
+                // Se não houver respostas/pontuacaoTotal, retornar pontuacaoObtida como null
+                const pontuacaoObtidaOrNull = pontuacaoTotal > 0 ? pontuacaoObtida : null;
+                const pontuacaoTotalOrNull = pontuacaoTotal > 0 ? pontuacaoTotal : null;
+
                 return {
                     id: prova._id.toString(),
                     titulo: prova.titulo,
@@ -80,8 +84,8 @@ export async function GET(
                     data: prova.data || "",
                     duracao: prova.duracao || "",
                     nota: nota, // null se não respondida, 0-10 se respondida
-                    pontuacaoObtida: pontuacaoObtida, // total de pontos obtidos
-                    pontuacaoTotal: pontuacaoTotal, // total de pontos possíveis
+                    pontuacaoObtida: pontuacaoObtidaOrNull, // null se não respondida
+                    pontuacaoTotal: pontuacaoTotalOrNull, // null se não há pontos
                     finalizada: finalizada,
                     dataFinalizacao: respostas[0]?.dataFinalizacao || null,
                 };
@@ -121,13 +125,16 @@ export async function GET(
                     nota = (pontuacaoObtida / pontuacaoTotal) * 10;
                 }
 
+                const pontuacaoObtidaOrNullL = pontuacaoTotal > 0 ? pontuacaoObtida : null;
+                const pontuacaoTotalOrNullL = pontuacaoTotal > 0 ? pontuacaoTotal : null;
+
                 return {
                     id: lista._id.toString(),
                     tituloLista: lista.tituloLista || "Lista",
                     nomeInstituicao: lista.nomeInstituicao || "",
                     nota: nota, // null se não respondida, 0-10 se respondida
-                    pontuacaoObtida: pontuacaoObtida,
-                    pontuacaoTotal: pontuacaoTotal,
+                    pontuacaoObtida: pontuacaoObtidaOrNullL,
+                    pontuacaoTotal: pontuacaoTotalOrNullL,
                     finalizada: finalizada,
                     dataFinalizacao: respostas[0]?.dataFinalizacao || null,
                 };
