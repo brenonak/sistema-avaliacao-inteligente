@@ -122,6 +122,7 @@ export default function DashboardPage() {
                     cursoId={curso.id}
                     cursoDescricao={curso.descricao}
                     questoesCount={curso.questoesCount}
+                    codigoAcesso={curso.codigo}
                   />
                 </Grid>
               ))}
