@@ -40,7 +40,7 @@ export async function GET(
                     isCorrect: r.isCorrect,
                     pontuacaoObtida: r.pontuacaoObtida,
                     pontuacaoMaxima: r.pontuacaoMaxima,
-                    // feedback: r.feedback // Se houver feedback na submissão futura
+                    feedback: r.feedback
                 };
 
                 pontuacaoTotal += r.pontuacaoMaxima || 0;

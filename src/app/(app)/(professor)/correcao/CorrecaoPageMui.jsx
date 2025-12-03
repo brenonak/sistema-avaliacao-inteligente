@@ -169,7 +169,8 @@ export default function CorrecaoPageMui() {
           questaoId: qId,
           resposta: respostas[qId],
           pontuacaoObtida: notaManual, // Nota manual é passada AQUI
-          pontuacaoMaxima: q.pontuacao || 0
+          pontuacaoMaxima: q.pontuacao || 0,
+          feedback: comentarios[qId] // Envia o feedback do professor
         };
       })
     };

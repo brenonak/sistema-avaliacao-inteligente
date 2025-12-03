@@ -72,92 +72,16 @@ export default function VisualizarProvaPage() {
   const [enviandoReplica, setEnviandoReplica] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulação de busca de dados
-    // Em produção, isso seria: fetch(`/api/cursos/${cursoId}/provas/${provaId}/resultado`)
     const fetchResultado = async () => {
       try {
         setLoading(true);
         
-        // TODO: Substituir por chamada real à API
-        // const response = await fetch(`/api/cursos/${cursoId}/provas/${provaId}/resultado`);
-        // const data = await response.json();
-        
-        // Mock de dados para visualização
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockData: Resultado = {
-          prova: {
-            titulo: 'Prova 1 - Lógica de Programação',
-            data: '2023-10-15',
-            valorTotal: 10.0,
-            professor: 'Prof. Silva',
-            instrucoes: 'Responda todas as questões com atenção.'
-          },
-          desempenho: {
-            nota: 7.5,
-            aprovado: true,
-            dataEntrega: '2023-10-15T10:30:00'
-          },
-          questoes: [
-            {
-              id: '1',
-              numero: 1,
-              enunciado: 'O que é um algoritmo?',
-              tipo: 'alternativa',
-              valor: 2.0,
-              notaObtida: 2.0,
-              respostaAluno: 'B',
-              respostaCorreta: 'B',
-              feedback: 'Correto! Algoritmo é uma sequência de passos finitos.',
-              alternativas: [
-                { letra: 'A', texto: 'Um tipo de hardware.' },
-                { letra: 'B', texto: 'Uma sequência de passos para resolver um problema.' },
-                { letra: 'C', texto: 'Uma linguagem de programação.' },
-                { letra: 'D', texto: 'Um erro de compilação.' }
-              ]
-            },
-            {
-              id: '2',
-              numero: 2,
-              enunciado: 'Explique a diferença entre while e do-while.',
-              tipo: 'dissertativa',
-              valor: 3.0,
-              notaObtida: 2.5,
-              respostaAluno: 'O while verifica a condição antes, o do-while verifica depois.',
-              respostaCorreta: '',
-              feedback: 'Muito bom, mas poderia ter mencionado que o do-while executa pelo menos uma vez.',
-            },
-            {
-              id: '3',
-              numero: 3,
-              enunciado: 'Qual o valor de X? int x = 10; x++;',
-              tipo: 'numerica',
-              valor: 2.0,
-              notaObtida: 0.0,
-              respostaAluno: '10',
-              respostaCorreta: '11',
-              feedback: 'Atenção ao operador de pós-incremento. O valor final é 11.',
-            },
-            {
-              id: '4',
-              numero: 4,
-              enunciado: 'Analise as afirmações sobre arrays.',
-              tipo: 'afirmacoes',
-              valor: 3.0,
-              notaObtida: 3.0,
-              respostaAluno: [true, false, true],
-              respostaCorreta: [true, false, true],
-              feedback: 'Excelente análise.',
-              afirmacoes: [
-                { texto: 'Arrays têm tamanho fixo em C.', correta: true },
-                { texto: 'Arrays podem armazenar tipos diferentes na mesma variável em Java.', correta: false },
-                { texto: 'O índice inicial é 0.', correta: true }
-              ]
-            }
-          ]
-        };
-
-        setResultado(mockData);
+        const response = await fetch(`/api/cursos/${cursoId}/provas/${provaId}/resultado`);
+        if (!response.ok) {
+             throw new Error('Falha ao carregar resultado');
+        }
+        const data = await response.json();
+        setResultado(data);
       } catch (err) {
         console.error(err);
         setError('Não foi possível carregar o resultado da prova.');

@@ -83,8 +83,7 @@ export default function ResultadoProvaPage() {
               valor: q.pontuacao ?? q.valor ?? 0,
               notaObtida: (cor.pontuacaoObtida !== undefined && cor.pontuacaoObtida !== null) ? cor.pontuacaoObtida : (cor.isCorrect ? (cor.pontuacaoMaxima ?? q.pontuacao ?? q.valor ?? 0) : (cor.isCorrect === false ? 0 : 0)),
               respostaAluno: resp,
-              // TODO: Alterar mock de feedback do professor
-              feedback: 'Este é um mock, substituir por API real',
+              feedback: cor.feedback,
               gabarito: q.gabarito,
               alternativas: q.alternativas,
               afirmacoes: q.afirmacoes

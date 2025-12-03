@@ -8,6 +8,7 @@ export interface RespostaSubmissao {
   pontuacaoMaxima: number;
   isCorrect: boolean;
   corrigidoEm: Date;
+  feedback?: string; // Novo campo para feedback do professor
 }
 
 export interface Submissao {

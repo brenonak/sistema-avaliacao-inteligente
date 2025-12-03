@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from "../../../../../../../lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getUserIdOrUnauthorized } from "../../../../../../../lib/auth-helpers";
-import { upsertRespostaAluno } from "../../../../../../../services/db/respostaAluno.service";
+import * as SubmissoesService from "../../../../../../../services/db/submissoes.service";
 import { badRequest, serverError } from "../../../../../../../lib/http";
 
 function oid(id: string) {
@@ -135,6 +135,9 @@ export async function POST(
             });
         }
 
+        // Iniciar submissão se não existir (garante que existe documento para atualizar)
+        await SubmissoesService.iniciarSubmissao(alunoId, provaId, "PROVA");
+
         const resultados: any[] = [];
 
         // 3. Processar, Corrigir e Salvar cada resposta
@@ -158,18 +161,20 @@ export async function POST(
                 respInput.pontuacaoObtida // Nota manual (para dissertativas)
             );
 
-            // 4. Salvar no nome do Aluno (Upsert)
-            const salvo = await upsertRespostaAluno(alunoId, { // alunoId vira o ownerId
-                listaId: provaId, // Usa o ID da Prova como ID de contexto (listaId)
-                questaoId: respInput.questaoId,
+            // 4. Salvar na Submissão
+            const respostaSubmissao: SubmissoesService.RespostaSubmissao = {
+                questaoId: new ObjectId(respInput.questaoId),
                 resposta: respInput.resposta,
-                pontuacaoMaxima: pontuacaoMaxima,
                 pontuacaoObtida: pontuacaoObtida,
+                pontuacaoMaxima: pontuacaoMaxima,
                 isCorrect: isCorrect,
-                finalizado: true
-            });
+                corrigidoEm: new Date(),
+                feedback: respInput.feedback // Salva o feedback do professor
+            };
 
-            resultados.push(salvo);
+            await SubmissoesService.registrarResposta(alunoId, provaId, "PROVA", respostaSubmissao);
+
+            resultados.push(respostaSubmissao);
         }
 
         return NextResponse.json({
