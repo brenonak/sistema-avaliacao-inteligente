@@ -56,6 +56,8 @@ export default function CorrecaoPageMui() {
   const [respostas, setRespostas] = useState({});
   // Novo estado para notas manuais (apenas para dissertativas)
   const [notasManuais, setNotasManuais] = useState({});
+  // Estado para comentários/feedback do professor
+  const [comentarios, setComentarios] = useState({});
 
   // Descobre cursoId da prova selecionada
   const cursoIdDaProva = provaSelecionada?.cursoId || provaSelecionada?.curso_id || provaSelecionada?.curso_id_str || null;
@@ -91,6 +93,7 @@ export default function CorrecaoPageMui() {
   useEffect(() => {
     setRespostas({});
     setNotasManuais({});
+    setComentarios({});
     setAlunoSelecionado("");
     setCorrigidosIds(new Set());
   }, [provaSelecionada]);
@@ -131,6 +134,11 @@ export default function CorrecaoPageMui() {
   // Handler para nota manual (dissertativa)
   const handleNotaChange = (questaoId, value) => {
     setNotasManuais((prev) => ({ ...prev, [questaoId]: value }));
+  };
+
+  // Handler para comentário/feedback do professor
+  const handleComentarioChange = (questaoId, value) => {
+    setComentarios((prev) => ({ ...prev, [questaoId]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -445,6 +453,30 @@ export default function CorrecaoPageMui() {
                   onChange={e => handleRespostaChange(qId, e.target.value)}
                 />
               )}
+
+              {/* Campo de Comentário/Feedback do Professor */}
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  💬 Feedback para o aluno (opcional)
+                </Typography>
+                <TextField
+                  label="Comentário do Professor"
+                  multiline
+                  minRows={2}
+                  maxRows={4}
+                  fullWidth
+                  value={comentarios[qId] || ""}
+                  onChange={e => handleComentarioChange(qId, e.target.value)}
+                  placeholder="Adicione um feedback sobre a resposta, sugestões de melhoria, erros identificados..."
+                  size="small"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                />
+              </Box>
 
             </Paper>
           );

@@ -31,6 +31,7 @@ import {
   CheckCircle,
   NavigateNext,
   NavigateBefore,
+  Comment,
 } from '@mui/icons-material';
 import Link from 'next/link';
 
@@ -109,6 +110,7 @@ export default function CorrecaoAlunoPage() {
   const [aluno, setAluno] = useState(null);
   const [respostas, setRespostas] = useState({});
   const [notas, setNotas] = useState({});
+  const [comentarios, setComentarios] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -120,12 +122,15 @@ export default function CorrecaoAlunoPage() {
       // Inicializa as respostas e notas vazias
       const initialRespostas = {};
       const initialNotas = {};
+      const initialComentarios = {};
       mockProva.questoes.forEach((q) => {
         initialRespostas[q.id] = q.tipo === 'afirmacoes' ? [] : '';
         initialNotas[q.id] = '';
+        initialComentarios[q.id] = '';
       });
       setRespostas(initialRespostas);
       setNotas(initialNotas);
+      setComentarios(initialComentarios);
       
       setLoading(false);
     }, 500);
@@ -150,6 +155,10 @@ export default function CorrecaoAlunoPage() {
     if (nota > maxPontuacao) nota = maxPontuacao;
     if (nota < 0) nota = 0;
     setNotas((prev) => ({ ...prev, [questaoId]: nota.toString() }));
+  };
+
+  const handleComentarioChange = (questaoId, value) => {
+    setComentarios((prev) => ({ ...prev, [questaoId]: value }));
   };
 
   const calcularNotaTotal = () => {
@@ -365,9 +374,9 @@ export default function CorrecaoAlunoPage() {
             </Box>
           )}
 
-          {/* Campo de Nota */}
+          {/* Campo de Nota e Comentário */}
           <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed', borderColor: 'divider' }}>
-            <Grid container spacing={2} alignItems="center">
+            <Grid container spacing={2} alignItems="flex-start">
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Atribuir nota para esta questão:
@@ -390,6 +399,29 @@ export default function CorrecaoAlunoPage() {
                   color="warning"
                   focused
                 />
+              </Grid>
+              
+              {/* Campo de Comentário/Feedback */}
+              <Grid item xs={12}>
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <Comment sx={{ color: 'text.secondary', mt: 1 }} />
+                  <TextField
+                    label="Comentário / Feedback para o aluno"
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    fullWidth
+                    value={comentarios[questao.id] || ''}
+                    onChange={(e) => handleComentarioChange(questao.id, e.target.value)}
+                    placeholder="Adicione um feedback sobre a resposta do aluno, sugestões de melhoria, erros cometidos..."
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                  />
+                </Box>
               </Grid>
             </Grid>
           </Box>
