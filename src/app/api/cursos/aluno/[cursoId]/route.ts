@@ -69,9 +69,9 @@ export async function GET(
                 dataFinalizacao = submissao.dataFim || null;
 
                 // Calcular nota 0-10 se houver valorTotal na prova
-                if (prova.valorTotal && prova.valorTotal > 0) {
+                if (prova.valorTotal && prova.valorTotal > 0 && pontuacaoObtida !== null) {
                     nota = (pontuacaoObtida / prova.valorTotal) * 10;
-                } else {
+                } else if (pontuacaoObtida !== null) {
                     // Fallback: se não tiver valorTotal, usa a pontuação obtida como nota ou tenta calcular
                     // Se quisermos manter compatibilidade com lógica antiga de somar pontuação das questões,
                     // teríamos que buscar as questões. Por enquanto, vamos assumir que notaTotal é o que importa.
