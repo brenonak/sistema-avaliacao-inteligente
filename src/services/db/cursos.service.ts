@@ -18,6 +18,7 @@ export interface Curso {
   slug: string;
   descricao?: string;
   ownerId: ObjectId;
+  alunosIds?: ObjectId[]; // Array de IDs dos alunos matriculados
   createdBy?: ObjectId;
   updatedBy?: ObjectId;
   createdAt?: Date;
@@ -58,6 +59,7 @@ export async function createCurso(
   const curso: Curso = {
     ...data,
     ownerId: userObjectId,
+    alunosIds: [], // Inicializar array vazio de alunos
     createdBy: userObjectId,
     updatedBy: userObjectId,
     createdAt: now,
@@ -247,4 +249,69 @@ export async function getCursosWithQuestionCount(
   ]).toArray();
 
   return result as Array<Curso & { questoesCount: number }>;
+}
+
+/**
+ * Busca curso por código (público - sem filtrar por ownerId)
+ * @param codigo - Código do curso
+ * @returns Curso encontrado ou null
+ */
+export async function getCursoByCodigo(codigo: string): Promise<Curso | null> {
+  const db = await getDb();
+  const collection = db.collection<Curso>("cursos");
+
+  // Busca case-insensitive
+  const curso = await collection.findOne({
+    codigo: codigo.toUpperCase(),
+  });
+
+  return curso;
+}
+
+/**
+ * Adiciona um aluno ao curso
+ * @param cursoId - ID do curso
+ * @param alunoId - ID do aluno
+ * @returns Curso atualizado ou null se não encontrado
+ */
+export async function addAlunoToCurso(
+  cursoId: string,
+  alunoId: string
+): Promise<Curso | null> {
+  const db = await getDb();
+  const collection = db.collection<Curso>("cursos");
+
+  const alunoObjectId = new ObjectId(alunoId);
+
+  const result = await collection.findOneAndUpdate(
+    {
+      _id: new ObjectId(cursoId),
+    },
+    {
+      $addToSet: { alunosIds: alunoObjectId }, // Adiciona apenas se não existir
+      $set: { updatedAt: new Date() },
+    },
+    {
+      returnDocument: "after",
+    }
+  );
+
+  return result;
+}
+
+/**
+ * Lista cursos em que o aluno está matriculado
+ * @param alunoId - ID do aluno
+ * @returns Array de cursos
+ */
+export async function getCursosByAluno(alunoId: string): Promise<Curso[]> {
+  const db = await getDb();
+  const collection = db.collection<Curso>("cursos");
+
+  const cursos = await collection
+    .find({ alunosIds: new ObjectId(alunoId) })
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  return cursos;
 }

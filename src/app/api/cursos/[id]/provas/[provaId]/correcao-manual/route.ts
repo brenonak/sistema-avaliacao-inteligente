@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from "../../../../../../../lib/mongodb";
-import { ObjectId, Document } from "mongodb";
+import { ObjectId } from "mongodb";
 import { getUserIdOrUnauthorized } from "../../../../../../../lib/auth-helpers";
-import { upsertRespostaAluno } from "../../../../../../../services/db/respostaAluno.service";
+import * as SubmissoesService from "../../../../../../../services/db/submissoes.service";
 import { badRequest, serverError } from "../../../../../../../lib/http";
 
 function oid(id: string) {
@@ -11,6 +11,7 @@ function oid(id: string) {
 
 /**
  * LÓGICA DE CORREÇÃO
+ * Compara a resposta do aluno com o gabarito da questão.
  */
 function corrigirResposta(
     questao: any,
@@ -26,17 +27,16 @@ function corrigirResposta(
         let pontuacaoObtida = Number(notaManual);
         // Garante que não ultrapasse o máximo
         if (pontuacaoObtida > pontuacaoMaxima) pontuacaoObtida = pontuacaoMaxima;
+        if (pontuacaoObtida < 0) pontuacaoObtida = 0;
 
-        // Consideramos correto se a nota for maior que 0
+        // Consideramos correto se a nota for maior que 0 (critério simples)
         const isCorrect = pontuacaoObtida > 0;
         return { pontuacaoObtida, isCorrect };
     }
 
-    // 2. LÓGICA DE AUTO-CORREÇÃO
+    // 2. LÓGICA DE AUTO-CORREÇÃO (Objetivas)
     switch (tipo) {
-        case 'alternativa':
-        case 'multipla escolha':
-        case 'múltipla escolha': { // Adicionado variação com acento
+        case 'alternativa': {
             const correta = questao.alternativas?.find((a: any) => a.correta);
             // Tenta comparar com a letra OU com o texto (caso o frontend envie o texto)
             const letraCorreta = correta?.letra;
@@ -47,9 +47,7 @@ function corrigirResposta(
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'afirmacoes':
-        case 'verdadeiro ou falso':
-        case 'verdadeiro/falso': {
+        case 'afirmacoes': {
             if (!Array.isArray(resposta) || !Array.isArray(questao.afirmacoes)) {
                 return { pontuacaoObtida: 0, isCorrect: false };
             }
@@ -60,18 +58,17 @@ function corrigirResposta(
             const len = Math.min(resposta.length, total);
 
             for (let i = 0; i < len; i++) {
-                if (resposta[i] === questao.afirmacoes[i].correta) acertos++;
+                // Compara booleano com booleano
+                if (String(resposta[i]) === String(questao.afirmacoes[i].correta)) acertos++;
             }
 
             const isCorrect = acertos === total;
-            // Cálculo proporcional
+            // Cálculo proporcional da nota
             const pontuacaoObtida = total > 0 ? (acertos / total) * pontuacaoMaxima : 0;
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'proposicoes':
-        case 'somatorio':
-        case 'somatório': {
+        case 'proposicoes': {
             const somaCorreta = questao.proposicoes
                 ?.filter((p: any) => p.correta)
                 .reduce((sum: number, p: any) => sum + (p.valor || 0), 0) || 0;
@@ -81,12 +78,13 @@ function corrigirResposta(
             return { pontuacaoObtida, isCorrect };
         }
 
-        case 'numerica':
-        case 'numérica': {
+        case 'numerica': {
             const respostaCorreta = Number(questao.respostaCorreta);
+            // Aqui pegamos a margem de erro da questão (do snapshot da prova)
             const margemErro = Number(questao.margemErro || 0);
             const respostaNum = Number(resposta);
 
+            // Verifica se é número e se está dentro do intervalo [Correta - Margem, Correta + Margem]
             const isCorrect = !isNaN(respostaNum) && Math.abs(respostaNum - respostaCorreta) <= margemErro;
             const pontuacaoObtida = isCorrect ? pontuacaoMaxima : 0;
             return { pontuacaoObtida, isCorrect };
@@ -94,7 +92,6 @@ function corrigirResposta(
 
         default:
             // Se não reconheceu o tipo, retorna 0
-            console.warn(`Tipo de questão desconhecido na correção: ${tipo}`);
             return { pontuacaoObtida: 0, isCorrect: false };
     }
 }
@@ -124,55 +121,65 @@ export async function POST(
         const provaOid = oid(provaId);
         if (!provaOid) return badRequest("ID da prova inválido.");
 
-        // 2. Buscar gabarito e pontuação da prova (para o cache)
-        const questoesIds = respostas
-            .map((r: any) => oid(r.questaoId))
-            .filter((id): id is ObjectId => id !== null);
-
-        const questoesDb = await db.collection("questoes").find({ _id: { $in: questoesIds } }).toArray();
+        // 2. Buscar a prova completa (incluindo o array de questoes SNAPSHOT)
         const prova = await db.collection("provas").findOne({ _id: provaOid });
         if (!prova) return badRequest("Prova não encontrada.");
 
-        // Mapear pontuações da prova (pontuação personalizada de cada questão na prova)
-        const pontuacoesNaProva = prova?.questoes?.reduce((acc: any, q: any) => {
-            acc[q._id?.toString() || q.id] = q.pontuacao;
-            return acc;
-        }, {}) || {};
+        // Mapear questões da prova para acesso rápido
+        const questoesSnapshotMap = new Map();
+
+        if (Array.isArray(prova.questoes)) {
+            prova.questoes.forEach((q: any) => {
+                const id = (q._id || q.id)?.toString();
+                if (id) questoesSnapshotMap.set(id, q);
+            });
+        }
+
+        // Iniciar submissão se não existir (garante que existe documento para atualizar)
+        await SubmissoesService.iniciarSubmissao(alunoId, provaId, "PROVA");
 
         const resultados: any[] = [];
 
         // 3. Processar, Corrigir e Salvar cada resposta
         for (const respInput of respostas) {
-            const questaoOriginal = questoesDb.find(q => q._id.toString() === respInput.questaoId);
-            if (!questaoOriginal) continue;
 
-            // 4. Determinar Pontuação Máxima e Corrigir (Lógica Híbrida)
-            const pontuacaoMaxima = pontuacoesNaProva[respInput.questaoId] || questaoOriginal.pontuacao || 0;
+            // Busca estritamente no snapshot da prova
+            const questaoParaCorrecao = questoesSnapshotMap.get(respInput.questaoId);
+
+            if (!questaoParaCorrecao) {
+                console.warn(`Questão ${respInput.questaoId} enviada na resposta não foi encontrada na prova ${provaId}. Ignorando.`);
+                continue;
+            }
+
+            // A pontuação máxima vem do objeto da questão dentro da prova
+            const pontuacaoMaxima = Number(questaoParaCorrecao.pontuacao) || 0;
 
             const { pontuacaoObtida, isCorrect } = corrigirResposta(
-                questaoOriginal,
+                questaoParaCorrecao, // Usa os dados congelados na prova (Gabarito Snapshot)
                 respInput.resposta,
                 pontuacaoMaxima,
-                respInput.pontuacaoObtida // Nota manual é passada AQUI
+                respInput.pontuacaoObtida // Nota manual (para dissertativas)
             );
 
-            // 5. Salvar no nome do Aluno (Upsert)
-            const salvo = await upsertRespostaAluno(alunoId, { // alunoId vira o ownerId
-                listaId: provaId, // Usa o ID da Prova como ID de contexto (listaId)
-                questaoId: respInput.questaoId,
+            // 4. Salvar na Submissão
+            const respostaSubmissao: SubmissoesService.RespostaSubmissao = {
+                questaoId: new ObjectId(respInput.questaoId),
                 resposta: respInput.resposta,
-                pontuacaoMaxima: pontuacaoMaxima,
                 pontuacaoObtida: pontuacaoObtida,
+                pontuacaoMaxima: pontuacaoMaxima,
                 isCorrect: isCorrect,
-                finalizado: true
-            });
+                corrigidoEm: new Date(),
+                feedback: respInput.feedback // Salva o feedback do professor
+            };
 
-            resultados.push(salvo);
+            await SubmissoesService.registrarResposta(alunoId, provaId, "PROVA", respostaSubmissao);
+
+            resultados.push(respostaSubmissao);
         }
 
         return NextResponse.json({
             success: true,
-            message: `Correção salva com sucesso! Foram salvas ${resultados.length} respostas para o aluno ${alunoId}.`,
+            message: `Correção salva com sucesso! Foram salvas ${resultados.length} respostas para o aluno.`,
             resultados
         });
 

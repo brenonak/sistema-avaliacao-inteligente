@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link'
-import { Box, AppBar, Toolbar, Button } from '@mui/material'
+import { Box, AppBar, Toolbar } from '@mui/material'
 import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -14,6 +14,7 @@ import { useState } from 'react';
 import HeaderThemeSelector from './HeaderThemeSelector';
 import Divider from '@mui/material/Divider'; 
 import { useSession, signOut } from 'next-auth/react';
+import Logo from './Logo';
 
 const Header = () => {
   const { data: session } = useSession();
@@ -31,7 +32,8 @@ const Header = () => {
 
   const handleLogout = async () => {
     handleCloseUserMenu();
-    await signOut({ callbackUrl: '/' });
+    await signOut({ redirect: false });
+    window.location.href = '/';
   };
 
   const theme = useTheme();
@@ -49,38 +51,11 @@ const Header = () => {
     >
       <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Button
-            component={Link}
-            href="/dashboard"
-            disableRipple
-            sx={{
-              color: 'text.primary',
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-              '&:hover': { backgroundColor: 'inherit' },
-              transition: 'background-color 0ms ease, color 0ms ease',
-            }}
-          >
-            <Box
-              component="img"
-              src="/aluno.svg"
-              alt="Professor Icon"
-              sx={{
-                height: 64,
-                width: 64,
-              }}
-            />
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                letterSpacing: 0.5,
-              }}
-            >
-              Sistema Acadêmico
-            </Typography>
-          </Button>
+          <Logo 
+            href="/dashboard" 
+            src="/aluno.svg" 
+            label="Sistema Acadêmico"
+          />
         </Box>
         <Box sx={{ flexGrow: 0, mr: 2, display: 'flex', alignItems: 'center' }}>
           <HeaderThemeSelector />

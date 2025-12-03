@@ -43,6 +43,7 @@ let theme = createTheme({
 
     accent: {
       main: '#1e88e5',  
+      secondary: '#7c4dff',
       dark: '#0D47A1',
       contrastText: '#ffffff',
     },
@@ -86,6 +87,7 @@ let theme = createTheme({
         },
         accent: {
           main: '#90caf9',
+          secondary: '#9575cd',
           contrastText: '#000000',
         },
         header: {

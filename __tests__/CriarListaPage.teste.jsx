@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import CriarListaPage from '../src/app/(app)/listas/criar/page'; 
+import CriarListaPage from '../src/app/(app)/(professor)/listas/criar/page'; 
 
 // --- Mocks Globais ---
 

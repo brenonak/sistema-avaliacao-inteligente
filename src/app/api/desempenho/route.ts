@@ -2,12 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdOrUnauthorized } from '../../../lib/auth-helpers';
 import { getDb } from '../../../lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // Busca todos os cursos do usuário autenticado
 async function getCursosDoUsuario(userId: string) {
   const db = await getDb();
   const cursos = await db.collection('cursos')
-    .find({ ownerId: typeof userId === 'string' ? new (await import('mongodb')).ObjectId(userId) : userId })
+    .find({ ownerId: typeof userId === 'string' ? new ObjectId(userId) : userId })
     .sort({ createdAt: -1 })
     .toArray();
   return cursos.map(curso => ({
@@ -24,10 +25,10 @@ export async function GET(req: NextRequest) {
   if (userIdOrError instanceof NextResponse) return userIdOrError;
   const userId = userIdOrError;
 
-  // 2. Buscar todos os cursos do usuário
+  // 2. Buscar todos os cursos do usuário (Professor)
   const cursos = await getCursosDoUsuario(userId);
 
-  // 3. Buscar provas e listas de exercícios para cada curso
+  // 3. Buscar provas e listas de exercícios para cada curso (Professor)
   const db = await getDb();
   const provasPorCurso: Record<string, any[]> = {};
   const listasPorCurso: Record<string, any[]> = {};
@@ -57,7 +58,291 @@ export async function GET(req: NextRequest) {
     }));
   }
 
-  // TODO: Buscar correções do aluno logado e montar dados dos gráficos
+  // 4. Calcular estatísticas do aluno (Aluno)
+  const userObjectId = new ObjectId(userId);
 
-  return NextResponse.json({ cursos, provasPorCurso, listasPorCurso });
+  // Pipeline atualizado para usar a coleção 'submissoes'
+  const pipeline = [
+    // Filtrar submissões do aluno que sejam PROVAS ou LISTAS e estejam FINALIZADAS
+    { 
+      $match: { 
+        alunoId: userObjectId, 
+        status: "FINALIZADO",
+        tipo: { $in: ["PROVA", "LISTA"] }
+      } 
+    },
+    // Buscar dados da prova (se for prova)
+    {
+      $lookup: {
+        from: "provas",
+        localField: "referenciaId",
+        foreignField: "_id",
+        as: "prova"
+      }
+    },
+    // Buscar dados da lista (se for lista)
+    {
+      $lookup: {
+        from: "listasDeExercicios",
+        localField: "referenciaId",
+        foreignField: "_id",
+        as: "lista"
+      }
+    },
+    // Calcular pontuação máxima da submissão (soma das pontuacaoMaxima das respostas)
+    {
+      $addFields: {
+        pontuacaoMaximaSubmissao: {
+          $reduce: {
+            input: { $ifNull: ["$respostas", []] },
+            initialValue: 0,
+            in: { $add: ["$$value", { $ifNull: ["$$this.pontuacaoMaxima", 0] }] }
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        tipo: 1,
+        notaTotal: 1,
+        dataFim: 1,
+        updatedAt: 1,
+        referenciaId: 1,
+        pontuacaoMaximaSubmissao: 1,
+        prova: { $arrayElemAt: ["$prova", 0] },
+        lista: { $arrayElemAt: ["$lista", 0] }
+      }
+    },
+    // Calcular a nota (normalizada para 0-10)
+    {
+      $project: {
+        tipo: 1,
+        notaTotal: 1,
+        dataFim: 1,
+        updatedAt: 1,
+        referenciaId: 1,
+        pontuacaoMaximaSubmissao: 1,
+        prova: 1,
+        lista: 1,
+        nota: {
+          $cond: {
+            if: { $eq: ["$tipo", "PROVA"] },
+            then: {
+              $cond: [
+                { $gt: ["$prova.valorTotal", 0] },
+                { $multiply: [{ $divide: ["$notaTotal", "$prova.valorTotal"] }, 10] },
+                "$notaTotal" // Fallback se valorTotal for 0 ou inexistente
+              ]
+            },
+            else: {
+              // Para LISTA: usar pontuacaoMaximaSubmissao calculada das respostas
+              $cond: [
+                { $gt: ["$pontuacaoMaximaSubmissao", 0] },
+                { $multiply: [{ $divide: ["$notaTotal", "$pontuacaoMaximaSubmissao"] }, 10] },
+                "$notaTotal" // Fallback se não houver pontuação máxima
+              ]
+            }
+          }
+        },
+        data: { $ifNull: ["$dataFim", "$updatedAt"] }
+      }
+    },
+    { $sort: { data: 1 } }, // Ordenar por data crescente para o histórico
+  ];
+
+  const submissoesAgregadas = await db.collection('submissoes').aggregate(pipeline).toArray();
+
+  // DEBUG: Log para verificar submissões
+  console.log('=== DEBUG DESEMPENHO ===');
+  console.log('Total submissões:', submissoesAgregadas.length);
+  console.log('Submissões:', JSON.stringify(submissoesAgregadas.map(s => ({
+    tipo: s.tipo,
+    nota: s.nota,
+    notaTotal: s.notaTotal,
+    pontuacaoMaximaSubmissao: s.pontuacaoMaximaSubmissao,
+    data: s.data
+  })), null, 2));
+
+  // Separar provas e listas
+  const provasSubmissoes = submissoesAgregadas.filter(s => s.tipo === "PROVA");
+  const listasSubmissoes = submissoesAgregadas.filter(s => s.tipo === "LISTA");
+
+  console.log('Provas:', provasSubmissoes.length);
+  console.log('Listas:', listasSubmissoes.length);
+
+  // Calcular estatísticas gerais (APENAS PROVAS)
+  const notasProvas = provasSubmissoes.map(s => s.nota);
+  const studentStats = {
+    mediaGeral: notasProvas.length > 0 ? notasProvas.reduce((a, b) => a + b, 0) / notasProvas.length : 0,
+    melhorNota: notasProvas.length > 0 ? Math.max(...notasProvas) : 0,
+    ultimaAvaliacao: notasProvas.length > 0 ? notasProvas[notasProvas.length - 1] : 0,
+    // Histórico separado para o gráfico com duas séries
+    historicoProvas: provasSubmissoes.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      titulo: s.prova?.titulo || "Prova"
+    })),
+    historicoListas: listasSubmissoes.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      titulo: s.lista?.tituloLista || "Lista"
+    })),
+    // Histórico combinado (para compatibilidade)
+    historico: submissoesAgregadas.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      tipo: s.tipo
+    }))
+  };
+
+  // 5. Buscar Atividades Pendentes e dados por curso
+  // Buscar cursos onde o aluno está matriculado
+  const cursosMatriculados = await db.collection('cursos')
+    .find({ alunosIds: userObjectId })
+    .project({ _id: 1 })
+    .toArray();
+  
+  const cursoIds = cursosMatriculados.map(c => c._id.toString());
+
+  // Construir graficosPorCurso
+  const graficosPorCurso: Record<string, any> = {};
+  const cursosMatriculadosSet = new Set(cursoIds);
+  
+  for (const curso of cursosMatriculadosSet) {
+    // Filtrar submissões por curso
+    const submissoesDoCurso = submissoesAgregadas.filter(s => {
+      if (s.tipo === "PROVA") {
+        return s.prova?.cursoId === curso;
+      } else {
+        return s.lista?.cursoId === curso;
+      }
+    });
+
+    const provas = submissoesDoCurso.filter(s => s.tipo === "PROVA");
+    const listas = submissoesDoCurso.filter(s => s.tipo === "LISTA");
+
+    const examsLabels = provas.map(p => new Date(p.data).toLocaleDateString('pt-BR'));
+    const examsScores = provas.map(p => p.nota);
+
+    const listsLabels = listas.map(l => new Date(l.data).toLocaleDateString('pt-BR'));
+    const listsScores = listas.map(l => l.nota);
+
+    const combinedLabels = submissoesDoCurso.map(s => new Date(s.data).toLocaleDateString('pt-BR'));
+    const combinedScores = submissoesDoCurso.map(s => s.nota);
+
+    const history = submissoesDoCurso.map((s, idx) => {
+      const title = s.tipo === "PROVA" ? s.prova?.titulo : s.lista?.tituloLista || "Lista de Exercícios";
+      const maxScore = s.tipo === "PROVA" ? s.prova?.valorTotal : submissoesDoCurso[idx] ? (s.notaTotal / s.nota * 10) : 10;
+      
+      return {
+        id: s.referenciaId.toString(),
+        title: title || "Avaliação",
+        type: s.tipo === "PROVA" ? "Prova" : "Lista",
+        date: s.data,
+        score: s.nota,
+        maxScore: s.tipo === "PROVA" ? s.prova?.valorTotal || 10 : maxScore,
+        status: "Finalizado"
+      };
+    });
+
+    graficosPorCurso[curso] = {
+      examsLabels,
+      examsScores,
+      listsLabels,
+      listsScores,
+      combinedLabels,
+      combinedScores,
+      history
+    };
+  }
+
+  // Buscar todas as atividades desses cursos
+  const [provasDisponiveis, listasDisponiveis] = await Promise.all([
+    db.collection('provas').find({ cursoId: { $in: cursoIds } }).toArray(),
+    db.collection('listasDeExercicios').find({ cursoId: { $in: cursoIds } }).toArray()
+  ]);
+
+  // Buscar submissões finalizadas do aluno
+  const submissoesFinalizadas = await db.collection('submissoes')
+    .find({ 
+      alunoId: userObjectId, 
+      status: "FINALIZADO" 
+    })
+    .project({ referenciaId: 1 })
+    .toArray();
+  
+  const finishedIds = new Set(submissoesFinalizadas.map(s => s.referenciaId.toString()));
+
+  const pendingActivities: any[] = [];
+
+  // Processar Provas Pendentes
+  for (const p of provasDisponiveis) {
+    if (!finishedIds.has(p._id.toString())) {
+      pendingActivities.push({
+        id: p._id.toString(),
+        cursoId: p.cursoId,
+        title: p.titulo,
+        due: p.data ? `Data: ${new Date(p.data).toLocaleDateString('pt-BR')}` : 'Sem data',
+        type: 'PROVA',
+        dateObj: p.data ? new Date(p.data) : new Date(8640000000000000)
+      });
+    }
+  }
+
+  // Processar Listas Pendentes
+  for (const l of listasDisponiveis) {
+    if (!finishedIds.has(l._id.toString())) {
+      pendingActivities.push({
+        id: l._id.toString(),
+        cursoId: l.cursoId,
+        title: l.tituloLista || l.titulo || 'Lista de Exercícios',
+        due: 'Disponível',
+        type: 'LISTA',
+        dateObj: l.criadoEm ? new Date(l.criadoEm) : new Date()
+      });
+    }
+  }
+
+  // Ordenar por data (mais próximas primeiro) e pegar as 5 primeiras
+  pendingActivities.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+  const topPending = pendingActivities.slice(0, 5);
+
+  // Criar eventos do calendário (provas e listas com data limite)
+  const calendarEvents: any[] = [];
+  
+  // Adicionar provas ao calendário
+  for (const p of provasDisponiveis) {
+    if (p.data) {
+      calendarEvents.push({
+        id: p._id.toString(),
+        title: p.titulo,
+        date: p.data,
+        type: 'PROVA',
+        cursoId: p.cursoId
+      });
+    }
+  }
+  
+  // Adicionar listas com data limite ao calendário
+  for (const l of listasDisponiveis) {
+    if (l.dataLimite) {
+      calendarEvents.push({
+        id: l._id.toString(),
+        title: l.tituloLista || l.titulo || 'Lista de Exercícios',
+        date: l.dataLimite,
+        type: 'LISTA',
+        cursoId: l.cursoId
+      });
+    }
+  }
+
+  return NextResponse.json({ 
+    cursos, 
+    provasPorCurso, 
+    listasPorCurso,
+    studentStats,
+    graficosPorCurso,
+    pendingActivities: topPending,
+    calendarEvents
+  });
 }

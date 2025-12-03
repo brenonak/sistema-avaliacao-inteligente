@@ -35,11 +35,13 @@ export default function OverlayAluno({ content }) {
   const expanded = open || hovered;
 
   const sidebarItems = [
-    { text: 'Início', icon: <HomeIcon />, link: 'dashboard' },
-    { text: 'Cursos', icon: <SchoolIcon />, link: 'cursos' },
-    { text: 'Desempenho', icon: <TrendingUpIcon />, link: 'desempenho' },
+    { text: 'Início', icon: <HomeIcon />, link: '/aluno/dashboard' },
+    { text: 'Cursos', icon: <SchoolIcon />, link: '/aluno/cursos' },
+    { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/aluno/desempenho' },
   ];
 
+  const firstName = session?.user?.name?.split(" ")[0] ?? "Usuário";
+  const displayName = firstName.length > 14 ? `${fullName.slice(0, 14)}...` : firstName;
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -85,7 +87,7 @@ export default function OverlayAluno({ content }) {
           {expanded && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                {session?.user?.name || 'Usuário'}
+                {displayName}
               </Typography>
             </Box>
           )}
