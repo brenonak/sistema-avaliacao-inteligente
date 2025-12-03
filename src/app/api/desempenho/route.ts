@@ -307,12 +307,42 @@ export async function GET(req: NextRequest) {
   pendingActivities.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   const topPending = pendingActivities.slice(0, 5);
 
+  // Criar eventos do calendário (provas e listas com data limite)
+  const calendarEvents: any[] = [];
+  
+  // Adicionar provas ao calendário
+  for (const p of provasDisponiveis) {
+    if (p.data) {
+      calendarEvents.push({
+        id: p._id.toString(),
+        title: p.titulo,
+        date: p.data,
+        type: 'PROVA',
+        cursoId: p.cursoId
+      });
+    }
+  }
+  
+  // Adicionar listas com data limite ao calendário
+  for (const l of listasDisponiveis) {
+    if (l.dataLimite) {
+      calendarEvents.push({
+        id: l._id.toString(),
+        title: l.tituloLista || l.titulo || 'Lista de Exercícios',
+        date: l.dataLimite,
+        type: 'LISTA',
+        cursoId: l.cursoId
+      });
+    }
+  }
+
   return NextResponse.json({ 
     cursos, 
     provasPorCurso, 
     listasPorCurso,
     studentStats,
     graficosPorCurso,
-    pendingActivities: topPending
+    pendingActivities: topPending,
+    calendarEvents
   });
 }
