@@ -129,9 +129,10 @@ describe('DesempenhoPage', () => {
   it('deve exibir dados zerados ou padrão inicialmente (antes de selecionar curso)', async () => {
     render(<DesempenhoPage />);
 
-    
-    expect(screen.getByTestId('performance-summary')).toBeInTheDocument();
-    
+    // Aguardar até que o loading desapareça e os dados sejam carregados
+    await waitFor(() => {
+      expect(screen.getByTestId('performance-summary')).toBeInTheDocument();
+    });
     
     expect(screen.getByTestId('chart-provas')).toHaveTextContent('Count: 0');
   });
