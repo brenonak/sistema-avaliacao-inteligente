@@ -9,15 +9,30 @@ import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import Badge from '@mui/material/Badge';
 import IconButton from '@mui/material/IconButton';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import QuizIcon from '@mui/icons-material/Quiz';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 
 // Componente utilizado para mostrar os dias marcados no calendário
 function ServerDay(props) {
-  const { day, outsideCurrentMonth, highlightedDays = [], iconColor, ...other } = props;
+  const { day, outsideCurrentMonth, events = [], iconColor, ...other } = props;
 
-  const isSelected = !outsideCurrentMonth && highlightedDays.includes(day.date());
+  // Filtrar eventos do dia atual
+  const dayEvents = events.filter(event => {
+    const eventDate = dayjs(event.date);
+    return eventDate.date() === day.date() && 
+           eventDate.month() === day.month() && 
+           eventDate.year() === day.year();
+  });
+
+  const hasEvents = !outsideCurrentMonth && dayEvents.length > 0;
+  const hasProva = dayEvents.some(e => e.type === 'PROVA');
+  const hasLista = dayEvents.some(e => e.type === 'LISTA');
+
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleMenuOpen = (event) => {
     event.stopPropagation();
@@ -25,18 +40,24 @@ function ServerDay(props) {
   };
 
   const handleClose = (event) => {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     setAnchorEl(null);
   };
 
-  const [anchorEl, setAnchorEl] = useState(null);
+  // Determinar cor do ícone baseado no tipo de evento
+  const getIconColor = () => {
+    if (hasProva && hasLista) return '#ff9800'; // Laranja para ambos
+    if (hasProva) return '#f44336'; // Vermelho para prova
+    if (hasLista) return '#2196f3'; // Azul para lista
+    return iconColor ?? 'accent.main';
+  };
 
   return (
     <Badge
       key={day.toString()}
       overlap="circular"
       badgeContent={
-        isSelected ? (
+        hasEvents ? (
           <div 
             style={{ 
               width: 20, 
@@ -59,7 +80,11 @@ function ServerDay(props) {
                 left: 0,
               }}
             >
-              <AssignmentIcon sx={{ fontSize: 14, color: iconColor ?? 'accent.main'  }} />
+              {hasProva ? (
+                <QuizIcon sx={{ fontSize: 14, color: getIconColor() }} />
+              ) : (
+                <AssignmentIcon sx={{ fontSize: 14, color: getIconColor() }} />
+              )}
             </IconButton>
             <Menu
               anchorEl={anchorEl}
@@ -70,8 +95,19 @@ function ServerDay(props) {
               onClick={(e) => e.stopPropagation()}
               disableScrollLock={true}
             >
-              <MenuItem onClick={handleClose}>Tarefa 1</MenuItem>
-              <MenuItem onClick={handleClose}>Tarefa 2</MenuItem>
+              {dayEvents.map((event, idx) => (
+                <MenuItem key={idx} onClick={handleClose} sx={{ py: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label={event.type === 'PROVA' ? 'Prova' : 'Lista'} 
+                      size="small" 
+                      color={event.type === 'PROVA' ? 'error' : 'info'}
+                      sx={{ fontSize: 10, height: 20 }}
+                    />
+                    <Typography variant="body2">{event.title}</Typography>
+                  </Box>
+                </MenuItem>
+              ))}
             </Menu>
           </div>
         ) : undefined
@@ -83,35 +119,38 @@ function ServerDay(props) {
         day={day}
       />
     </Badge>
-
   );
 }
 
-export default function Calendar({ iconColor }) {
+export default function Calendar({ iconColor, events = [] }) {
   // A data selecionada no calendário (valor inicial: null para evitar SSR mismatch)
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Estado de carregamento para simular busca de dados do servidor
+  // Estado de carregamento
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dias destacados (com tarefas) - inicialmente 1, 5, 10 e 26
-  const [highlightedDays, setHighlightedDays] = useState([1, 5, 10, 26]);
+  // Filtrar eventos do mês atual
+  const [currentMonthEvents, setCurrentMonthEvents] = useState([]);
 
   useEffect(() => {
     // Define a data no lado do cliente para garantir que a timezone correta seja usada
     setSelectedDate(dayjs());
   }, []);
 
-  // Função chamada ao mudar o mês, simula busca de dados do servidor
+  useEffect(() => {
+    if (selectedDate && events.length > 0) {
+      const filtered = events.filter(event => {
+        const eventDate = dayjs(event.date);
+        return eventDate.month() === selectedDate.month() && 
+               eventDate.year() === selectedDate.year();
+      });
+      setCurrentMonthEvents(filtered);
+    }
+  }, [selectedDate, events]);
+
+  // Função chamada ao mudar o mês
   const handleMonthChange = (newMonth) => {
-    setIsLoading(true);
-    // Simula uma chamada de API com timeout
-    setTimeout(() => {
-      // Gera 3 dias aleatórios para destacar no mês
-      const newDays = Array.from({ length: 3 }, () => Math.floor(Math.random() * 28) + 1);
-      setHighlightedDays(newDays);
-      setIsLoading(false);
-    }, 1000);
+    setSelectedDate(newMonth);
   };
 
   // Renderiza um esqueleto de carregamento até que a data seja definida no cliente
@@ -139,15 +178,27 @@ export default function Calendar({ iconColor }) {
         <DateCalendar
           value={selectedDate}
           onChange={() => {}}
-          shouldDisableDate={() => true}
+          shouldDisableDate={() => false}
           loading={isLoading}
           onMonthChange={handleMonthChange}
           renderLoading={() => <DayCalendarSkeleton />}
           slots={{ day: ServerDay }}
           slotProps={{
-            day: { highlightedDays, iconColor }
+            day: { events: currentMonthEvents, iconColor }
           }}
         />
+      </Box>
+      
+      {/* Legenda */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <QuizIcon sx={{ fontSize: 14, color: '#f44336' }} />
+          <Typography variant="caption" color="text.secondary">Prova</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <AssignmentIcon sx={{ fontSize: 14, color: '#2196f3' }} />
+          <Typography variant="caption" color="text.secondary">Lista</Typography>
+        </Box>
       </Box>
     </LocalizationProvider>
   );

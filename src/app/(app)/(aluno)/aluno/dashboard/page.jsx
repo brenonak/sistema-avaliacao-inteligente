@@ -35,6 +35,7 @@ export default function DashboardAlunoPage() {
     historicoListas: []
   });
   const [pendingActivities, setPendingActivities] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -74,6 +75,9 @@ export default function DashboardAlunoPage() {
           }
           if (statsData.pendingActivities) {
             setPendingActivities(statsData.pendingActivities);
+          }
+          if (statsData.calendarEvents) {
+            setCalendarEvents(statsData.calendarEvents);
           }
         }
 
@@ -268,7 +272,7 @@ export default function DashboardAlunoPage() {
             </Typography>
             <Card sx={{ mb: 4, borderRadius: 2 }}>
               <CardContent>
-                <Calendar iconColor={'accent.secondary'} />
+                <Calendar iconColor={'accent.secondary'} events={calendarEvents} />
               </CardContent>
             </Card>
 
