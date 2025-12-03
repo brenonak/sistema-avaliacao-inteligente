@@ -11,7 +11,8 @@ import {
   TableRow,
   Paper,
   Button,
-  Chip
+  Chip,
+  CircularProgress
 } from "@mui/material";
 import { Visibility } from "@mui/icons-material";
 import Link from "next/link";
@@ -33,28 +34,53 @@ export default function DesempenhoPage() {
       history: []
     },
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchDesempenho() {
-      const res = await fetch('/api/desempenho');
-      if (!res.ok) return;
-      const json = await res.json();
-      // Montar lista de cursos para o select
-      const apiCourses = json.cursos?.map(c => ({ id: c.id, name: c.nome })) || [];
-      setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
+      try {
+        setLoading(true);
+        const res = await fetch('/api/desempenho');
+        if (!res.ok) throw new Error('Erro ao carregar dados de desempenho');
+        
+        const json = await res.json();
+        // Montar lista de cursos para o select
+        const apiCourses = json.cursos?.map(c => ({ id: c.id, name: c.nome })) || [];
+        setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
 
-      // Montar dados dos gráficos por curso
-      const data = { no_course_selected: {
-        examsLabels: [], examsScores: [], listsLabels: [], listsScores: [], combinedLabels: [], combinedScores: []
-      }};
-      for (const curso of json.cursos || []) {
-        // Aqui você pode adaptar para usar os dados reais do endpoint
-        // Exemplo: buscar json.graficosPorCurso[curso.id] se o backend retornar assim
-        data[curso.id] = json.graficosPorCurso?.[curso.id] || {
-          examsLabels: [], examsScores: [], listsLabels: [], listsScores: [], combinedLabels: [], combinedScores: []
-        };
+        // Montar dados dos gráficos por curso
+        const data = { no_course_selected: {
+          examsLabels: [], 
+          examsScores: [], 
+          listsLabels: [], 
+          listsScores: [], 
+          combinedLabels: [], 
+          combinedScores: [],
+          history: []
+        }};
+        
+        if (json.graficosPorCurso) {
+          for (const curso of json.cursos || []) {
+            data[curso.id] = json.graficosPorCurso[curso.id] || {
+              examsLabels: [], 
+              examsScores: [], 
+              listsLabels: [], 
+              listsScores: [], 
+              combinedLabels: [], 
+              combinedScores: [],
+              history: []
+            };
+          }
+        }
+        setDataByCourse(data);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-      setDataByCourse(data);
     }
     fetchDesempenho();
   }, []);
@@ -62,17 +88,17 @@ export default function DesempenhoPage() {
   const active = dataByCourse[selectedCourse] || dataByCourse.no_course_selected;
 
     // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
-  const combinedLabels = active.combinedLabels;
-  const combinedScores = active.combinedScores;
+  const combinedLabels = active.combinedLabels || [];
+  const combinedScores = active.combinedScores || [];
   // Dados para os gráficos
-  const examsLabels = active.examsLabels;
-  const examsScores = active.examsScores;
-  const listsLabels = active.listsLabels;
-  const listsScores = active.listsScores;
+  const examsLabels = active.examsLabels || [];
+  const examsScores = active.examsScores || [];
+  const listsLabels = active.listsLabels || [];
+  const listsScores = active.listsScores || [];
   // Valores para o resumo de desempenho
-  const average = combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length;
-  const best = Math.max(...combinedScores);
-  const latest = combinedScores[combinedScores.length - 1];
+  const average = combinedScores.length > 0 ? combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length : 0;
+  const best = combinedScores.length > 0 ? Math.max(...combinedScores) : 0;
+  const latest = combinedScores.length > 0 ? combinedScores[combinedScores.length - 1] : 0;
   return (
     <Box
       sx={{
@@ -93,7 +119,40 @@ export default function DesempenhoPage() {
       >
         Desempenho
       </Typography>
-      <Box
+
+      {loading && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          p: 4,
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          mb: 4,
+          width: '100%'
+        }}>
+          <CircularProgress size={40} />
+          <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando dados de desempenho...</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ 
+          p: 3, 
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
+          textAlign: 'center',
+          mb: 4,
+          width: '100%'
+        }}>
+          <Typography color="error">
+            {error}
+          </Typography>
+        </Box>
+      )}
+
+      {!loading && !error && (
+        <Box
         sx={{
           width: "100%",
           display: "grid",
@@ -188,7 +247,8 @@ export default function DesempenhoPage() {
             </Paper>
           </Box>
         )}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 }
