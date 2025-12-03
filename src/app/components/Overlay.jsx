@@ -41,14 +41,16 @@ export default function Overlay({ content }) {
   const sidebarItems = [
     { text: 'Início', icon: <HomeIcon />, link: '/dashboard' },
     { text: 'Cursos', icon: <SchoolIcon />, link: '/cursos' },
-    { text: 'Escanear', icon: <ScanBarcodeIcon />, link: '/escanear' },
     { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/desempenho' },
     { text: 'Galeria', icon: <CollectionsIcon />, link: '/galeria' },
+    { text: 'Escanear', icon: <ScanBarcodeIcon />, link: '/escanear' },
+    { text: 'Correção', icon: <PencilIcon />, link: '/correcao' },
     { text: 'Questões', icon: <DescriptionIcon />, link: '/questoes' },
     { text: 'Criar Questão', icon: <NoteAddIcon />, link: '/questoes/criar' },
-    { text: 'Correção', icon: <PencilIcon />, link: '/correcao' }
   ];
 
+  const firstName = session?.user?.name?.split(" ")[0] ?? "Usuário";
+  const displayName = firstName.length > 14 ? `${fullName.slice(0, 14)}...` : firstName;
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -94,7 +96,7 @@ export default function Overlay({ content }) {
           {expanded && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                {session?.user?.name || 'Usuário'}
+                {displayName}
               </Typography>
             </Box>
           )}
@@ -107,28 +109,32 @@ export default function Overlay({ content }) {
 
         <Box sx={{ overflowX: 'hidden', overflowY: 'auto' }}>
           <List sx={{ padding: 0 }}>
-            {sidebarItems.map(({ text, icon, link }) => (
-              <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-                <ListItemButton
-                  component={Link}
-                  href={link}
-                  sx={{
-                    minHeight: 48,
-                    justifyContent: expanded ? 'initial' : 'center',
-                  }}
-                >
-                  <ListItemIcon
+            {sidebarItems.map(({ text, icon, link }, idx) => (
+              <React.Fragment key={text}>
+                <ListItem disablePadding sx={{ display: 'block' }}>
+                  <ListItemButton
+                    component={Link}
+                    href={link}
                     sx={{
-                      minWidth: 0,
-                      mr: expanded ? 2 : 'auto',
-                      justifyContent: 'center',
+                      minHeight: 48,
+                      justifyContent: expanded ? 'initial' : 'center',
                     }}
                   >
-                    {icon}
-                  </ListItemIcon>
-                  {expanded && <ListItemText primary={text} />}
-                </ListItemButton>
-              </ListItem>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 0,
+                        mr: expanded ? 2 : 'auto',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {icon}
+                    </ListItemIcon>
+                    {expanded && <ListItemText primary={text} />}
+                  </ListItemButton>
+                </ListItem>
+
+                {text === 'Galeria' && <Divider sx={{ my: 1 }} />}
+              </React.Fragment>
             ))}
           </List>
         </Box>

@@ -40,6 +40,8 @@ export default function OverlayAluno({ content }) {
     { text: 'Desempenho', icon: <TrendingUpIcon />, link: '/aluno/desempenho' },
   ];
 
+  const firstName = session?.user?.name?.split(" ")[0] ?? "Usuário";
+  const displayName = firstName.length > 14 ? `${fullName.slice(0, 14)}...` : firstName;
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -85,7 +87,7 @@ export default function OverlayAluno({ content }) {
           {expanded && (
             <Box sx={{ mr: 1, pl: '16px' }}>
               <Typography variant="body1" noWrap>
-                {session?.user?.name || 'Usuário'}
+                {displayName}
               </Typography>
             </Box>
           )}
