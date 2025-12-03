@@ -32,6 +32,7 @@ export default function DashboardAlunoPage() {
     ultimaAvaliacao: 0,
     historico: []
   });
+  const [pendingActivities, setPendingActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,14 +48,6 @@ export default function DashboardAlunoPage() {
   const best = stats.melhorNota ? parseFloat(stats.melhorNota.toFixed(1)) : 0;
   const latest = stats.ultimaAvaliacao ? parseFloat(stats.ultimaAvaliacao.toFixed(1)) : 0;
   
-  // Dados mockados para as atividades pendentes
-  const pendingActivities = [
-    { title: "Lista 3 de Cálculo", due: "Entrega: 22/11" },
-    { title: "Exercícios de Algoritmos", due: "Entrega: 24/11" },
-    { title: "Trabalho de Física 1", due: "Entrega: 28/11" },
-  ];
-
-
   useEffect(() => {
     async function fetchData() {
       try {
@@ -68,12 +61,15 @@ export default function DashboardAlunoPage() {
         const cursosData = await cursosRes.json();
         setCursos(cursosData.itens || []);
 
-        // Buscar estatísticas de desempenho
+        // Buscar estatísticas de desempenho e atividades pendentes
         const statsRes = await fetch('/api/desempenho');
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           if (statsData.studentStats) {
             setStats(statsData.studentStats);
+          }
+          if (statsData.pendingActivities) {
+            setPendingActivities(statsData.pendingActivities);
           }
         }
 

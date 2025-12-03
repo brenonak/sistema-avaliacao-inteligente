@@ -61,38 +61,63 @@ export async function GET(req: NextRequest) {
   // 4. Calcular estatísticas do aluno (Aluno)
   const userObjectId = new ObjectId(userId);
 
+  // Pipeline atualizado para usar a coleção 'submissoes'
   const pipeline = [
-    { $match: { ownerId: userObjectId } },
+    // Filtrar submissões do aluno que sejam PROVAS ou LISTAS e estejam FINALIZADAS
+    { 
+      $match: { 
+        alunoId: userObjectId, 
+        status: "FINALIZADO",
+        tipo: { $in: ["PROVA", "LISTA"] }
+      } 
+    },
+    // Buscar dados da prova (se for prova)
     {
-      $group: {
-        _id: "$listaId",
-        totalObtido: { $sum: "$pontuacaoObtida" },
-        totalMaximo: { $sum: "$pontuacaoMaxima" },
-        data: { $max: "$createdAt" }
+      $lookup: {
+        from: "provas",
+        localField: "referenciaId",
+        foreignField: "_id",
+        as: "prova"
+      }
+    },
+    // Buscar dados da lista (se for lista)
+    {
+      $lookup: {
+        from: "listasDeExercicios",
+        localField: "referenciaId",
+        foreignField: "_id",
+        as: "lista"
       }
     },
     {
       $project: {
-        nota: {
-          $cond: [
-            { $eq: ["$totalMaximo", 0] },
-            0,
-            { $multiply: [{ $divide: ["$totalObtido", "$totalMaximo"] }, 10] }
-          ]
-        },
-        data: 1
+        tipo: 1,
+        notaTotal: 1,
+        dataFim: 1,
+        updatedAt: 1,
+        prova: { $arrayElemAt: ["$prova", 0] },
+        lista: { $arrayElemAt: ["$lista", 0] }
       }
     },
-    // Filtrar para considerar apenas PROVAS no cálculo de desempenho
+    // Calcular a nota
     {
-      $lookup: {
-        from: "provas",
-        localField: "_id",
-        foreignField: "_id",
-        as: "isProva"
+      $project: {
+        nota: {
+          $cond: {
+            if: { $eq: ["$tipo", "PROVA"] },
+            then: {
+              $cond: [
+                { $gt: ["$prova.valorTotal", 0] },
+                { $multiply: [{ $divide: ["$notaTotal", "$prova.valorTotal"] }, 10] },
+                "$notaTotal" // Fallback se valorTotal for 0 ou inexistente
+              ]
+            },
+            else: "$notaTotal" // Para LISTA, usa a nota total direta (pontos acumulados)
+          }
+        },
+        data: { $ifNull: ["$dataFim", "$updatedAt"] }
       }
     },
-    { $match: { "isProva.0": { $exists: true } } },
     { $sort: { data: 1 } }, // Ordenar por data crescente para o histórico
     {
       $group: {
@@ -105,7 +130,7 @@ export async function GET(req: NextRequest) {
     }
   ];
 
-  const statsResult = await db.collection('respostasAluno').aggregate(pipeline).toArray();
+  const statsResult = await db.collection('submissoes').aggregate(pipeline).toArray();
   
   const studentStats = statsResult.length > 0 ? statsResult[0] : {
     mediaGeral: 0,
@@ -114,10 +139,69 @@ export async function GET(req: NextRequest) {
     historico: []
   };
 
+  // 5. Buscar Atividades Pendentes (Provas e Listas não finalizadas)
+  // Buscar cursos onde o aluno está matriculado
+  const cursosMatriculados = await db.collection('cursos')
+    .find({ alunosIds: userObjectId })
+    .project({ _id: 1 })
+    .toArray();
+  
+  const cursoIds = cursosMatriculados.map(c => c._id.toString());
+
+  // Buscar todas as atividades desses cursos
+  const [provasDisponiveis, listasDisponiveis] = await Promise.all([
+    db.collection('provas').find({ cursoId: { $in: cursoIds } }).toArray(),
+    db.collection('listasDeExercicios').find({ cursoId: { $in: cursoIds } }).toArray()
+  ]);
+
+  // Buscar submissões finalizadas do aluno
+  const submissoesFinalizadas = await db.collection('submissoes')
+    .find({ 
+      alunoId: userObjectId, 
+      status: "FINALIZADO" 
+    })
+    .project({ referenciaId: 1 })
+    .toArray();
+  
+  const finishedIds = new Set(submissoesFinalizadas.map(s => s.referenciaId.toString()));
+
+  const pendingActivities = [];
+
+  // Processar Provas Pendentes
+  for (const p of provasDisponiveis) {
+    if (!finishedIds.has(p._id.toString())) {
+      pendingActivities.push({
+        id: p._id.toString(),
+        title: p.titulo,
+        due: p.data ? `Data: ${new Date(p.data).toLocaleDateString('pt-BR')}` : 'Sem data',
+        type: 'PROVA',
+        dateObj: p.data ? new Date(p.data) : new Date(8640000000000000)
+      });
+    }
+  }
+
+  // Processar Listas Pendentes
+  for (const l of listasDisponiveis) {
+    if (!finishedIds.has(l._id.toString())) {
+      pendingActivities.push({
+        id: l._id.toString(),
+        title: l.tituloLista || l.titulo || 'Lista de Exercícios',
+        due: 'Disponível',
+        type: 'LISTA',
+        dateObj: l.criadoEm ? new Date(l.criadoEm) : new Date()
+      });
+    }
+  }
+
+  // Ordenar por data (mais próximas primeiro) e pegar as 5 primeiras
+  pendingActivities.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+  const topPending = pendingActivities.slice(0, 5);
+
   return NextResponse.json({ 
     cursos, 
     provasPorCurso, 
     listasPorCurso,
-    studentStats 
+    studentStats,
+    pendingActivities: topPending
   });
 }
