@@ -266,6 +266,7 @@ export async function GET(req: NextRequest) {
     if (!finishedIds.has(p._id.toString())) {
       pendingActivities.push({
         id: p._id.toString(),
+        cursoId: p.cursoId,
         title: p.titulo,
         due: p.data ? `Data: ${new Date(p.data).toLocaleDateString('pt-BR')}` : 'Sem data',
         type: 'PROVA',
@@ -279,6 +280,7 @@ export async function GET(req: NextRequest) {
     if (!finishedIds.has(l._id.toString())) {
       pendingActivities.push({
         id: l._id.toString(),
+        cursoId: l.cursoId,
         title: l.tituloLista || l.titulo || 'Lista de Exercícios',
         due: 'Disponível',
         type: 'LISTA',

@@ -6,9 +6,21 @@ import {
   List,
   Divider,
   ButtonBase,
+  Chip,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 export default function PendingActivities({ activities = [] }) {
+  const router = useRouter();
+
+  const handleActivityClick = (activity) => {
+    if (activity.type === 'PROVA') {
+      router.push(`/aluno/cursos/${activity.cursoId}/provas/${activity.id}`);
+    } else if (activity.type === 'LISTA') {
+      router.push(`/aluno/cursos/${activity.cursoId}/listas/${activity.id}`);
+    }
+  };
+
   return (
     <>
       {activities.length === 0 ? (
@@ -18,7 +30,7 @@ export default function PendingActivities({ activities = [] }) {
       ) : (
         <List dense sx={{ width: "100%" }}>
           {activities.map((task, i) => (
-            <Box key={i} sx={{ width: "100%" }}>
+            <Box key={task.id || i} sx={{ width: "100%" }}>
               <ButtonBase
                 sx={{
                   width: "100%",
@@ -31,15 +43,22 @@ export default function PendingActivities({ activities = [] }) {
                     backgroundColor: "action.hover",
                   },
                 }}
-                // TODO: Implementar a ação ao clicar na atividade
-                onClick={() => {}}
+                onClick={() => handleActivityClick(task)}
               >
-                <Typography
-                  variant="body2"
-                  sx={{ fontSize: 14, fontWeight: 500 }}
-                >
-                  {task.title}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Chip 
+                    label={task.type === 'PROVA' ? 'Prova' : 'Lista'} 
+                    size="small" 
+                    color={task.type === 'PROVA' ? 'error' : 'info'}
+                    sx={{ fontSize: 10, height: 20 }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{ fontSize: 14, fontWeight: 500 }}
+                  >
+                    {task.title}
+                  </Typography>
+                </Box>
 
                 <Typography
                   variant="caption"
