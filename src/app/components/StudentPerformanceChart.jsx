@@ -30,35 +30,49 @@ export default function StudentPerformanceChart({
     const hasListasData = Array.isArray(listasScores) && listasScores.length > 0 && listasScores.some((n) => Number.isFinite(n));
     const hasAnyData = hasProvasData || hasListasData;
 
-    // Combinar todos os labels únicos e ordenar por data
-    const allLabels = [...new Set([...provasLabels, ...listasLabels])];
-    
-    // Criar arrays de scores com null para pontos sem dados
-    const provasDataAligned = allLabels.map(label => {
-      const idx = provasLabels.indexOf(label);
-      return idx !== -1 ? provasScores[idx] : null;
-    });
-    
-    const listasDataAligned = allLabels.map(label => {
-      const idx = listasLabels.indexOf(label);
-      return idx !== -1 ? listasScores[idx] : null;
-    });
-
+    // Construir séries separadas - cada uma com seus próprios pontos
     const series = [];
+    
+    // Usar os nomes das atividades como labels no eixo X
+    // Combinar os labels de provas e listas
+    const maxPoints = Math.max(provasLabels.length, listasLabels.length, 1);
+    
+    // Criar labels combinados - mostrar nome da prova/lista
+    const xAxisLabels = [];
+    for (let i = 0; i < maxPoints; i++) {
+      const provaLabel = provasLabels[i] || '';
+      const listaLabel = listasLabels[i] || '';
+      // Usar o label que existir, ou combinar se ambos existirem
+      if (provaLabel && listaLabel) {
+        xAxisLabels.push(`${i + 1}`); // Usar número se ambos existirem
+      } else {
+        xAxisLabels.push(provaLabel || listaLabel || `${i + 1}`);
+      }
+    }
+
     if (hasProvasData) {
+      const provasData = [...provasScores];
+      while (provasData.length < maxPoints) {
+        provasData.push(null);
+      }
       series.push({
-        data: provasDataAligned,
+        data: provasData,
         label: 'Provas',
         color: provasColor,
-        connectNulls: false,
+        connectNulls: true,
       });
     }
+    
     if (hasListasData) {
+      const listasData = [...listasScores];
+      while (listasData.length < maxPoints) {
+        listasData.push(null);
+      }
       series.push({
-        data: listasDataAligned,
+        data: listasData,
         label: 'Listas',
         color: listasColor,
-        connectNulls: false,
+        connectNulls: true,
       });
     }
 
@@ -76,10 +90,10 @@ export default function StudentPerformanceChart({
           ) : (
             <LineChart
               height={height}
-              xAxis={[{ data: allLabels, scaleType: 'point' }]}
+              xAxis={[{ data: xAxisLabels, scaleType: 'point' }]}
               yAxis={[{ min: 0, max: 10, tickNumber: 6 }]}
               series={series}
-              margin={{ left: 40, right: 50, top: 30, bottom: 40 }}
+              margin={{ left: 40, right: 50, top: 30, bottom: 60 }}
             />
           )}
         </CardContent>

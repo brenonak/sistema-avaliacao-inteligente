@@ -41,10 +41,10 @@ export default function DashboardAlunoPage() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [courseIdInput, setCourseIdInput] = useState('');
 
-  // Dados para as notas - separados por tipo
-  const provasLabels = stats.historicoProvas?.map(h => new Date(h.data).toLocaleDateString('pt-BR')) || [];
+  // Dados para as notas - separados por tipo (usando título da atividade como label)
+  const provasLabels = stats.historicoProvas?.map(h => h.titulo || 'Prova') || [];
   const provasScores = stats.historicoProvas?.map(h => h.nota) || [];
-  const listasLabels = stats.historicoListas?.map(h => new Date(h.data).toLocaleDateString('pt-BR')) || [];
+  const listasLabels = stats.historicoListas?.map(h => h.titulo || 'Lista') || [];
   const listasScores = stats.historicoListas?.map(h => h.nota) || [];
 
   // Valores para o resumo de desempenho (apenas provas)
