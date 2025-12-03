@@ -43,54 +43,58 @@ export async function GET(
             .toArray();
 
         // 3. Para cada prova, buscar a nota do aluno (se existir)
-        const provasComNotas = await Promise.all(
-            provas.map(async (prova) => {
-                // Buscar respostas do aluno para esta prova
-                const respostas = await db.collection("respostasAluno")
-                    .find({
-                        listaId: prova._id,
-                        ownerId: userObjectId,
-                    })
-                    .toArray();
-
-                // Calcular nota total da prova
-                let pontuacaoObtida = 0;
-                let pontuacaoTotal = 0;
-                let finalizada = false;
-
-                respostas.forEach((resposta: any) => {
-                    pontuacaoObtida += resposta.pontuacaoObtida || 0;
-                    pontuacaoTotal += resposta.pontuacaoMaxima || 0;
-                    if (resposta.finalizado) finalizada = true;
-                });
-
-                // Calcular nota (0-10) se houver pontuação máxima
-                let nota: number | null = null;
-                if (pontuacaoTotal > 0) {
-                    nota = (pontuacaoObtida / pontuacaoTotal) * 10;
-                }
-
-                // Se não houver respostas/pontuacaoTotal, retornar pontuacaoObtida como null
-                const pontuacaoObtidaOrNull = pontuacaoTotal > 0 ? pontuacaoObtida : null;
-                const pontuacaoTotalOrNull = pontuacaoTotal > 0 ? pontuacaoTotal : null;
-
-                return {
-                    id: prova._id.toString(),
-                    titulo: prova.titulo,
-                    instrucoes: prova.instrucoes || "",
-                    nomeEscola: prova.nomeEscola || "",
-                    disciplina: prova.disciplina || "",
-                    professor: prova.professor || "",
-                    data: prova.data || "",
-                    duracao: prova.duracao || "",
-                    nota: nota, // null se não respondida, 0-10 se respondida
-                    pontuacaoObtida: pontuacaoObtidaOrNull, // null se não respondida
-                    pontuacaoTotal: pontuacaoTotalOrNull, // null se não há pontos
-                    finalizada: finalizada,
-                    dataFinalizacao: respostas[0]?.dataFinalizacao || null,
-                };
+        // Otimização: Buscar todas as submissões de uma vez
+        const provaIds = provas.map(p => p._id);
+        const submissoesProvas = await db.collection("submissoes")
+            .find({
+                alunoId: userObjectId,
+                referenciaId: { $in: provaIds },
+                tipo: "PROVA"
             })
-        );
+            .toArray();
+
+        const submissoesProvasMap = new Map(submissoesProvas.map(s => [s.referenciaId.toString(), s]));
+
+        const provasComNotas = provas.map((prova) => {
+            const submissao = submissoesProvasMap.get(prova._id.toString());
+            
+            let pontuacaoObtida: number | null = null;
+            let nota: number | null = null;
+            let finalizada = false;
+            let dataFinalizacao: Date | null = null;
+
+            if (submissao) {
+                pontuacaoObtida = submissao.notaTotal;
+                finalizada = submissao.status === "FINALIZADO";
+                dataFinalizacao = submissao.dataFim || null;
+
+                // Calcular nota 0-10 se houver valorTotal na prova
+                if (prova.valorTotal && prova.valorTotal > 0) {
+                    nota = (pontuacaoObtida / prova.valorTotal) * 10;
+                } else {
+                    // Fallback: se não tiver valorTotal, usa a pontuação obtida como nota ou tenta calcular
+                    // Se quisermos manter compatibilidade com lógica antiga de somar pontuação das questões,
+                    // teríamos que buscar as questões. Por enquanto, vamos assumir que notaTotal é o que importa.
+                    nota = pontuacaoObtida; 
+                }
+            }
+
+            return {
+                id: prova._id.toString(),
+                titulo: prova.titulo,
+                instrucoes: prova.instrucoes || "",
+                nomeEscola: prova.nomeEscola || "",
+                disciplina: prova.disciplina || "",
+                professor: prova.professor || "",
+                data: prova.data || "",
+                duracao: prova.duracao || "",
+                nota: nota,
+                pontuacaoObtida: pontuacaoObtida,
+                pontuacaoTotal: prova.valorTotal || null,
+                finalizada: finalizada,
+                dataFinalizacao: dataFinalizacao,
+            };
+        });
 
         // 4. Buscar listas de exercícios do curso
         const listas = await db.collection("listasDeExercicios")
@@ -98,48 +102,46 @@ export async function GET(
             .toArray();
 
         // 5. Para cada lista, buscar a nota/status do aluno
-        const listasComNotas = await Promise.all(
-            listas.map(async (lista) => {
-                // Buscar respostas do aluno para esta lista
-                const respostas = await db.collection("respostasAluno")
-                    .find({
-                        listaId: lista._id,
-                        ownerId: userObjectId,
-                    })
-                    .toArray();
-
-                // Calcular nota total da lista
-                let pontuacaoObtida = 0;
-                let pontuacaoTotal = 0;
-                let finalizada = false;
-
-                respostas.forEach((resposta: any) => {
-                    pontuacaoObtida += resposta.pontuacaoObtida || 0;
-                    pontuacaoTotal += resposta.pontuacaoMaxima || 0;
-                    if (resposta.finalizado) finalizada = true;
-                });
-
-                // Calcular nota (0-10) se houver pontuação máxima
-                let nota: number | null = null;
-                if (pontuacaoTotal > 0) {
-                    nota = (pontuacaoObtida / pontuacaoTotal) * 10;
-                }
-
-                const pontuacaoObtidaOrNullL = pontuacaoTotal > 0 ? pontuacaoObtida : null;
-                const pontuacaoTotalOrNullL = pontuacaoTotal > 0 ? pontuacaoTotal : null;
-
-                return {
-                    id: lista._id.toString(),
-                    tituloLista: lista.tituloLista || "Lista",
-                    nomeInstituicao: lista.nomeInstituicao || "",
-                    nota: nota, // null se não respondida, 0-10 se respondida
-                    pontuacaoObtida: pontuacaoObtidaOrNullL,
-                    pontuacaoTotal: pontuacaoTotalOrNullL,
-                    finalizada: finalizada,
-                    dataFinalizacao: respostas[0]?.dataFinalizacao || null,
-                };
+        const listaIds = listas.map(l => l._id);
+        const submissoesListas = await db.collection("submissoes")
+            .find({
+                alunoId: userObjectId,
+                referenciaId: { $in: listaIds },
+                tipo: "LISTA"
             })
-        );
+            .toArray();
+
+        const submissoesListasMap = new Map(submissoesListas.map(s => [s.referenciaId.toString(), s]));
+
+        const listasComNotas = listas.map((lista) => {
+            const submissao = submissoesListasMap.get(lista._id.toString());
+
+            let pontuacaoObtida: number | null = null;
+            let nota: number | null = null;
+            let finalizada = false;
+            let dataFinalizacao: Date | null = null;
+
+            if (submissao) {
+                pontuacaoObtida = submissao.notaTotal;
+                finalizada = submissao.status === "FINALIZADO";
+                dataFinalizacao = submissao.dataFim || null;
+                
+                // Listas geralmente não têm "valorTotal" explícito no objeto lista, 
+                // então usamos a pontuação obtida como referência principal.
+                nota = pontuacaoObtida;
+            }
+
+            return {
+                id: lista._id.toString(),
+                tituloLista: lista.tituloLista || "Lista",
+                nomeInstituicao: lista.nomeInstituicao || "",
+                nota: nota,
+                pontuacaoObtida: pontuacaoObtida,
+                pontuacaoTotal: null, // Difícil calcular sem buscar todas as questões
+                finalizada: finalizada,
+                dataFinalizacao: dataFinalizacao,
+            };
+        });
 
         // 6. Montar resposta final
         return json({
