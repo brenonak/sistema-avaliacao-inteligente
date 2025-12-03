@@ -20,7 +20,8 @@ import {
   People as PeopleIcon, 
   TrendingUp as TrendingUpIcon, 
   TrendingDown as TrendingDownIcon,
-  Functions as FunctionsIcon
+  Functions as FunctionsIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -131,20 +132,31 @@ export default function DashboardProvaPage() {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       
       {/* Cabeçalho e Navegação */}
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-        <Link href="/provas" passHref style={{ textDecoration: 'none' }}>
-          <Button startIcon={<ArrowBackIcon />} color="inherit">
-            Voltar
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 4 }}>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Link href="/provas" passHref style={{ textDecoration: 'none' }}>
+            <Button startIcon={<ArrowBackIcon />} color="inherit">
+              Voltar
+            </Button>
+          </Link>
+          <Box>
+            <Typography variant="h4" component="h1" fontWeight="bold">
+              Dashboard da Prova
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Visualizando análise estatística para a prova ID: #{id}
+            </Typography>
+          </Box>
+        </Stack>
+        <Link href={`/provas/${id}/submissoes`} passHref style={{ textDecoration: 'none' }}>
+          <Button 
+            variant="contained" 
+            startIcon={<AssignmentIcon />}
+            color="primary"
+          >
+            Ver Submissões
           </Button>
         </Link>
-        <Box>
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            Dashboard da Prova
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Visualizando análise estatística para a prova ID: #{id}
-          </Typography>
-        </Box>
       </Stack>
 
       {/* Seção de Cards de Resumo (KPIs) */}
