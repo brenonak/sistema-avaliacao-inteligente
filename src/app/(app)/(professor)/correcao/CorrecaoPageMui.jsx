@@ -309,7 +309,7 @@ export default function CorrecaoPageMui() {
               {/* --- RENDERIZAÇÃO CONDICIONAL POR TIPO --- */}
 
               {/* 1. Múltipla Escolha */}
-              {(tipo === "alternativa") && Array.isArray(questao.alternativas) && (
+              {(tipo === "multipla escolha" || tipo === "alternativa") && Array.isArray(questao.alternativas) && (
                 <FormControl component="fieldset" required>
                   <FormLabel component="legend">Resposta do Aluno</FormLabel>
                   <RadioGroup
@@ -335,7 +335,7 @@ export default function CorrecaoPageMui() {
               )}
 
               {/* 2. Afirmações (V/F) */}
-              {(tipo === "afirmacoes") && (
+              {(tipo === "afirmacoes" || tipo === "verdadeiro ou falso") && (
                 <Box>
                   <Typography variant="subtitle2" gutterBottom>Preencha V ou F para cada item:</Typography>
                   {questao.afirmacoes?.map((afirmacao, i) => (
@@ -378,8 +378,8 @@ export default function CorrecaoPageMui() {
                 />
               )}
 
-              {/* 4. Proposições */}
-              {(tipo === "proposicoes") && (
+              {/* 4. Proposições (Somatório) */}
+              {(tipo === "proposicoes" || tipo === "somatorio") && (
                 <Box>
                   {/* Mostrar as proposições para auxílio visual */}
                   <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover' }}>
@@ -422,7 +422,7 @@ export default function CorrecaoPageMui() {
                       label="Nota"
                       type="number"
                       inputProps={{
-                        step: "0.01",
+                        step: "0.1",
                         min: 0,
                         max: questao.pontuacao || 10
                       }}
@@ -445,7 +445,7 @@ export default function CorrecaoPageMui() {
               )}
 
               {/* Fallback para tipos desconhecidos */}
-              {!["alternativa", "afirmacoes", "numerica", "proposicoes", "dissertativa"].includes(tipo) && (
+              {!["multipla escolha", "alternativa", "afirmacoes", "verdadeiro ou falso", "numerica", "proposicoes", "somatorio", "dissertativa"].includes(tipo) && (
                 <TextField
                   label="Resposta"
                   multiline
