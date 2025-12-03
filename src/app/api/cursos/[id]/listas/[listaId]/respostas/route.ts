@@ -1,9 +1,10 @@
 import { json, badRequest, serverError } from "../../../../../../../lib/http";
 import { getUserIdOrUnauthorized } from "../../../../../../../lib/auth-helpers";
 import { NextResponse } from "next/server";
-import * as RespostaAlunoService from "../../../../../../../services/db/respostaAluno.service";
+import * as SubmissoesService from "../../../../../../../services/db/submissoes.service";
 import { getDb } from "../../../../../../../lib/mongodb";
 import { ObjectId } from "mongodb";
+import { calcularCorrecao, QuestaoDoc } from "../../../../../../../lib/correction";
 
 export async function GET(
   request: Request,
@@ -16,24 +17,9 @@ export async function GET(
 
     const { listaId } = await params;
 
-    // Buscar a lista para obter os IDs das questões
-    const db = await getDb();
-    const listasCollection = db.collection("listasDeExercicios");
-    const lista = await listasCollection.findOne({ _id: new ObjectId(listaId) });
+    // Buscar a submissão do aluno para esta lista
+    const submissao = await SubmissoesService.getSubmissao(userId, listaId);
 
-    if (!lista) {
-      return badRequest("Lista não encontrada");
-    }
-
-    // Buscar respostas do aluno para as questões desta lista
-    const questoesIds = (lista.questoesIds || []).map((id: any) =>
-      typeof id === 'string' ? id : id.toString()
-    );
-
-    // Buscar respostas filtrando por listaId
-    const respostas = await RespostaAlunoService.listRespostasAluno(userId, listaId);
-
-    // Transformar em um objeto: { questaoId: resposta }
     const respostasMap: Record<string, any> = {};
     const correcaoMap: Record<string, { isCorrect: boolean; pontuacaoObtida: number | null; pontuacaoMaxima: number }> = {};
     let finalizado = false;
@@ -41,27 +27,24 @@ export async function GET(
     let pontuacaoTotal = 0;
     let pontuacaoObtidaTotal = 0;
 
-    respostas.forEach(r => {
-      const questaoIdStr = r.questaoId.toString();
-      respostasMap[questaoIdStr] = r.resposta;
-      
-      // Informações de correção
-      correcaoMap[questaoIdStr] = {
-        isCorrect: r.isCorrect,
-        pontuacaoObtida: r.pontuacaoObtida,
-        pontuacaoMaxima: r.pontuacaoMaxima,
-      };
-      
-      // Acumular pontuação
-      pontuacaoTotal += r.pontuacaoMaxima;
-      pontuacaoObtidaTotal += r.pontuacaoObtida ?? 0;
-      
-      // Se qualquer resposta está finalizada, considera a lista como finalizada
-      if (r.finalizado) {
-        finalizado = true;
-        dataFinalizacao = r.dataFinalizacao ?? null;
-      }
-    });
+    if (submissao) {
+      finalizado = submissao.status === "FINALIZADO";
+      dataFinalizacao = submissao.dataFim || null;
+      pontuacaoObtidaTotal = submissao.notaTotal;
+
+      submissao.respostas.forEach(r => {
+        const questaoIdStr = r.questaoId.toString();
+        respostasMap[questaoIdStr] = r.resposta;
+        
+        correcaoMap[questaoIdStr] = {
+          isCorrect: r.isCorrect,
+          pontuacaoObtida: r.pontuacaoObtida,
+          pontuacaoMaxima: r.pontuacaoMaxima,
+        };
+        
+        pontuacaoTotal += r.pontuacaoMaxima;
+      });
+    }
 
     return json({
       ok: true,
@@ -69,7 +52,7 @@ export async function GET(
       correcao: correcaoMap,
       finalizado,
       dataFinalizacao,
-      pontuacaoTotal,
+      pontuacaoTotal, // Nota: Isso é a soma das máximas das questões RESPONDIDAS. Idealmente deveria ser da lista toda.
       pontuacaoObtidaTotal,
     });
   } catch (e) {
@@ -100,15 +83,23 @@ export async function POST(
       return badRequest("Array de respostas é obrigatório");
     }
 
-    // Verificar se as respostas desta lista já foram finalizadas
-    const respostasExistentes = await RespostaAlunoService.listRespostasAluno(userId, listaId);
-    const respostaFinalizada = respostasExistentes.find(r => r.finalizado === true);
-
-    if (respostaFinalizada) {
+    // Verificar se já existe submissão finalizada
+    const submissaoExistente = await SubmissoesService.getSubmissao(userId, listaId);
+    if (submissaoExistente && submissaoExistente.status === "FINALIZADO") {
       return badRequest("As respostas já foram finalizadas e não podem ser modificadas");
     }
 
-    // Processar e salvar cada resposta usando a função de correção automática
+    // Iniciar submissão se não existir
+    await SubmissoesService.iniciarSubmissao(userId, listaId, "LISTA");
+
+    const db = await getDb();
+    const questoesCollection = db.collection<QuestaoDoc>("questoes");
+    const listasCollection = db.collection("listasDeExercicios");
+    
+    // Buscar configurações da lista (para pontuação personalizada)
+    const listaDoc = await listasCollection.findOne({ _id: new ObjectId(listaId) });
+    const questoesPontuacao = listaDoc?.questoesPontuacao || {};
+
     const respostasSalvas: any[] = [];
     let pontuacaoTotalObtida = 0;
     let pontuacaoTotalMaxima = 0;
@@ -117,32 +108,56 @@ export async function POST(
       const { questaoId, resposta } = respostaData;
 
       try {
-        // Usar a função submeterRespostaAluno que faz correção automática
-        const respostaSalva = await RespostaAlunoService.submeterRespostaAluno(
-          userId,
-          listaId,
-          questaoId,
-          resposta
-        );
+        // Buscar questão para correção
+        const questao = await questoesCollection.findOne({ _id: new ObjectId(questaoId) });
+        
+        if (!questao) {
+          console.warn(`Questão ${questaoId} não encontrada`);
+          continue;
+        }
 
-        // Acumular pontuações
-        pontuacaoTotalMaxima += respostaSalva.pontuacaoMaxima;
-        pontuacaoTotalObtida += respostaSalva.pontuacaoObtida ?? 0;
+        // Determinar pontuação máxima (prioridade para configuração da lista)
+        const pontuacaoLista = questoesPontuacao[questaoId] ?? questoesPontuacao[questaoId.toString()];
+        const pontuacaoMaxima = (typeof pontuacaoLista === 'number') 
+          ? pontuacaoLista 
+          : (questao.pontuacao ?? 0);
+
+        // Calcular correção
+        const questaoParaCorrecao = { ...questao, pontuacao: pontuacaoMaxima };
+        const resultado = calcularCorrecao(questaoParaCorrecao, resposta);
+
+        // Registrar na submissão
+        const respostaSubmissao: SubmissoesService.RespostaSubmissao = {
+          questaoId: new ObjectId(questaoId),
+          resposta: resposta,
+          pontuacaoObtida: resultado.pontuacaoObtida,
+          pontuacaoMaxima: resultado.pontuacaoMaxima,
+          isCorrect: resultado.isCorrect,
+          corrigidoEm: new Date()
+        };
+
+        await SubmissoesService.registrarResposta(userId, listaId, "LISTA", respostaSubmissao);
+
+        // Acumular para retorno
+        pontuacaoTotalMaxima += resultado.pontuacaoMaxima;
+        pontuacaoTotalObtida += resultado.pontuacaoObtida;
 
         respostasSalvas.push({
-          ...respostaSalva,
-          _id: respostaSalva._id?.toString(),
-          questaoId: respostaSalva.questaoId.toString(),
-          listaId: respostaSalva.listaId.toString(),
-          ownerId: respostaSalva.ownerId.toString(),
+          questaoId,
+          ...resultado
         });
+
       } catch (err: any) {
         console.error(`Erro ao processar questão ${questaoId}:`, err);
-        // Continuar com as outras questões
       }
     }
 
-    // Calcular estatísticas
+    // Finalizar se solicitado
+    if (finalizado) {
+      await SubmissoesService.finalizarSubmissao(userId, listaId);
+    }
+
+    // Calcular estatísticas para retorno
     const totalQuestoes = respostasSalvas.length;
     const questoesCorretas = respostasSalvas.filter(r => r.isCorrect).length;
     const percentualAcerto = totalQuestoes > 0 ? (questoesCorretas / totalQuestoes) * 100 : 0;
@@ -160,9 +175,6 @@ export async function POST(
         percentualAcerto: Math.round(percentualAcerto * 100) / 100,
         pontuacaoObtida: pontuacaoTotalObtida,
         pontuacaoMaxima: pontuacaoTotalMaxima,
-        percentualPontuacao: pontuacaoTotalMaxima > 0 
-          ? Math.round((pontuacaoTotalObtida / pontuacaoTotalMaxima) * 100 * 100) / 100 
-          : 0,
       },
     });
   } catch (e) {
