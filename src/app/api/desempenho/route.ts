@@ -89,19 +89,41 @@ export async function GET(req: NextRequest) {
         as: "lista"
       }
     },
+    // Calcular pontuação máxima da submissão (soma das pontuacaoMaxima das respostas)
+    {
+      $addFields: {
+        pontuacaoMaximaSubmissao: {
+          $reduce: {
+            input: { $ifNull: ["$respostas", []] },
+            initialValue: 0,
+            in: { $add: ["$$value", { $ifNull: ["$$this.pontuacaoMaxima", 0] }] }
+          }
+        }
+      }
+    },
     {
       $project: {
         tipo: 1,
         notaTotal: 1,
         dataFim: 1,
         updatedAt: 1,
+        referenciaId: 1,
+        pontuacaoMaximaSubmissao: 1,
         prova: { $arrayElemAt: ["$prova", 0] },
         lista: { $arrayElemAt: ["$lista", 0] }
       }
     },
-    // Calcular a nota
+    // Calcular a nota (normalizada para 0-10)
     {
       $project: {
+        tipo: 1,
+        notaTotal: 1,
+        dataFim: 1,
+        updatedAt: 1,
+        referenciaId: 1,
+        pontuacaoMaximaSubmissao: 1,
+        prova: 1,
+        lista: 1,
         nota: {
           $cond: {
             if: { $eq: ["$tipo", "PROVA"] },
@@ -112,34 +134,68 @@ export async function GET(req: NextRequest) {
                 "$notaTotal" // Fallback se valorTotal for 0 ou inexistente
               ]
             },
-            else: "$notaTotal" // Para LISTA, usa a nota total direta (pontos acumulados)
+            else: {
+              // Para LISTA: usar pontuacaoMaximaSubmissao calculada das respostas
+              $cond: [
+                { $gt: ["$pontuacaoMaximaSubmissao", 0] },
+                { $multiply: [{ $divide: ["$notaTotal", "$pontuacaoMaximaSubmissao"] }, 10] },
+                "$notaTotal" // Fallback se não houver pontuação máxima
+              ]
+            }
           }
         },
         data: { $ifNull: ["$dataFim", "$updatedAt"] }
       }
     },
     { $sort: { data: 1 } }, // Ordenar por data crescente para o histórico
-    {
-      $group: {
-        _id: null,
-        mediaGeral: { $avg: "$nota" },
-        melhorNota: { $max: "$nota" },
-        ultimaAvaliacao: { $last: "$nota" }, // Última nota baseada na ordenação por data
-        historico: { $push: { nota: "$nota", data: "$data" } }
-      }
-    }
   ];
 
-  const statsResult = await db.collection('submissoes').aggregate(pipeline).toArray();
-  
-  const studentStats = statsResult.length > 0 ? statsResult[0] : {
-    mediaGeral: 0,
-    melhorNota: 0,
-    ultimaAvaliacao: 0,
-    historico: []
+  const submissoesAgregadas = await db.collection('submissoes').aggregate(pipeline).toArray();
+
+  // DEBUG: Log para verificar submissões
+  console.log('=== DEBUG DESEMPENHO ===');
+  console.log('Total submissões:', submissoesAgregadas.length);
+  console.log('Submissões:', JSON.stringify(submissoesAgregadas.map(s => ({
+    tipo: s.tipo,
+    nota: s.nota,
+    notaTotal: s.notaTotal,
+    pontuacaoMaximaSubmissao: s.pontuacaoMaximaSubmissao,
+    data: s.data
+  })), null, 2));
+
+  // Separar provas e listas
+  const provasSubmissoes = submissoesAgregadas.filter(s => s.tipo === "PROVA");
+  const listasSubmissoes = submissoesAgregadas.filter(s => s.tipo === "LISTA");
+
+  console.log('Provas:', provasSubmissoes.length);
+  console.log('Listas:', listasSubmissoes.length);
+
+  // Calcular estatísticas gerais (APENAS PROVAS)
+  const notasProvas = provasSubmissoes.map(s => s.nota);
+  const studentStats = {
+    mediaGeral: notasProvas.length > 0 ? notasProvas.reduce((a, b) => a + b, 0) / notasProvas.length : 0,
+    melhorNota: notasProvas.length > 0 ? Math.max(...notasProvas) : 0,
+    ultimaAvaliacao: notasProvas.length > 0 ? notasProvas[notasProvas.length - 1] : 0,
+    // Histórico separado para o gráfico com duas séries
+    historicoProvas: provasSubmissoes.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      titulo: s.prova?.titulo || "Prova"
+    })),
+    historicoListas: listasSubmissoes.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      titulo: s.lista?.tituloLista || "Lista"
+    })),
+    // Histórico combinado (para compatibilidade)
+    historico: submissoesAgregadas.map(s => ({
+      nota: s.nota,
+      data: s.data,
+      tipo: s.tipo
+    }))
   };
 
-  // 5. Buscar Atividades Pendentes (Provas e Listas não finalizadas)
+  // 5. Buscar Atividades Pendentes e dados por curso
   // Buscar cursos onde o aluno está matriculado
   const cursosMatriculados = await db.collection('cursos')
     .find({ alunosIds: userObjectId })
@@ -147,6 +203,58 @@ export async function GET(req: NextRequest) {
     .toArray();
   
   const cursoIds = cursosMatriculados.map(c => c._id.toString());
+
+  // Construir graficosPorCurso
+  const graficosPorCurso: Record<string, any> = {};
+  const cursosMatriculadosSet = new Set(cursoIds);
+  
+  for (const curso of cursosMatriculadosSet) {
+    // Filtrar submissões por curso
+    const submissoesDoCurso = submissoesAgregadas.filter(s => {
+      if (s.tipo === "PROVA") {
+        return s.prova?.cursoId === curso;
+      } else {
+        return s.lista?.cursoId === curso;
+      }
+    });
+
+    const provas = submissoesDoCurso.filter(s => s.tipo === "PROVA");
+    const listas = submissoesDoCurso.filter(s => s.tipo === "LISTA");
+
+    const examsLabels = provas.map(p => new Date(p.data).toLocaleDateString('pt-BR'));
+    const examsScores = provas.map(p => p.nota);
+
+    const listsLabels = listas.map(l => new Date(l.data).toLocaleDateString('pt-BR'));
+    const listsScores = listas.map(l => l.nota);
+
+    const combinedLabels = submissoesDoCurso.map(s => new Date(s.data).toLocaleDateString('pt-BR'));
+    const combinedScores = submissoesDoCurso.map(s => s.nota);
+
+    const history = submissoesDoCurso.map((s, idx) => {
+      const title = s.tipo === "PROVA" ? s.prova?.titulo : s.lista?.tituloLista || "Lista de Exercícios";
+      const maxScore = s.tipo === "PROVA" ? s.prova?.valorTotal : submissoesDoCurso[idx] ? (s.notaTotal / s.nota * 10) : 10;
+      
+      return {
+        id: s.referenciaId.toString(),
+        title: title || "Avaliação",
+        type: s.tipo === "PROVA" ? "Prova" : "Lista",
+        date: s.data,
+        score: s.nota,
+        maxScore: s.tipo === "PROVA" ? s.prova?.valorTotal || 10 : maxScore,
+        status: "Finalizado"
+      };
+    });
+
+    graficosPorCurso[curso] = {
+      examsLabels,
+      examsScores,
+      listsLabels,
+      listsScores,
+      combinedLabels,
+      combinedScores,
+      history
+    };
+  }
 
   // Buscar todas as atividades desses cursos
   const [provasDisponiveis, listasDisponiveis] = await Promise.all([
@@ -165,13 +273,14 @@ export async function GET(req: NextRequest) {
   
   const finishedIds = new Set(submissoesFinalizadas.map(s => s.referenciaId.toString()));
 
-  const pendingActivities = [];
+  const pendingActivities: any[] = [];
 
   // Processar Provas Pendentes
   for (const p of provasDisponiveis) {
     if (!finishedIds.has(p._id.toString())) {
       pendingActivities.push({
         id: p._id.toString(),
+        cursoId: p.cursoId,
         title: p.titulo,
         due: p.data ? `Data: ${new Date(p.data).toLocaleDateString('pt-BR')}` : 'Sem data',
         type: 'PROVA',
@@ -185,6 +294,7 @@ export async function GET(req: NextRequest) {
     if (!finishedIds.has(l._id.toString())) {
       pendingActivities.push({
         id: l._id.toString(),
+        cursoId: l.cursoId,
         title: l.tituloLista || l.titulo || 'Lista de Exercícios',
         due: 'Disponível',
         type: 'LISTA',
@@ -202,6 +312,7 @@ export async function GET(req: NextRequest) {
     provasPorCurso, 
     listasPorCurso,
     studentStats,
+    graficosPorCurso,
     pendingActivities: topPending
   });
 }

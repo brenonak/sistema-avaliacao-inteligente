@@ -30,7 +30,9 @@ export default function DashboardAlunoPage() {
     mediaGeral: 0,
     melhorNota: 0,
     ultimaAvaliacao: 0,
-    historico: []
+    historico: [],
+    historicoProvas: [],
+    historicoListas: []
   });
   const [pendingActivities, setPendingActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,11 +41,13 @@ export default function DashboardAlunoPage() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [courseIdInput, setCourseIdInput] = useState('');
 
-  // Dados para as notas
-  const dataLabels = stats.historico?.map(h => new Date(h.data).toLocaleDateString('pt-BR')) || [];
-  const dataScores = stats.historico?.map(h => h.nota) || [];
+  // Dados para as notas - separados por tipo (usando título da atividade como label)
+  const provasLabels = stats.historicoProvas?.map(h => h.titulo || 'Prova') || [];
+  const provasScores = stats.historicoProvas?.map(h => h.nota) || [];
+  const listasLabels = stats.historicoListas?.map(h => h.titulo || 'Lista') || [];
+  const listasScores = stats.historicoListas?.map(h => h.nota) || [];
 
-  // Valores para o resumo de desempenho
+  // Valores para o resumo de desempenho (apenas provas)
   const average = stats.mediaGeral ? parseFloat(stats.mediaGeral.toFixed(1)) : 0;
   const best = stats.melhorNota ? parseFloat(stats.melhorNota.toFixed(1)) : 0;
   const latest = stats.ultimaAvaliacao ? parseFloat(stats.ultimaAvaliacao.toFixed(1)) : 0;
@@ -245,11 +249,13 @@ export default function DashboardAlunoPage() {
 
               <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "2", width: "100%" }}>
                 <StudentPerformanceChart
-                  labels={dataLabels}
-                  scores={dataScores}
+                  showBothSeries={true}
+                  provasLabels={provasLabels}
+                  provasScores={provasScores}
+                  listasLabels={listasLabels}
+                  listasScores={listasScores}
                   text={"Evolução do desempenho"}
                   height={520}
-                  lineColor={"#7c4dff"}
                 />
               </Box>
             </Box>
