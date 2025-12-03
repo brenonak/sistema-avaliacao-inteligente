@@ -122,9 +122,9 @@ export default function CursoAlunoPage() {
 
   if (loadingCurso) {
     return (
-      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Carregando curso (mock)...</Typography>
+        <Typography sx={{ ml: 2 }}>Carregando curso...</Typography>
       </Box>
     );
   }
