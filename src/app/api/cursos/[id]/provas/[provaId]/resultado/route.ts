@@ -59,7 +59,7 @@ export async function GET(
 
     // Ordenar questões se necessário (ex: pela ordem original na prova)
     // Aqui assumimos que a ordem na submissão pode não ser a mesma, então seria bom reordenar baseada na prova
-    const questoesOrdenadas = [];
+    const questoesOrdenadas: any[] = [];
     if (Array.isArray(prova.questoes)) {
         for(const q of prova.questoes) {
             const qId = q._id?.toString() || q.id;
