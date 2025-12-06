@@ -59,7 +59,10 @@ export async function GET(
         }
 
         // histograma em 5 faixas
-        const step = valorTotal / 5;
+        // para visualização, limitar o teto do histograma a 10 quando aplicável,
+        // para que notas >10 (créditos extras) apareçam na faixa 8-10.
+        const displayMax = Math.min(valorTotal, 10);
+        const step = displayMax / 5;
         const histogramaDados: Array<any> = [];
         let qndNotaMinima = 0;
         let qndNotaMaxima = 0;
@@ -71,17 +74,24 @@ export async function GET(
             histogramaDados.push({ nome: label, Respostas: 0, minVal: min, maxVal: max });
         }
 
-        listaNotas.forEach(nota => {
+        listaNotas.forEach(notaOriginal => {
+            const nota = Number(notaOriginal) || 0;
+
             if (nota === 0) qndNotaMinima++;
             if (nota >= valorTotal) qndNotaMaxima++;
+
+            // Capear a nota para binning no displayMax (ex.: 10).
+            // Dessa forma, notas >10 entram na faixa final (ex.: 8-10).
+            const notaParaBinning = Math.min(nota, displayMax);
 
             for (let i = 0; i < 5; i++) {
                 const bucket = histogramaDados[i];
                 const isLast = i === 4;
                 if (isLast) {
-                    if (nota >= bucket.minVal && nota <= bucket.maxVal + 0.01) { bucket.Respostas++; break; }
+                    // permitir uma pequena margem de inclusão no topo
+                    if (notaParaBinning >= bucket.minVal && notaParaBinning <= bucket.maxVal + 0.01) { bucket.Respostas++; break; }
                 } else {
-                    if (nota >= bucket.minVal && nota < bucket.maxVal) { bucket.Respostas++; break; }
+                    if (notaParaBinning >= bucket.minVal && notaParaBinning < bucket.maxVal) { bucket.Respostas++; break; }
                 }
             }
         });
