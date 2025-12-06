@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Save, Cancel, ContentCopy } from '@mui/icons-material';
 import { set } from 'zod';
-import { generateAccessCode } from '../../../../lib/code-generator';
+import { generateAccessCode } from '../../../../../lib/code-generator';
 
 export default function CriarCursoPage() {
   const router = useRouter();

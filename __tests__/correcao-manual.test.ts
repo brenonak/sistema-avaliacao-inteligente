@@ -8,8 +8,29 @@ if (typeof global.Request === 'undefined') {
     } as any;
 }
 if (typeof global.Response === 'undefined') {
-    global.Response = class Response { } as any;
+    global.Response = class Response {
+        static json(data: any, init?: any) {
+            return { data, status: init?.status || 200 };
+        }
+    } as any;
 }
+
+// Mock do NextResponse antes de importar
+class MockNextResponse {
+    data: any;
+    status: number;
+    constructor(data: any, status: number) {
+        this.data = data;
+        this.status = status;
+    }
+    static json(data: any, init?: any) {
+        return new MockNextResponse(data, init?.status || 200);
+    }
+}
+
+jest.mock('next/server', () => ({
+    NextResponse: MockNextResponse
+}));
 
 // Imports
 import type { NextRequest } from 'next/server';
@@ -19,11 +40,16 @@ jest.mock('../src/lib/auth-helpers', () => ({
     getUserIdOrUnauthorized: jest.fn().mockResolvedValue('professor_id_123'),
 }));
 
-const mockUpsert = jest.fn().mockResolvedValue({ _id: 'resposta_criada' });
-jest.mock('../src/services/db/respostaAluno.service', () => ({
-    upsertRespostaAluno: mockUpsert,
+// Mock completo do SubmissoesService
+const mockRegistrarResposta = jest.fn().mockResolvedValue(undefined);
+const mockIniciarSubmissao = jest.fn().mockResolvedValue(undefined);
+
+jest.mock('../src/services/db/submissoes.service', () => ({
+    registrarResposta: mockRegistrarResposta,
+    iniciarSubmissao: mockIniciarSubmissao,
 }));
 
+// Mock do MongoDB
 const mockFindOne = jest.fn();
 jest.mock('../src/lib/mongodb', () => ({
     getDb: jest.fn().mockResolvedValue({
@@ -33,10 +59,13 @@ jest.mock('../src/lib/mongodb', () => ({
     }),
 }));
 
+// Mock do ObjectId
 jest.mock('mongodb', () => ({
     ObjectId: class {
         id: string;
-        constructor(id: string) { this.id = id; }
+        constructor(id?: string) { 
+            this.id = id || 'mock_id'; 
+        }
         toString() { return this.id; }
     },
 }));
@@ -73,9 +102,9 @@ describe('API Correção Manual (Lógica de Correção)', () => {
                 }
             ]
         };
+        
         mockFindOne.mockResolvedValue(provaSnapshot);
 
-        // Simula o Request
         const req = {
             json: async () => ({
                 alunoId: 'aluno_1',
@@ -89,12 +118,17 @@ describe('API Correção Manual (Lógica de Correção)', () => {
         const params = Promise.resolve({ id: 'curso_1', provaId: 'prova_123' });
         await POST(req, { params });
 
-        // ASSERT
-        expect(mockUpsert).toHaveBeenCalledWith('aluno_1', expect.objectContaining({
-            questaoId: 'q_obj_1',
-            pontuacaoObtida: 2.0,
-            isCorrect: true
-        }));
+        // ASSERT - Verifica que registrarResposta foi chamado com os parâmetros corretos
+        expect(mockRegistrarResposta).toHaveBeenCalledTimes(1);
+        expect(mockRegistrarResposta).toHaveBeenCalledWith(
+            'aluno_1',
+            'prova_123',
+            'PROVA',
+            expect.objectContaining({
+                pontuacaoObtida: 2.0,
+                isCorrect: true
+            })
+        );
     });
 
     it('deve respeitar a nota manual decimal em questão Dissertativa', async () => {
@@ -110,17 +144,18 @@ describe('API Correção Manual (Lógica de Correção)', () => {
                 }
             ]
         };
+        
         mockFindOne.mockResolvedValue(provaSnapshot);
 
         const req = {
             json: async () => ({
-                alunoId: 'aluno_1',
+                alunoId: 'aluno_2',
                 respostas: [
-                    {
-                        questaoId: 'q_diss_1',
-                        resposta: 'Minha resposta',
-                        pontuacaoObtida: 1.25
-                    },
+                    { 
+                        questaoId: 'q_diss_1', 
+                        resposta: 'Minha resposta dissertativa', 
+                        pontuacaoObtida: 3.5  // Campo correto para nota manual
+                    }
                 ]
             })
         } as unknown as NextRequest;
@@ -129,11 +164,15 @@ describe('API Correção Manual (Lógica de Correção)', () => {
         const params = Promise.resolve({ id: 'curso_1', provaId: 'prova_123' });
         await POST(req, { params });
 
-        // ASSERT
-        expect(mockUpsert).toHaveBeenCalledWith('aluno_1', expect.objectContaining({
-            questaoId: 'q_diss_1',
-            pontuacaoObtida: 1.25,
-            pontuacaoMaxima: 5.0
-        }));
+        // ASSERT - Verifica que registrarResposta foi chamado com a nota manual
+        expect(mockRegistrarResposta).toHaveBeenCalledTimes(1);
+        expect(mockRegistrarResposta).toHaveBeenCalledWith(
+            'aluno_2',
+            'prova_123',
+            'PROVA',
+            expect.objectContaining({
+                pontuacaoObtida: 3.5
+            })
+        );
     });
 });

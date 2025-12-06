@@ -8,10 +8,10 @@ function oid(id: string | undefined) {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { provaId: string } }
+    { params }: { params: Promise<{ id: string; provaId: string }> }
 ) {
     try {
-        const { provaId } = params;
+        const { provaId } = await params;
         const provaOid = oid(provaId);
 
         if (!provaOid) {
