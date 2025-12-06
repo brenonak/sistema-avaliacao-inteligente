@@ -11,14 +11,20 @@ import {
   Chip,
   Card,
   CardContent,
-  Alert
+  Alert,
+  TextField,
+  Collapse,
+  IconButton
 } from '@mui/material';
 import {
   ArrowBack,
   CheckCircle,
   Cancel,
   Comment as CommentIcon,
-  Assessment
+  Assessment,
+  Reply as ReplyIcon,
+  Send as SendIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 
 export default function ResultadoProvaPage() {
@@ -29,6 +35,64 @@ export default function ResultadoProvaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(null);
+  const [replicaAberta, setReplicaAberta] = useState(null);
+  const [textoReplica, setTextoReplica] = useState({});
+  const [enviandoReplica, setEnviandoReplica] = useState(null);
+
+  const handleToggleReplica = (questaoId) => {
+    if (replicaAberta === questaoId) {
+      setReplicaAberta(null);
+    } else {
+      setReplicaAberta(questaoId);
+      // Carrega réplica existente se houver
+      const questao = resultado?.questoes.find(q => q.id === questaoId);
+      if (questao?.replica) {
+        setTextoReplica(prev => ({ ...prev, [questaoId]: questao.replica }));
+      }
+    }
+  };
+
+  const handleEnviarReplica = async (questaoId) => {
+    const replica = textoReplica[questaoId]?.trim();
+    if (!replica) {
+      return;
+    }
+
+    try {
+      setEnviandoReplica(questaoId);
+      
+      // TODO: Implementar chamada à API
+      // await fetch(`/api/cursos/${cursoId}/provas/${provaId}/questoes/${questaoId}/replica`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ replica })
+      // });
+      
+      // Mock: simula delay de envio
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Atualiza o estado local
+      setResultado(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          questoes: prev.questoes.map(q => 
+            q.id === questaoId 
+              ? { ...q, replica, replicaStatus: 'pendente' }
+              : q
+          )
+        };
+      });
+      
+      setReplicaAberta(null);
+      setTextoReplica(prev => ({ ...prev, [questaoId]: '' }));
+    } catch (err) {
+      console.error('Erro ao enviar réplica:', err);
+      setError('Não foi possível enviar a réplica. Tente novamente.');
+    } finally {
+      setEnviandoReplica(null);
+    }
+  };
 
   useEffect(() => {
     // Busca dados reais: prova + respostas/correção do aluno
@@ -86,7 +150,10 @@ export default function ResultadoProvaPage() {
               feedback: cor.feedback,
               gabarito: q.gabarito,
               alternativas: q.alternativas,
-              afirmacoes: q.afirmacoes
+              afirmacoes: q.afirmacoes,
+              replica: cor.replica,
+              replicaStatus: cor.replicaStatus,
+              respostaReplica: cor.respostaReplica
             };
           }) : []
         };
@@ -444,14 +511,107 @@ export default function ResultadoProvaPage() {
 
               {/* Feedback do Professor */}
               {questao.feedback && (
-                <Alert severity="info" icon={<CommentIcon />} sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                    Comentário do Professor:
-                  </Typography>
-                  <Typography variant="body2">
-                    {questao.feedback}
-                  </Typography>
-                </Alert>
+                <Box sx={{ mt: 2 }}>
+                  <Alert severity="info" icon={<CommentIcon />}>
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                      Comentário do Professor:
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                      {questao.feedback}
+                    </Typography>
+                    
+                    {/* Botão para abrir réplica */}
+                    {!questao.replica && (
+                      <Button
+                        size="small"
+                        startIcon={<ReplyIcon />}
+                        onClick={() => handleToggleReplica(questao.id)}
+                        variant="outlined"
+                        sx={{ mt: 1 }}
+                      >
+                        {replicaAberta === questao.id ? 'Cancelar réplica' : 'Discordo desta correção'}
+                      </Button>
+                    )}
+                  </Alert>
+
+                  {/* Formulário de Réplica */}
+                  <Collapse in={replicaAberta === questao.id}>
+                    <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'background.default' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                        <ReplyIcon color="primary" sx={{ mt: 0.5 }} />
+                        <Typography variant="subtitle2" fontWeight="bold" color="primary">
+                          Escreva sua réplica
+                        </Typography>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleToggleReplica(questao.id)}
+                          sx={{ ml: 'auto' }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                        Explique por que você discorda da correção. O professor receberá sua mensagem e poderá reavaliar.
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        placeholder="Descreva seus argumentos de forma clara e respeitosa..."
+                        value={textoReplica[questao.id] || ''}
+                        onChange={(e) => setTextoReplica(prev => ({ ...prev, [questao.id]: e.target.value }))}
+                        disabled={enviandoReplica === questao.id}
+                        sx={{ mb: 2 }}
+                      />
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Button
+                          size="small"
+                          onClick={() => handleToggleReplica(questao.id)}
+                          disabled={enviandoReplica === questao.id}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={enviandoReplica === questao.id ? <CircularProgress size={16} /> : <SendIcon />}
+                          onClick={() => handleEnviarReplica(questao.id)}
+                          disabled={!textoReplica[questao.id]?.trim() || enviandoReplica === questao.id}
+                        >
+                          {enviandoReplica === questao.id ? 'Enviando...' : 'Enviar Réplica'}
+                        </Button>
+                      </Box>
+                    </Paper>
+                  </Collapse>
+
+                  {/* Réplica Enviada */}
+                  {questao.replica && (
+                    <Alert 
+                      severity={questao.replicaStatus === 'respondida' ? 'success' : 'warning'} 
+                      sx={{ mt: 2 }}
+                      icon={<ReplyIcon />}
+                    >
+                      <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                        Sua Réplica {questao.replicaStatus === 'pendente' ? '(Aguardando resposta)' : '(Respondida)'}:
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: questao.respostaReplica ? 2 : 0 }}>
+                        {questao.replica}
+                      </Typography>
+                      
+                      {/* Resposta do Professor à Réplica */}
+                      {questao.respostaReplica && (
+                        <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'background.paper' }}>
+                          <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="primary">
+                            Resposta do Professor:
+                          </Typography>
+                          <Typography variant="body2">
+                            {questao.respostaReplica}
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Alert>
+                  )}
+                </Box>
               )}
             </CardContent>
           </Card>
