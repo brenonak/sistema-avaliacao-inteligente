@@ -20,14 +20,14 @@ export async function GET(
 
         const db = await getDb();
 
-        // busca respostas finalizadas para esta prova/lista
-        const respostas = await db.collection('respostasAluno')
-            .find({ listaId: provaOid, finalizado: true })
-            .project({ ownerId: 1 })
+        // busca submissões finalizadas para esta prova/lista
+        const submissoes = await db.collection('submissoes')
+            .find({ referenciaId: provaOid, status: "FINALIZADO" })
+            .project({ alunoId: 1 })
             .toArray();
 
-        const alunoIds = respostas
-            .map(r => r.ownerId)
+        const alunoIds = submissoes
+            .map(s => s.alunoId)
             .filter(Boolean)
             .map(id => id.toString());
 

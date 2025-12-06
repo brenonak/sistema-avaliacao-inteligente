@@ -32,19 +32,17 @@ export async function GET(
         }
         if (valorTotal === 0) valorTotal = 10;
 
-        // busca respostas relacionadas (listaId é usado tanto para listas quanto para provas)
-        const respostas = await db.collection('respostasAluno')
-            .find({ listaId: provaOid })
-            .project({ ownerId: 1, questaoId: 1, pontuacaoObtida: 1, pontuacaoMaxima: 1 })
+        // busca submissões relacionadas à prova
+        const submissoes = await db.collection('submissoes')
+            .find({ referenciaId: provaOid, tipo: "PROVA" })
             .toArray();
 
-        // agrupa notas por aluno
+        // agrupa notas por aluno (notaTotal de cada submissão)
         const notasPorAluno: Record<string, number> = {};
-        respostas.forEach((r: any) => {
-            const uid = r.ownerId?.toString();
-            if (!uid) return;
-            if (!notasPorAluno[uid]) notasPorAluno[uid] = 0;
-            notasPorAluno[uid] += (Number(r.pontuacaoObtida) || 0);
+        submissoes.forEach((s: any) => {
+            const alunoId = s.alunoId?.toString();
+            if (!alunoId) return;
+            notasPorAluno[alunoId] = Number(s.notaTotal) || 0;
         });
 
         const listaNotas = Object.values(notasPorAluno);
@@ -61,7 +59,10 @@ export async function GET(
         }
 
         // histograma em 5 faixas
-        const step = valorTotal / 5;
+        // para visualização, limitar o teto do histograma a 10 quando aplicável,
+        // para que notas >10 (créditos extras) apareçam na faixa 8-10.
+        const displayMax = Math.min(valorTotal, 10);
+        const step = displayMax / 5;
         const histogramaDados: Array<any> = [];
         let qndNotaMinima = 0;
         let qndNotaMaxima = 0;
@@ -73,17 +74,24 @@ export async function GET(
             histogramaDados.push({ nome: label, Respostas: 0, minVal: min, maxVal: max });
         }
 
-        listaNotas.forEach(nota => {
+        listaNotas.forEach(notaOriginal => {
+            const nota = Number(notaOriginal) || 0;
+
             if (nota === 0) qndNotaMinima++;
             if (nota >= valorTotal) qndNotaMaxima++;
+
+            // Capear a nota para binning no displayMax (ex.: 10).
+            // Dessa forma, notas >10 entram na faixa final (ex.: 8-10).
+            const notaParaBinning = Math.min(nota, displayMax);
 
             for (let i = 0; i < 5; i++) {
                 const bucket = histogramaDados[i];
                 const isLast = i === 4;
                 if (isLast) {
-                    if (nota >= bucket.minVal && nota <= bucket.maxVal + 0.01) { bucket.Respostas++; break; }
+                    // permitir uma pequena margem de inclusão no topo
+                    if (notaParaBinning >= bucket.minVal && notaParaBinning <= bucket.maxVal + 0.01) { bucket.Respostas++; break; }
                 } else {
-                    if (nota >= bucket.minVal && nota < bucket.maxVal) { bucket.Respostas++; break; }
+                    if (notaParaBinning >= bucket.minVal && notaParaBinning < bucket.maxVal) { bucket.Respostas++; break; }
                 }
             }
         });
@@ -97,15 +105,18 @@ export async function GET(
             if (qId) mapQuestaoIndex.set(qId, `Q${index + 1}`);
         });
 
-        const performanceMap: Record<string, { obtido: number, maximo: number }> = {};
-        respostas.forEach((r: any) => {
-            const qId = r.questaoId?.toString();
-            if (!qId) return;
-            if (mapQuestaoIndex.has(qId)) {
-                if (!performanceMap[qId]) performanceMap[qId] = { obtido: 0, maximo: 0 };
-                performanceMap[qId].obtido += (Number(r.pontuacaoObtida) || 0);
-                performanceMap[qId].maximo += (Number(r.pontuacaoMaxima) || 0);
-            }
+        const performanceMap: Record<string, { obtido: number, maximo: number, contagem: number }> = {};
+        submissoes.forEach((submissao: any) => {
+            (submissao.respostas || []).forEach((r: any) => {
+                const qId = r.questaoId?.toString();
+                if (!qId) return;
+                if (mapQuestaoIndex.has(qId)) {
+                    if (!performanceMap[qId]) performanceMap[qId] = { obtido: 0, maximo: 0, contagem: 0 };
+                    performanceMap[qId].obtido += (Number(r.pontuacaoObtida) || 0);
+                    performanceMap[qId].maximo += (Number(r.pontuacaoMaxima) || 0);
+                    performanceMap[qId].contagem += 1;
+                }
+            });
         });
 
         const desempenhoPorQuestao = (prova.questoes || []).map((q: any, index: number) => {

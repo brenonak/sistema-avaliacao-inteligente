@@ -177,6 +177,9 @@ export async function POST(
             resultados.push(respostaSubmissao);
         }
 
+        // 5. Finalizar a submissão após todas as correções serem salvas
+        await SubmissoesService.finalizarSubmissao(alunoId, provaId);
+
         return NextResponse.json({
             success: true,
             message: `Correção salva com sucesso! Foram salvas ${resultados.length} respostas para o aluno.`,
