@@ -88,14 +88,16 @@ export default function ClassroomCard(props) {
             </IconButton>
           </Tooltip>
         )}
-        <Box sx={{ ml: 'auto' }}>
-          <CardOptionsButton 
-            cursoId={cursoId} 
-            onDelete={onDelete}
-            cursoNome={classroomTitle}
-            cursoDescricao={cursoDescricao}
-          />
-        </Box>
+        {!aluno && (
+          <Box sx={{ ml: 'auto' }}>
+            <CardOptionsButton 
+              cursoId={cursoId} 
+              onDelete={onDelete}
+              cursoNome={classroomTitle}
+              cursoDescricao={cursoDescricao}
+            />
+          </Box>
+        )}
       </CardActions>
     </Card>
   );
