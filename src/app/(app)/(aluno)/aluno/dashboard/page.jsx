@@ -151,8 +151,7 @@ export default function DashboardAlunoPage() {
                   Meus Cursos
                 </Typography>
               </Box>
-              {/* TODO: mudar o link para os cursos do aluno */ }
-              <Link href="/cursos" passHref style={{ textDecoration: 'none' }}>
+              <Link href="/aluno/cursos" passHref style={{ textDecoration: 'none' }}>
                 <Button variant="text" size="small">
                   Ver todos
                 </Button>
