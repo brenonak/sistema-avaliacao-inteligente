@@ -17,7 +17,7 @@ const roboto = Roboto({
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-br" className={roboto.variable} suppressHydrationWarning>
+    <html lang="pt-br" className={roboto.variable}>
       <body className="antialiased">
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
