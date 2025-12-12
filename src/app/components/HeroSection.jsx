@@ -128,8 +128,6 @@ export default function HeroSection() {
               width={900} 
               height={900}
               quality={90}
-              placeholder="blur"
-              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
 
               style={{
                 width: '100%',   
