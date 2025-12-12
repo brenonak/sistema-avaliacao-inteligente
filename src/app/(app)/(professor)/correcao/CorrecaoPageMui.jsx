@@ -18,7 +18,15 @@ import FormLabel from "@mui/material/FormLabel";
 import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
 import Tooltip from '@mui/material/Tooltip';
+import CircularProgress from '@mui/material/CircularProgress';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
 
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import School from '@mui/icons-material/School';
 
 // Busca alunos dinamicamente, mas deixa vazio se não houver endpoint
 function useAlunos(cursoId) {
@@ -208,290 +216,373 @@ export default function CorrecaoPageMui() {
   };
 
   if (loading) {
-    return <Box sx={{ p: 4 }}><Typography>Carregando cursos e provas...</Typography></Box>;
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3, backgroundColor: 'background.default' }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Carregando cursos e provas...</Typography>
+      </Box>
+    )
   }
 
   if (!provaSelecionada) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>Correção de Provas</Typography>
-        <Typography variant="h6" gutterBottom>Selecione uma prova para corrigir:</Typography>
-        {cursos.length === 0 && <Typography color="text.secondary">Nenhum curso encontrado.</Typography>}
-        {cursos.map((curso) => (
-          <Box key={curso.id} sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>{curso.nome}</Typography>
-            <Box component="ul" sx={{ listStyle: "none", p: 0 }}>
-              {(provasPorCurso[curso.id] || []).length === 0 && (
-                <Typography color="text.secondary" sx={{ ml: 2 }}>Nenhuma prova para este curso.</Typography>
-              )}
-              {(provasPorCurso[curso.id] || []).map((prova) => (
-                <li key={prova.id || prova._id}>
-                  <Paper sx={{ mb: 2, p: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Box>
-                      <Typography variant="subtitle1">{prova.titulo} ({prova.disciplina})</Typography>
-                      <Typography variant="body2" color="text.secondary">Professor: {prova.professor}</Typography>
-                    </Box>
-                    <Button variant="contained" onClick={() => setProvaSelecionada(prova)}>
-                      Corrigir
-                    </Button>
-                  </Paper>
-                </li>
-              ))}
-            </Box>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          p: 3,
+          backgroundColor: 'background.default',
+        }}
+      >
+        <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', mb: 4 }}>
+          <Box sx={{ width: '100%', maxWidth: 700, mx: 'auto', mb: 4 }}>
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                mb: 2,
+                fontWeight: 'bold',
+                color: 'text.primary',
+                textAlign: 'center'
+              }}
+            >
+              Correção de Provas
+            </Typography>
           </Box>
-        ))}
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+            {cursos.map((curso) => {
+              const provas = provasPorCurso[curso.id] || [];
+              return (
+                <Card key={curso.id} variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <CardContent sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <School color="primary" />
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{curso.nome}</Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" color="text.secondary">Provas</Typography>
+                      {provas.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Nenhuma prova para este curso.</Typography>
+                      ) : (
+                        <List>
+                          {provas.map((prova) => (
+                            <ListItem key={prova.id || prova._id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{prova.titulo}</Typography>
+                                {prova.disciplina && <Typography variant="caption" color="text.secondary">{prova.disciplina}</Typography>}
+                              </Box>
+                              <CardActions sx={{ p: 0 }}>
+                                <Button size="small" variant="contained" onClick={() => setProvaSelecionada(prova)}>
+                                  Corrigir
+                                </Button>
+                              </CardActions>
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 4, maxWidth: '700', mx: "auto" }}>
-      <Button onClick={() => setProvaSelecionada(null)} sx={{ mb: 3 }}>
-        ← Voltar
-      </Button>
-      <Typography variant="h4" gutterBottom>Correção: {provaSelecionada.titulo}</Typography>
-      <Typography variant="subtitle1">Professor: {provaSelecionada.professor}</Typography>
-      <Typography variant="subtitle2" color="text.secondary">Disciplina: {provaSelecionada.disciplina}</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Instruções: {provaSelecionada.instrucoes}</Typography>
-      <Divider sx={{ mb: 3 }} />
-
-      <Box component="form" onSubmit={handleSubmit}>
-        <FormControl fullWidth sx={{ mb: 4 }} required>
-          <InputLabel id="aluno-label">Escolha o aluno</InputLabel>
-          <Select
-            labelId="aluno-label"
-            value={alunoSelecionado}
-            label="Escolha o aluno"
-            onChange={e => setAlunoSelecionado(e.target.value)}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        p: 3,
+        backgroundColor: 'background.default'
+      }}
+    >
+      <Box sx={{ width: '100%', maxWidth: 1000, mb: 2 }}>
+        <Box sx={{ width: '100%', maxWidth: 1000, position: 'relative', mb: 2 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => setProvaSelecionada(null)}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              mb: 2
+            }}
           >
-            <MenuItem value=""><em>Selecione</em></MenuItem>
-            {alunos.length === 0 && (
-              <MenuItem value="" disabled>Nenhum aluno encontrado</MenuItem>
-            )}
-            {alunos.map(aluno => {
-              const aid = aluno._id || aluno.id;
-              const isCorrigido = aid && corrigidosIds.has(String(aid));
-              const label = aluno.nome || aluno.email || aluno.id || aid;
+            Voltar
+          </Button>
 
-              // If corrected, render a disabled MenuItem wrapped in a span so Tooltip works
-              if (isCorrigido) {
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mb: 1,
+              mt: 4,
+              fontWeight: 'bold',
+              color: 'text.primary',
+              textAlign: 'center'
+            }}
+          >
+            Correção: {provaSelecionada.titulo}
+          </Typography>
+          {provaSelecionada.professor && (
+            <Typography variant="subtitle1" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+              Professor: {provaSelecionada.professor}
+            </Typography>
+          )}
+          {provaSelecionada.disciplina && (
+            <Typography variant="subtitle2" color="text.secondary" sx={{ textAlign: 'center', mt: 0.5 }}>
+              Disciplina: {provaSelecionada.disciplina}
+            </Typography>
+          )}
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          <Divider sx={{ mb: 3 }} />
+
+          <FormControl fullWidth sx={{ mb: 4 }} required>
+            <InputLabel id="aluno-label">Escolha o aluno</InputLabel>
+            <Select
+              labelId="aluno-label"
+              value={alunoSelecionado}
+              label="Escolha o aluno"
+              onChange={e => setAlunoSelecionado(e.target.value)}
+            >
+              <MenuItem value=""><em>Selecione</em></MenuItem>
+              {alunos.length === 0 && (
+                <MenuItem value="" disabled>Nenhum aluno encontrado</MenuItem>
+              )}
+              {alunos.map(aluno => {
+                const aid = aluno._id || aluno.id;
+                const isCorrigido = aid && corrigidosIds.has(String(aid));
+                const label = aluno.nome || aluno.email || aluno.id || aid;
+
+                if (isCorrigido) {
+                  return (
+                    <Tooltip key={aid} title="Aluno já corrigido" placement="right">
+                      <span>
+                        <MenuItem value={aid} disabled sx={{ color: 'text.disabled' }}>{label} (Já corrigido)</MenuItem>
+                      </span>
+                    </Tooltip>
+                  );
+                }
+
                 return (
-                  <Tooltip key={aid} title="Aluno já corrigido" placement="right">
-                    <span>
-                      <MenuItem value={aid} disabled sx={{ color: 'text.disabled' }}>{label} (Já corrigido)</MenuItem>
-                    </span>
-                  </Tooltip>
+                  <MenuItem key={aid} value={aid}>{label}</MenuItem>
                 );
-              }
+              })}
+            </Select>
+          </FormControl>
 
-              return (
-                <MenuItem key={aid} value={aid}>{label}</MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
+          {provaSelecionada.questoes.map((questao, idx) => {
+            const qId = questao._id || questao.id;
+            const tipo = questao.tipo?.toLowerCase();
 
-        {provaSelecionada.questoes.map((questao, idx) => {
-          const qId = questao._id || questao.id;
-          const tipo = questao.tipo?.toLowerCase();
-
-          return (
-            <Paper key={qId} sx={{ mb: 3, p: 2 }} elevation={2}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Questão {idx + 1}
-                </Typography>
-                <Chip label={questao.tipo} size="small" />
-              </Box>
-
-              <Typography variant="body1" sx={{ mb: 2 }}>{questao.enunciado}</Typography>
-
-              {/* --- RENDERIZAÇÃO CONDICIONAL POR TIPO --- */}
-
-              {/* 1. Múltipla Escolha */}
-              {(tipo === "multipla escolha" || tipo === "alternativa") && Array.isArray(questao.alternativas) && (
-                <FormControl component="fieldset" required>
-                  <FormLabel component="legend">Resposta do Aluno</FormLabel>
-                  <RadioGroup
-                    value={respostas[qId] || ""}
-                    onChange={e => handleRespostaChange(qId, e.target.value)}
-                  >
-                    {questao.alternativas.map((alt, i) => {
-                      // Se alternativa for objeto, usar letra/texto
-                      const label = typeof alt === 'object' ? `${alt.letra}) ${alt.texto}` : alt;
-                      const val = typeof alt === 'object' ? alt.letra : alt;
-
-                      return (
-                        <FormControlLabel
-                          key={i}
-                          value={val}
-                          control={<Radio />}
-                          label={label}
-                        />
-                      );
-                    })}
-                  </RadioGroup>
-                </FormControl>
-              )}
-
-              {/* 2. Afirmações (V/F) */}
-              {(tipo === "afirmacoes" || tipo === "verdadeiro ou falso") && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>Preencha V ou F para cada item:</Typography>
-                  {questao.afirmacoes?.map((afirmacao, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        mb: 2,
-                        p: 2,
-                        bgcolor: 'action.hover',
-                        borderRadius: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{afirmacao.texto}</Typography>
-                      <RadioGroup
-                        row
-                        value={respostas[qId]?.[i]?.toString() || ""}
-                        onChange={e => handleAfirmacaoChange(qId, i, e.target.value)}
-                      >
-                        <FormControlLabel value="true" control={<Radio size="small" />} label="Verdadeiro" />
-                        <FormControlLabel value="false" control={<Radio size="small" />} label="Falso" />
-                      </RadioGroup>
-                    </Box>
-                  ))}
+            return (
+              <Paper key={qId} sx={{ mb: 3, p: 2 }} elevation={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Questão {idx + 1}
+                  </Typography>
+                  <Chip label={questao.tipo} size="small" />
                 </Box>
-              )}
 
-              {/* 3. Numérica */}
-              {tipo === "numerica" && (
-                <TextField
-                  label="Resposta Numérica"
-                  type="number"
-                  inputProps={{ step: "any" }}
-                  fullWidth
-                  required
-                  value={respostas[qId] || ""}
-                  onChange={e => handleRespostaChange(qId, e.target.value)}
-                />
-              )}
+                <Typography variant="body1" sx={{ mb: 2 }}>{questao.enunciado}</Typography>
 
-              {/* 4. Proposições (Somatório) */}
-              {(tipo === "proposicoes" || tipo === "somatorio") && (
-                <Box>
-                  {/* Mostrar as proposições para auxílio visual */}
-                  <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover' }}>
-                    {questao.proposicoes?.map((p, i) => (
-                      <Typography key={i} variant="caption" display="block">
-                        ({Math.pow(2, i)}) {p.texto}
-                      </Typography>
+
+                {/* 1. Múltipla Escolha */}
+                {(tipo === "multipla escolha" || tipo === "alternativa") && Array.isArray(questao.alternativas) && (
+                  <FormControl component="fieldset" required>
+                    <FormLabel component="legend">Resposta do Aluno</FormLabel>
+                    <RadioGroup
+                      value={respostas[qId] || ""}
+                      onChange={e => handleRespostaChange(qId, e.target.value)}
+                    >
+                      {questao.alternativas.map((alt, i) => {
+                        // Se alternativa for objeto, usar letra/texto
+                        const label = typeof alt === 'object' ? `${alt.letra}) ${alt.texto}` : alt;
+                        const val = typeof alt === 'object' ? alt.letra : alt;
+
+                        return (
+                          <FormControlLabel
+                            key={i}
+                            value={val}
+                            control={<Radio />}
+                            label={label}
+                          />
+                        );
+                      })}
+                    </RadioGroup>
+                  </FormControl>
+                )}
+
+                {/* 2. Afirmações (V/F) */}
+                {(tipo === "afirmacoes" || tipo === "verdadeiro ou falso") && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>Preencha V ou F para cada item:</Typography>
+                    {questao.afirmacoes?.map((afirmacao, i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          mb: 2,
+                          p: 2,
+                          bgcolor: 'action.hover',
+                          borderRadius: 2,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{afirmacao.texto}</Typography>
+                        <RadioGroup
+                          row
+                          value={respostas[qId]?.[i]?.toString() || ""}
+                          onChange={e => handleAfirmacaoChange(qId, i, e.target.value)}
+                        >
+                          <FormControlLabel value="true" control={<Radio size="small" />} label="Verdadeiro" />
+                          <FormControlLabel value="false" control={<Radio size="small" />} label="Falso" />
+                        </RadioGroup>
+                      </Box>
                     ))}
                   </Box>
+                )}
+
+                {/* 3. Numérica */}
+                {tipo === "numerica" && (
                   <TextField
-                    label="Soma das Proposições (Inteiro)"
+                    label="Resposta Numérica"
                     type="number"
-                    inputProps={{ step: "1" }}
+                    inputProps={{ step: "any" }}
                     fullWidth
                     required
                     value={respostas[qId] || ""}
                     onChange={e => handleRespostaChange(qId, e.target.value)}
                   />
-                </Box>
-              )}
+                )}
 
-              {/* 5. Dissertativa */}
-              {tipo === "dissertativa" && (
-                <Grid container spacing={2} alignItems="flex-start">
-                  <Grid item xs={12} md={12}>
+                {/* 4. Proposições (Somatório) */}
+                {(tipo === "proposicoes" || tipo === "somatorio") && (
+                  <Box>
+                    {/* Mostrar as proposições para auxílio visual */}
+                    <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover' }}>
+                      {questao.proposicoes?.map((p, i) => (
+                        <Typography key={i} variant="caption" display="block">
+                          ({Math.pow(2, i)}) {p.texto}
+                        </Typography>
+                      ))}
+                    </Box>
                     <TextField
-                      label="Resposta do aluno (transcrição)"
-                      multiline
-                      minRows={5}
+                      label="Soma das Proposições (Inteiro)"
+                      type="number"
+                      inputProps={{ step: "1" }}
                       fullWidth
                       required
                       value={respostas[qId] || ""}
                       onChange={e => handleRespostaChange(qId, e.target.value)}
-                      placeholder="Digite aqui a resposta..."
                     />
+                  </Box>
+                )}
+
+                {/* 5. Dissertativa */}
+                {tipo === "dissertativa" && (
+                  <Grid container spacing={2} alignItems="flex-start">
+                    <Grid item xs={12} md={12}>
+                      <TextField
+                        label="Resposta do aluno (transcrição)"
+                        multiline
+                        minRows={5}
+                        fullWidth
+                        required
+                        value={respostas[qId] || ""}
+                        onChange={e => handleRespostaChange(qId, e.target.value)}
+                        placeholder="Digite aqui a resposta..."
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        label="Nota"
+                        type="number"
+                        inputProps={{
+                          step: "0.1",
+                          min: 0,
+                          max: questao.pontuacao || 10
+                        }}
+                        fullWidth
+                        color="warning"
+                        focused
+                        value={notasManuais[qId] || ""}
+                        onChange={e => {
+                          let valor = e.target.value;
+                          const max = questao.pontuacao || 10;
+                          if (parseFloat(valor) > max) valor = max.toString();
+                          if (parseFloat(valor) < 0) valor = "0";
+                          handleNotaChange(qId, valor);
+                        }}
+                        helperText={`Máx: ${questao.pontuacao || 10}`}
+                      />
+                    </Grid>
                   </Grid>
+                )}
 
-                  <Grid item xs={12} md={2}>
-                    <TextField
-                      label="Nota"
-                      type="number"
-                      inputProps={{
-                        step: "0.1",
-                        min: 0,
-                        max: questao.pontuacao || 10
-                      }}
-                      fullWidth
-                      color="warning"
-                      focused
-                      value={notasManuais[qId] || ""}
-                      onChange={e => {
-                        let valor = e.target.value;
-                        const max = questao.pontuacao || 10;
-                        if (parseFloat(valor) > max) valor = max.toString();
-                        if (parseFloat(valor) < 0) valor = "0";
-                        handleNotaChange(qId, valor);
-                      }}
-                      helperText={`Máx: ${questao.pontuacao || 10}`}
-                    />
-                  </Grid>
-                </Grid>
-              )}
+                {/* Fallback para tipos desconhecidos */}
+                {!["multipla escolha", "alternativa", "afirmacoes", "verdadeiro ou falso", "numerica", "proposicoes", "somatorio", "dissertativa"].includes(tipo) && (
+                  <TextField
+                    label="Resposta"
+                    multiline
+                    fullWidth
+                    value={respostas[qId] || ""}
+                    onChange={e => handleRespostaChange(qId, e.target.value)}
+                  />
+                )}
 
-              {/* Fallback para tipos desconhecidos */}
-              {!["multipla escolha", "alternativa", "afirmacoes", "verdadeiro ou falso", "numerica", "proposicoes", "somatorio", "dissertativa"].includes(tipo) && (
-                <TextField
-                  label="Resposta"
-                  multiline
-                  fullWidth
-                  value={respostas[qId] || ""}
-                  onChange={e => handleRespostaChange(qId, e.target.value)}
-                />
-              )}
+                {/* Campo de Comentário/Feedback do Professor */}
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    💬 Feedback para o aluno (opcional)
+                  </Typography>
+                  <TextField
+                    label="Comentário do Professor"
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    fullWidth
+                    value={comentarios[qId] || ""}
+                    onChange={e => handleComentarioChange(qId, e.target.value)}
+                    placeholder="Adicione um feedback sobre a resposta, sugestões de melhoria, erros identificados..."
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                  />
+                </Box>
 
-              {/* Campo de Comentário/Feedback do Professor */}
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  💬 Feedback para o aluno (opcional)
-                </Typography>
-                <TextField
-                  label="Comentário do Professor"
-                  multiline
-                  minRows={2}
-                  maxRows={4}
-                  fullWidth
-                  value={comentarios[qId] || ""}
-                  onChange={e => handleComentarioChange(qId, e.target.value)}
-                  placeholder="Adicione um feedback sobre a resposta, sugestões de melhoria, erros identificados..."
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                />
-              </Box>
+              </Paper>
+            );
+          })}
 
-            </Paper>
-          );
-        })}
-
-        <Button
-          type="submit"
-          variant="contained"
-          size="large"
-          fullWidth
-          disabled={!alunoSelecionado}
-          sx={{ mt: 2 }}
-        >
-          Enviar Correção
-        </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            disabled={!alunoSelecionado}
+            sx={{ mt: 2 }}
+          >
+            Enviar Correção
+          </Button>
+        </Box>
       </Box>
     </Box>
   );
