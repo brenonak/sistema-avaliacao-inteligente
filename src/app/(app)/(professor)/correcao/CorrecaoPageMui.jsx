@@ -427,7 +427,6 @@ export default function CorrecaoPageMui() {
                         max: questao.pontuacao || 10
                       }}
                       fullWidth
-                      required
                       color="warning"
                       focused
                       value={notasManuais[qId] || ""}

@@ -124,9 +124,8 @@ describe('CorrecaoPageMui (Integração)', () => {
         await user.type(textareaDissertativa, 'Minha resposta sobre relatividade');
 
         // Preenche nota DECIMAL na dissertativa (Teste do requisito de float)
-        // Busca todos os inputs numéricos e pega o primeiro (que é o da nota)
-        const allNumberInputs = screen.getAllByRole('spinbutton');
-        const inputNota = allNumberInputs[0]; // Primeiro input number é o da nota
+        // Busca o input de nota especificamente
+        const inputNota = screen.getByLabelText(/Nota/i);
 
         // Use fireEvent.change para inputs do tipo number ao invés de user.type
         fireEvent.change(inputNota, { target: { value: '1.25' } });
@@ -143,38 +142,40 @@ describe('CorrecaoPageMui (Integração)', () => {
             expect(radioB).toBeChecked();
         });
 
-        // Envia
-        await user.click(btnSalvar);
+        // Envia o formulário
+        const form = btnSalvar.closest('form');
+        fireEvent.submit(form);
+
+        // Aguarda a chamada do alert de sucesso
+        await waitFor(() => {
+            expect(global.alert).toHaveBeenCalledWith("Correção salva com sucesso!");
+        }, { timeout: 3000 });
 
         // Verifica se o fetch foi chamado com os dados certos
-        await waitFor(() => {
-            const calls = fetch.mock.calls.filter(call =>
-                call[0].includes('correcao-manual')
-            );
+        const calls = fetch.mock.calls.filter(call =>
+            call[0] && call[0].includes('correcao-manual')
+        );
 
-            expect(calls.length).toBeGreaterThan(0);
+        expect(calls.length).toBeGreaterThan(0);
 
-            const postCall = calls[0];
-            expect(postCall[0]).toContain('/api/cursos/curso1/provas/prova1/correcao-manual');
-            expect(postCall[1].method).toBe('POST');
+        const postCall = calls[0];
+        expect(postCall[0]).toContain('/api/cursos/curso1/provas/prova1/correcao-manual');
+        expect(postCall[1].method).toBe('POST');
 
-            const body = JSON.parse(postCall[1].body);
-            expect(body.alunoId).toBe('aluno1');
-            expect(body.respostas).toHaveLength(2);
+        const body = JSON.parse(postCall[1].body);
+        expect(body.alunoId).toBe('aluno1');
+        expect(body.respostas).toHaveLength(2);
 
-            // Verifica questão dissertativa com nota decimal
-            const respostaDissertativa = body.respostas.find(r => r.questaoId === 'q1');
-            expect(respostaDissertativa).toBeDefined();
-            expect(respostaDissertativa.pontuacaoObtida).toBe(1.25);
-            expect(respostaDissertativa.resposta).toBe('Minha resposta sobre relatividade');
+        // Verifica questão dissertativa com nota decimal
+        const respostaDissertativa = body.respostas.find(r => r.questaoId === 'q1');
+        expect(respostaDissertativa).toBeDefined();
+        expect(respostaDissertativa.pontuacaoObtida).toBe(1.25);
+        expect(respostaDissertativa.resposta).toBe('Minha resposta sobre relatividade');
 
-            // Verifica questão objetiva
-            const respostaObjetiva = body.respostas.find(r => r.questaoId === 'q2');
-            expect(respostaObjetiva).toBeDefined();
-            expect(respostaObjetiva.resposta).toBe('B');
-            expect(respostaObjetiva.pontuacaoObtida).toBeUndefined(); // Calculada automaticamente
-        });
-
-        expect(global.alert).toHaveBeenCalledWith("Correção salva com sucesso!");
+        // Verifica questão objetiva
+        const respostaObjetiva = body.respostas.find(r => r.questaoId === 'q2');
+        expect(respostaObjetiva).toBeDefined();
+        expect(respostaObjetiva.resposta).toBe('B');
+        expect(respostaObjetiva.pontuacaoObtida).toBeUndefined(); // Calculada automaticamente
     }, 15000); // Timeout maior para operações assíncronas
 });
