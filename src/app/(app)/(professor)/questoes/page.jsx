@@ -104,6 +104,11 @@ export default function ListarQuestoesPage() {
   const handleDelete = async () => {
     if (!questionToDelete) return; // Segurança extra
     try {
+      // TODO: A chamada para a API abaixo está pronta.
+      // Ela funcionará corretamente assim que o endpoint DELETE /api/questoes/:id estiver implementado no back-end.
+      // Atualmente, essa chamada retornará um erro 404.
+      // Implemente o endpoint no back-end para que a exclusão funcione corretamente.
+      // Após implementar, teste a funcionalidade para garantir que tudo está funcionando como esperado.
       const res = await fetch(`/api/questoes/${questionToDelete.id}`, {
         method: 'DELETE',
       });

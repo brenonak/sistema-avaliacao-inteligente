@@ -200,9 +200,14 @@ export default function CorrecaoPageMui() {
 
       if (response.ok) {
         alert("Correção salva com sucesso!");
+        
+        // Atualiza o estado de corrigidos para refletir na UI imediatamente
+        setCorrigidosIds((prev) => new Set([...prev, String(alunoSelecionado)]));
+        
         // Limpa o form e a seleção para permitir corrigir o próximo aluno imediatamente
         setRespostas({});
         setNotasManuais({});
+        setComentarios({});
         setAlunoSelecionado("");
       } else {
         console.error("Erro do servidor:", data);

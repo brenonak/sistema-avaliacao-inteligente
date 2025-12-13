@@ -106,7 +106,6 @@ export default function ClassroomCard(props) {
           </CardContent>
         </CardActionArea>
       </Link>
-
       <CardActions
         sx={{
           justifyContent: 'space-between',
@@ -118,29 +117,28 @@ export default function ClassroomCard(props) {
           flexDirection: { xs: 'column', sm: 'row' },
         }}
       >
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
-          {codigoAcesso && (
-            <Tooltip title="Copiar código de acesso">
-              <IconButton
-                size="small"
-                onClick={handleCopyCodigo}
-                color="primary"
-                aria-label="Copiar código"
-              >
-                <ContentCopy fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-
-        <Box sx={{ ml: { sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
-          <CardOptionsButton 
-            cursoId={cursoId} 
-            onDelete={onDelete}
-            cursoNome={classroomTitle}
-            cursoDescricao={cursoDescricao}
-          />
-        </Box>
+        {codigoAcesso && (
+          <Tooltip title="Copiar código de acesso">
+            <IconButton
+              size="small"
+              onClick={handleCopyCodigo}
+              color="primary"
+              aria-label="Copiar código"
+            >
+              <ContentCopy fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        {!aluno && (
+          <Box sx={{ ml: { sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
+            <CardOptionsButton 
+              cursoId={cursoId} 
+              onDelete={onDelete}
+              cursoNome={classroomTitle}
+              cursoDescricao={cursoDescricao}
+            />
+          </Box>
+        )}
       </CardActions>
     </Card>
   );

@@ -113,14 +113,12 @@ export default function HeroSection() {
         </Box>
 
         {/* === Coluna da Direita (Imagem) === */}
-        <Box sx={{ flex: 1, width: '100%' }}>
-          
-
+        <Box sx={{ flex: 1, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Box
             sx={{
               position: 'relative', 
               width: '100%',
-
+              maxWidth: '900px',
             }}
           >
             <Image
@@ -129,6 +127,7 @@ export default function HeroSection() {
               
               width={900} 
               height={900}
+              quality={90}
 
               style={{
                 width: '100%',   

@@ -72,16 +72,9 @@ export async function middleware(request: NextRequest) {
     console.log(`[Middleware]    - ProfileComplete: ${token.profileComplete}`);
     
     // Rotas que exigem apenas autenticação (não verificam profileComplete)
+    // Usuários podem acessar /perfil/cadastro a qualquer momento para visualizar/editar perfil
     if (pathname === "/perfil/cadastro" || pathname.startsWith("/api/profile")) {
       console.log(`[Middleware] ✅ Rota de cadastro/profile - permitindo acesso autenticado`);
-      
-      // Se já tiver perfil completo e tentar acessar /perfil/cadastro, redirecionar para dashboard
-      if (pathname === "/perfil/cadastro" && token.profileComplete === true) {
-        console.log(`[Middleware] 🔄 Perfil completo tentando acessar /perfil/cadastro - redirecionando para /dashboard`);
-        const dashboardUrl = new URL("/dashboard", request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-      
       return NextResponse.next();
     }
     
