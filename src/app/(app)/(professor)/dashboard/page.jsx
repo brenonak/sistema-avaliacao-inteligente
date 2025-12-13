@@ -54,9 +54,6 @@ export default function DashboardPage() {
                 >
                   Meus Cursos
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Top 6 cursos com mais questões
-                </Typography>
               </Box>
               <Link href="/cursos" passHref style={{ textDecoration: 'none' }}>
                 <Button variant="text" size="small">
