@@ -124,158 +124,164 @@ export default function CursosAlunoPage() {
   );
 
   return (
-    <Grid container sx={{ backgroundColor: 'background.default' }}>
-      <Grid size={12}>
-        <Box sx={{
-              padding: 5,
-            }}>
-          {/* Header com título e botão de criar / adicionar curso */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography gutterBottom variant="h4" component="div">
-              Meus Cursos
-            </Typography>
-
-            <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<Add />}
-              size="large"
-              onClick={handleOpenAddDialog}
-            >
-              Adicionar Curso 
-            </Button>
-
-          </Box>
-
-          {/* Barra de pesquisa */}
-          <TextField
-            placeholder="Buscar cursos por nome..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            fullWidth
-            sx={{ 
-              mb: 3,
-              maxWidth: 600,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2
-              }
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search color="action" />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery && (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={handleClearSearch}
-                    edge="end"
-                    size="small"
-                    title="Limpar busca"
-                  >
-                    <Clear />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          {/* Estados de loading e erro */}
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
-              <CircularProgress />
-              <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
-            </Box>
-          )}
-          
-          {error && (
-            <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
-              {error}
-            </Typography>
-          )}
-          
-          {!loading && !error && cursosFiltrados.length === 0 && (
-            <Box sx={{ textAlign: 'center', p: 4 }}>
-              <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                {debouncedSearchQuery 
-                  ? 'Nenhum curso encontrado com os critérios de busca.' 
-                  : 'Nenhum curso cadastrado ainda.'}
+    <Box backgroundColor="background.default" minHeight="100vh">
+      <Grid container >
+        <Grid size={12}>
+          <Box sx={{
+                padding: 4,
+              }}>
+            {/* Header com título e botão de criar / adicionar curso */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left" }}
+              >
+                Meus Cursos
               </Typography>
-              <Button variant="contained" color="primary" startIcon={<Add />} onClick={handleOpenAddDialog}>
-                Adicionar Curso pelo Código
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<Add />}
+                size="large"
+                sx={{mt: 1}}
+                onClick={handleOpenAddDialog}
+              >
+                Adicionar Curso 
+              </Button>
+
+            </Box>
+
+            {/* Barra de pesquisa */}
+            <TextField
+              placeholder="Buscar cursos por nome..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              fullWidth
+              sx={{ 
+                mb: 3,
+                maxWidth: 600,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClearSearch}
+                      edge="end"
+                      size="small"
+                      title="Limpar busca"
+                    >
+                      <Clear />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Estados de loading e erro */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
+              </Box>
+            )}
+            
+            {error && (
+              <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+                {error}
+              </Typography>
+            )}
+            
+            {!loading && !error && cursosFiltrados.length === 0 && (
+              <Box sx={{ textAlign: 'center', p: 4 }}>
+                <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                  {debouncedSearchQuery 
+                    ? 'Nenhum curso encontrado com os critérios de busca.' 
+                    : 'Nenhum curso cadastrado ainda.'}
+                </Typography>
+                <Button variant="contained" color="primary" startIcon={<Add />} onClick={handleOpenAddDialog}>
+                  Adicionar Curso pelo Código
+                </Button>
+              </Box>
+            )}
+
+            {!loading && !error && cursosFiltrados.length > 0 && (
+              <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
+                                                                backgroundColor: 'background.paper',
+                                                                padding: 3,
+                                                                borderRadius: 2
+                                                              }}>
+                {cursosFiltrados.map((curso) => (
+                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={curso.id}>
+                    <ClassroomCard 
+                      imgSrc="/blue_bg.jpg" 
+                      imgTitle="Course Background"
+                      classroomTitle={curso.nome}
+                      teacherName=""
+                      cursoId={`${curso.id}`}
+                      aluno={true}
+                      cursoDescricao={curso.descricao}
+                      onDelete={handleDelete}
+                      questoesCount={curso.questoesCount}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        </Grid>
+
+        {/* Dialog para adicionar curso por código */}
+        <Dialog
+          open={openAddDialog}
+          onClose={handleCloseAddDialog}
+          fullWidth
+          maxWidth="md"
+          sx={{
+            '& .MuiPaper-root': {
+              width: 'min(500px, 95%)',
+              maxWidth: '500px',
+              borderRadius: 2,
+              p: 2,
+            },
+          }}
+        >
+          <DialogTitle>Adicionar Curso por Código</DialogTitle>
+
+          <DialogContent sx={{ pt: 1 }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Código do Curso"
+              placeholder="Digite o código do curso"
+              fullWidth
+              value={courseIdInput}
+              onChange={(e) => setCourseIdInput(e.target.value.toUpperCase())}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ px: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+              <Button onClick={handleCloseAddDialog} color="inherit">
+                Cancelar
+              </Button>
+
+              <Button onClick={handleSubmitCourse} variant="contained">
+                Confirmar
               </Button>
             </Box>
-          )}
-
-          {!loading && !error && cursosFiltrados.length > 0 && (
-            <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
-                                                              backgroundColor: 'background.paper',
-                                                              padding: 3,
-                                                              borderRadius: 2
-                                                            }}>
-              {cursosFiltrados.map((curso) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={curso.id}>
-                  <ClassroomCard 
-                    imgSrc="/blue_bg.jpg" 
-                    imgTitle="Course Background"
-                    classroomTitle={curso.nome}
-                    teacherName=""
-                    cursoId={`${curso.id}`}
-                    aluno={true}
-                    cursoDescricao={curso.descricao}
-                    onDelete={handleDelete}
-                    questoesCount={curso.questoesCount}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </Box>
+          </DialogActions>
+        </Dialog>
       </Grid>
-
-      {/* Dialog para adicionar curso por código */}
-      <Dialog
-        open={openAddDialog}
-        onClose={handleCloseAddDialog}
-        fullWidth
-        maxWidth="md"
-        sx={{
-          '& .MuiPaper-root': {
-            width: 'min(500px, 95%)',
-            maxWidth: '500px',
-            borderRadius: 2,
-            p: 2,
-          },
-        }}
-      >
-        <DialogTitle>Adicionar Curso por Código</DialogTitle>
-
-        <DialogContent sx={{ pt: 1 }}>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Código do Curso"
-            placeholder="Digite o código do curso"
-            fullWidth
-            value={courseIdInput}
-            onChange={(e) => setCourseIdInput(e.target.value.toUpperCase())}
-          />
-        </DialogContent>
-
-        <DialogActions sx={{ px: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-            <Button onClick={handleCloseAddDialog} color="inherit">
-              Cancelar
-            </Button>
-
-            <Button onClick={handleSubmitCourse} variant="contained">
-              Confirmar
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
-    </Grid>
+    </Box>
   );
 }

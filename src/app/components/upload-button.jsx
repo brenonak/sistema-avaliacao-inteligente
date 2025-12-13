@@ -81,13 +81,8 @@ export function UploadButton() {
           variant="contained"
           disabled={isUploading}
           startIcon={isUploading ? <CircularProgress size={20} /> : <UploadIcon />}
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-          }}
         >
-          {isUploading ? "Enviando..." : "Enviar Foto"}
+          {isUploading ? "Enviando..." : "Adicionar Imagem"}
         </Button>
       </label>
 

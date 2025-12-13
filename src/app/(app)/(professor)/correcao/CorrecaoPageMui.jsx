@@ -301,7 +301,6 @@ export default function CorrecaoPageMui() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        p: 3,
         backgroundColor: 'background.default'
       }}
     >
@@ -325,7 +324,7 @@ export default function CorrecaoPageMui() {
             component="h1"
             sx={{
               mb: 1,
-              mt: 4,
+              mt: 3,
               fontWeight: 'bold',
               color: 'text.primary',
               textAlign: 'center'

@@ -884,7 +884,7 @@ export default function CursoDetalhesPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'background.default' }}>
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Carregando curso...</Typography>
       </Box>

@@ -287,7 +287,7 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        p: 3,
+        p: 4,
         backgroundColor: "background.default",
         mx: "auto",
         width: "100%",
