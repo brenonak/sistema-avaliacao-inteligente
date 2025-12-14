@@ -37,20 +37,50 @@ export default function ClassroomCard(props) {
   };
 
   return (
-    <Card sx={{ width: '100%', maxWidth: 320, borderRadius: 3, mx: 'auto' }}>
+    <Card
+      sx={{
+        width: '100%',
+        maxWidth: { xs: '100%', sm: 320 },
+        borderRadius: 3,
+        mx: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      }}
+    >
       <Link href={computedHref} passHref style={{ textDecoration: 'none' }}>
-        <CardActionArea>
+        <CardActionArea sx={{ flexGrow: 1 }}>
           <CardMedia
-            sx={{ height: 100 }}
+            sx={{ 
+              height: { xs: 140, sm: 100 }, 
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
             image={imgSrc}
             title={imgTitle}
           />
           <CardContent>
-            <Typography gutterBottom variant="h5" component="div">
+            <Typography
+              gutterBottom
+              variant="h5"
+              component="div"
+              sx={{ 
+                fontSize: { xs: '1rem', sm: '1.25rem' }, 
+                fontWeight: 700,
+                lineHeight: 1.1,
+                mb: 0.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
               {classroomTitle}
             </Typography>
             {teacherName && (
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              <Typography
+                variant="body2"
+                sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
                 {teacherName}
               </Typography>
             )}
@@ -60,7 +90,7 @@ export default function ClassroomCard(props) {
               </Typography>
             )}
             {codigoAcesso && (
-              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Código:
                 </Typography>
@@ -69,27 +99,38 @@ export default function ClassroomCard(props) {
                   size="small"
                   color="primary"
                   variant="outlined"
-                  sx={{ fontWeight: 'bold' }}
+                  sx={{ fontWeight: 'bold', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}
                 />
               </Box>
             )}
           </CardContent>
         </CardActionArea>
       </Link>
-      <CardActions sx={{ justifyContent: 'space-between' }}>
+      <CardActions
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          px: 1.5,
+          py: { xs: 1, sm: 0.5 },
+          gap: { xs: 1, sm: 0 },
+          flexWrap: 'wrap',
+          flexDirection: { xs: 'column', sm: 'row' },
+        }}
+      >
         {codigoAcesso && (
           <Tooltip title="Copiar código de acesso">
             <IconButton
               size="small"
               onClick={handleCopyCodigo}
               color="primary"
+              aria-label="Copiar código"
             >
               <ContentCopy fontSize="small" />
             </IconButton>
           </Tooltip>
         )}
         {!aluno && (
-          <Box sx={{ ml: 'auto' }}>
+          <Box sx={{ ml: { sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
             <CardOptionsButton 
               cursoId={cursoId} 
               onDelete={onDelete}

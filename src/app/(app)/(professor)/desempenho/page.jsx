@@ -239,7 +239,7 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        p: 3,
+        p: 4,
         backgroundColor: "background.default",
         mx: "auto",
         width: "100%",
@@ -248,7 +248,7 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
       <Typography
         variant="h4"
         component="h1"
-        sx={{ mb: 4, fontWeight: "bold", color: "text.primary", textAlign: "left" }}
+        sx={{ mb: 2, fontWeight: "bold", color: "text.primary", textAlign: "left" }}
       >
         Desempenho
       </Typography>

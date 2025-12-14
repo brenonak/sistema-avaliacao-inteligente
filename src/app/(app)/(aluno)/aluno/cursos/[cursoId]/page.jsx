@@ -122,7 +122,7 @@ export default function CursoAlunoPage() {
 
   if (loadingCurso) {
     return (
-      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
+      <Box sx={{ minHeight: "100vh", display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default' }}>
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Carregando curso...</Typography>
       </Box>
@@ -131,7 +131,7 @@ export default function CursoAlunoPage() {
 
   if (error) {
     return (
-      <Box sx={{ minHeight: '60vh', p: 3, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ minHeight: "100vh", backgroundColor: 'background.default', p: 3, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
         <Typography color="error" variant="h6">{error}</Typography>
         <Button variant="contained" onClick={() => router.push('/aluno/cursos')}>Voltar</Button>
       </Box>

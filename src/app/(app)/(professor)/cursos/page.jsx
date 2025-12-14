@@ -69,118 +69,124 @@ export default function CursosPage() {
   );
 
   return (
-    <Grid container sx={{ backgroundColor: 'background.default' }}>
-      <Grid size={12}>
-        <Box sx={{
-              padding: 5,
-            }}>
-          {/* Header com título e botão de criar curso */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography gutterBottom variant="h4" component="div">
-              Meus Cursos
-            </Typography>
-            <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                startIcon={<Add />}
-                size="large"
+    <Box backgroundColor="background.default" minHeight="100vh">
+      <Grid container >
+        <Grid size={12}>
+          <Box sx={{
+                padding: 4,
+              }}>
+            {/* Header com título e botão de criar curso */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left" }}
               >
-                Criar Novo Curso
-              </Button>
-            </Link>
-          </Box>
-
-          {/* Barra de pesquisa */}
-          <TextField
-            placeholder="Buscar cursos por nome..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            fullWidth
-            sx={{ 
-              mb: 3,
-              maxWidth: 600,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2
-              }
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search color="action" />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery && (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={handleClearSearch}
-                    edge="end"
-                    size="small"
-                    title="Limpar busca"
-                  >
-                    <Clear />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          {/* Estados de loading e erro */}
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
-              <CircularProgress />
-              <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
-            </Box>
-          )}
-          
-          {error && (
-            <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
-              {error}
-            </Typography>
-          )}
-          
-          {!loading && !error && cursosFiltrados.length === 0 && (
-            <Box sx={{ textAlign: 'center', p: 4 }}>
-              <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                {debouncedSearchQuery 
-                  ? 'Nenhum curso encontrado com os critérios de busca.' 
-                  : 'Nenhum curso cadastrado ainda.'}
+                Meus Cursos
               </Typography>
               <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
-                <Button variant="contained" color="primary" startIcon={<Add />}>
-                  Criar Primeiro Curso
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  startIcon={<Add />}
+                  size="large"
+                >
+                  Criar Novo Curso
                 </Button>
               </Link>
             </Box>
-          )}
 
-          {/* Grid de cursos usando ClassroomCard similar à página inicial */}
-          {!loading && !error && cursosFiltrados.length > 0 && (
-            <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
-                                                              backgroundColor: 'background.paper',
-                                                              padding: 3,
-                                                              borderRadius: 2
-                                                            }}>
-              {cursosFiltrados.map((curso) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={curso.id}>
-                  <ClassroomCard 
-                    imgSrc="/blue_bg.jpg" 
-                    imgTitle="Course Background"
-                    classroomTitle={curso.nome}
-                    teacherName=""
-                    cursoId={curso.id}
-                    cursoDescricao={curso.descricao}
-                    onDelete={handleDelete}
-                    questoesCount={curso.questoesCount}
-                    codigoAcesso={curso.codigo}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </Box>
+            {/* Barra de pesquisa */}
+            <TextField
+              placeholder="Buscar cursos por nome..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              fullWidth
+              sx={{ 
+                mb: 3,
+                maxWidth: 600,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClearSearch}
+                      edge="end"
+                      size="small"
+                      title="Limpar busca"
+                    >
+                      <Clear />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Estados de loading e erro */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography sx={{ ml: 2, color: 'text.secondary' }}>Carregando cursos...</Typography>
+              </Box>
+            )}
+            
+            {error && (
+              <Typography color="error" sx={{ textAlign: 'center', p: 2 }}>
+                {error}
+              </Typography>
+            )}
+            
+            {!loading && !error && cursosFiltrados.length === 0 && (
+              <Box sx={{ textAlign: 'center', p: 4 }}>
+                <School sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                  {debouncedSearchQuery 
+                    ? 'Nenhum curso encontrado com os critérios de busca.' 
+                    : 'Nenhum curso cadastrado ainda.'}
+                </Typography>
+                <Link href="/cursos/criar" passHref style={{ textDecoration: 'none' }}>
+                  <Button variant="contained" color="primary" startIcon={<Add />}>
+                    Criar Primeiro Curso
+                  </Button>
+                </Link>
+              </Box>
+            )}
+
+            {/* Grid de cursos usando ClassroomCard similar à página inicial */}
+            {!loading && !error && cursosFiltrados.length > 0 && (
+              <Grid container rowSpacing={4} columnSpacing={4} sx={{ 
+                                                                backgroundColor: 'background.paper',
+                                                                padding: 3,
+                                                                borderRadius: 2
+                                                              }}>
+                {cursosFiltrados.map((curso) => (
+                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={curso.id}>
+                    <ClassroomCard 
+                      imgSrc="/blue_bg.jpg" 
+                      imgTitle="Course Background"
+                      classroomTitle={curso.nome}
+                      teacherName=""
+                      cursoId={curso.id}
+                      cursoDescricao={curso.descricao}
+                      onDelete={handleDelete}
+                      questoesCount={curso.questoesCount}
+                      codigoAcesso={curso.codigo}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        </Grid>
       </Grid>
-    </Grid>
+    </Box>
   );
 }

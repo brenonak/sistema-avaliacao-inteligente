@@ -106,7 +106,7 @@ export default function DesempenhoPage() {
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        p: 3,
+        p: 4,
         backgroundColor: "background.default",
         mx: "auto",
         width: "100%",

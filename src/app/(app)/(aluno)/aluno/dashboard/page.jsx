@@ -143,11 +143,15 @@ export default function DashboardAlunoPage() {
       <Grid container sx={{ backgroundColor: 'background.default' }}>
         <Grid size={8}>
           <Box sx={{
-            padding: 5,
+            padding: 4,
           }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
-                <Typography gutterBottom variant="h4" component="div">
+                <Typography
+                  variant="h4"
+                  component="h1"
+                  sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left" }}
+                >
                   Meus Cursos
                 </Typography>
               </Box>
@@ -231,7 +235,11 @@ export default function DashboardAlunoPage() {
             )}
             
             <Box>
-              <Typography gutterBottom variant="h4" component="div">
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left" }}
+              >
                 Minhas Notas
               </Typography>
             </Box>
@@ -244,7 +252,7 @@ export default function DashboardAlunoPage() {
                 gridTemplateColumns: { xs: "1fr", md: "1fr" },
                 gridAutoRows: "min-content",
                 alignItems: "stretch",
-                mt: 4
+                mt: 2
               }}
             >
               <Box sx={{ gridColumn: { xs: "1", md: "1" }, gridRow: "1", width: "100%" }}>
@@ -266,8 +274,12 @@ export default function DashboardAlunoPage() {
           </Box>
         </Grid>
         <Grid size={4}>
-          <Box sx={{ padding: 5 }}>
-            <Typography gutterBottom variant="h4" component="div">
+          <Box sx={{ padding: 4 }}>
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left", mb: 2 }}
+            >
               Agenda
             </Typography>
             <Card sx={{ mb: 4, borderRadius: 2 }}>
@@ -276,7 +288,11 @@ export default function DashboardAlunoPage() {
               </CardContent>
             </Card>
 
-            <Typography gutterBottom variant="h4" component="div">
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{ fontWeight: "bold", color: "text.primary", textAlign: "left", mb: 2 }}
+            >
               Atividades Pendentes
             </Typography>
             <Card sx={{ borderRadius: 2 }}>
