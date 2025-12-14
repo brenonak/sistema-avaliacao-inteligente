@@ -3,21 +3,21 @@ import * as React from 'react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Card, CardContent, Typography, useTheme, Box } from '@mui/material';
 
-export default function StudentPerformanceChart({ 
-  labels = [], 
-  scores = [], 
+export default function StudentPerformanceChart({
+  labels = [],
+  scores = [],
   // Novas props para séries separadas
   provasLabels = [],
   provasScores = [],
   listasLabels = [],
   listasScores = [],
-  text, 
-  height = 480, 
+  text,
+  height = 480,
   disabledTitle = 'Sem dados disponíveis',
   lineColor,
   // Flag para usar modo de duas séries
   showBothSeries = false,
- }) {
+}) {
   const theme = useTheme();
 
   // Cores para as séries
@@ -32,11 +32,11 @@ export default function StudentPerformanceChart({
 
     // Construir séries separadas - cada uma com seus próprios pontos
     const series = [];
-    
+
     // Usar os nomes das atividades como labels no eixo X
     // Combinar os labels de provas e listas
     const maxPoints = Math.max(provasLabels.length, listasLabels.length, 1);
-    
+
     // Criar labels combinados - mostrar nome da prova/lista
     const xAxisLabels = [];
     for (let i = 0; i < maxPoints; i++) {
@@ -62,7 +62,7 @@ export default function StudentPerformanceChart({
         connectNulls: true,
       });
     }
-    
+
     if (hasListasData) {
       const listasData = [...listasScores];
       while (listasData.length < maxPoints) {
@@ -129,7 +129,7 @@ export default function StudentPerformanceChart({
                 color:
                   lineColor ??
                   theme.palette.accent?.main ??
-                  theme.palette.primary.main, 
+                  theme.palette.primary.main,
               },
             ]}
             margin={{ left: 40, right: 50, top: 30, bottom: 40 }}
