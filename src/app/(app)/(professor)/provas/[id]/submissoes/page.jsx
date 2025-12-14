@@ -328,7 +328,7 @@ export default function SubmissoesProvaPage() {
                     >
                       <Button
                         component={Link}
-                        href={`/provas/${provaId}/submissoes/${aluno.id}`}
+                        href={`/correcao`}
                         variant={aluno.status === 'pendente' ? 'contained' : 'outlined'}
                         size="small"
                         startIcon={<Edit />}
