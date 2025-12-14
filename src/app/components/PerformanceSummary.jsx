@@ -32,7 +32,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
           {hasAverage ? (
             <LinearProgress
               variant="determinate"
-              value={Math.max(0, Math.min(100, average))}
+              value={Math.max(0, Math.min(100, average * 10))}
               sx={{ mt: 1, height: 8, borderRadius: 2 }}
             />
           ) : (
@@ -52,7 +52,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
           {hasBest ? (
             <LinearProgress
               variant="determinate"
-              value={Math.max(0, Math.min(100, best))}
+              value={Math.max(0, Math.min(100, best * 10))}
               sx={{ mt: 1, height: 8, borderRadius: 2 }}
             />
           ) : (
@@ -72,7 +72,7 @@ export default function PerformanceSummary({ average = NaN, best = NaN, latest =
           {hasLatest ? (
             <LinearProgress
               variant="determinate"
-              value={Math.max(0, Math.min(100, latest))}
+              value={Math.max(0, Math.min(100, latest * 10))}
               sx={{ mt: 1, height: 8, borderRadius: 2 }}
             />
           ) : (

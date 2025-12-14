@@ -82,43 +82,37 @@ describe('DesempenhoPage', () => {
           json: () => Promise.resolve({ itens: mockApiResponse.cursos }),
         });
       }
-      
-      if (url === '/api/cursos/calculo') {
+
+      if (url === '/api/cursos/calculo/desempenho') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
-            provas: [
-              { _id: '1', titulo: 'Prova 1', valorTotal: 68, data: '2024-01-01' },
-              { _id: '2', titulo: 'Prova 2', valorTotal: 74, data: '2024-02-01' },
-              { _id: '3', titulo: 'Prova 3', valorTotal: 80, data: '2024-03-01' },
-            ],
-            exercicios: [
-              { _id: '4', tituloLista: 'Lista 1', usarPontuacao: true, questoes: [{ pontuacao: 82 }] },
-              { _id: '5', tituloLista: 'Lista 2', usarPontuacao: true, questoes: [{ pontuacao: 86 }] },
-              { _id: '6', tituloLista: 'Lista 3', usarPontuacao: true, questoes: [{ pontuacao: 51 }] },
-              { _id: '7', tituloLista: 'Lista 4', usarPontuacao: true, questoes: [{ pontuacao: 23 }] },
-            ],
+            examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
+            examsScores: [68, 74, 80],
+            listsLabels: ['Lista 1', 'Lista 2', 'Lista 3', 'Lista 4'],
+            listsScores: [82, 86, 51, 23],
+            combinedLabels: ['P1', 'P2', 'P3', 'L1', 'L2', 'L3', 'L4'],
+            combinedScores: [68, 74, 80, 82, 86, 51, 23],
+            history: [],
           }),
         });
       }
-      
-      if (url === '/api/cursos/fisica') {
+
+      if (url === '/api/cursos/fisica/desempenho') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
-            provas: [
-              { _id: '8', titulo: 'Prova 1', valorTotal: 79, data: '2024-01-01' },
-              { _id: '9', titulo: 'Prova 2', valorTotal: 85, data: '2024-02-01' },
-              { _id: '10', titulo: 'Prova 3', valorTotal: 77, data: '2024-03-01' },
-            ],
-            exercicios: [
-              { _id: '11', tituloLista: 'Lista 1', usarPontuacao: true, questoes: [{ pontuacao: 90 }] },
-              { _id: '12', tituloLista: 'Lista 2', usarPontuacao: true, questoes: [{ pontuacao: 88 }] },
-            ],
+            examsLabels: ['Prova 1', 'Prova 2', 'Prova 3'],
+            examsScores: [79, 85, 77],
+            listsLabels: ['Lista 1', 'Lista 2'],
+            listsScores: [90, 88],
+            combinedLabels: ['P1', 'P2', 'P3', 'L1', 'L2'],
+            combinedScores: [79, 85, 77, 90, 88],
+            history: [],
           }),
         });
       }
-      
+
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({}),

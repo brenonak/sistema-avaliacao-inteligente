@@ -35,7 +35,7 @@ export default function DesempenhoPage() {
       history: []
     },
   });
-  
+
   // Estados para a análise de IA
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -51,9 +51,9 @@ export default function DesempenhoPage() {
         }
         const cursosData = await cursosRes.json();
         const cursosArray = cursosData.itens || [];
-        const apiCourses = cursosArray.map(c => ({ 
-          id: c.id, 
-          name: c.nome 
+        const apiCourses = cursosArray.map(c => ({
+          id: c.id,
+          name: c.nome
         }));
         setCourses([{ id: 'nenhum', name: 'Nenhum' }, ...apiCourses]);
       } catch (error) {
@@ -77,9 +77,10 @@ export default function DesempenhoPage() {
       }
 
       try {
-        const cursoDetailsRes = await fetch(`/api/cursos/${selectedCourse}`);
-        if (!cursoDetailsRes.ok) {
-          console.error(`Erro ao buscar detalhes do curso ${selectedCourse}:`, cursoDetailsRes.status);
+        const desempenhoRes = await fetch(`/api/cursos/${selectedCourse}/desempenho`);
+
+        if (!desempenhoRes.ok) {
+          console.error(`Erro ao buscar desempenho do curso ${selectedCourse}:`, desempenhoRes.status);
           setDataByCourse(prevData => ({
             ...prevData,
             [selectedCourse]: {
@@ -89,71 +90,22 @@ export default function DesempenhoPage() {
           }));
           return;
         }
-        
-        const cursoDetails = await cursoDetailsRes.json();
-        
-        const provas = cursoDetails.provas || [];
-        const listas = cursoDetails.exercicios || [];
-        
-        const examsLabels = provas.map((p, i) => p.titulo || `Prova ${i + 1}`);
-        const examsScores = provas.map(p => p.valorTotal || 0);
-        
-        const listsLabels = listas.map((l, i) => l.tituloLista || `Lista ${i + 1}`);
-        const listsScores = listas.map(l => {
-          if (l.usarPontuacao && l.questoes) {
-            return l.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0);
-          }
-          return 0;
-        });
-        
-        const combinedLabels = [...examsLabels, ...listsLabels];
-        const combinedScores = [...examsScores, ...listsScores];
-        
-        const history = [];
-        
-        provas.forEach(p => {
-          history.push({
-            id: p._id || p.id,
-            type: 'Prova',
-            title: p.titulo || 'Prova',
-            date: p.data || new Date().toISOString(),
-            score: p.valorTotal || 0,
-            maxScore: p.valorTotal || 10,
-            status: 'Criada'
-          });
-        });
-        
-        listas.forEach(l => {
-          const totalPontos = l.usarPontuacao && l.questoes 
-            ? l.questoes.reduce((sum, q) => sum + (q.pontuacao || 0), 0) 
-            : 10;
-            
-          history.push({
-            id: l._id || l.id,
-            type: 'Lista',
-            title: l.tituloLista || 'Lista de Exercícios',
-            date: new Date().toISOString(),
-            score: totalPontos,
-            maxScore: totalPontos,
-            status: 'Criada'
-          });
-        });
-        
-        history.sort((a, b) => new Date(a.date) - new Date(b.date));
-        
+
+        const desempenhoJson = await desempenhoRes.json();
+
         setDataByCourse(prevData => ({
           ...prevData,
           [selectedCourse]: {
-            examsLabels,
-            examsScores,
-            listsLabels,
-            listsScores,
-            combinedLabels,
-            combinedScores,
-            history
+            examsLabels: desempenhoJson.examsLabels || [],
+            examsScores: desempenhoJson.examsScores || [],
+            listsLabels: desempenhoJson.listsLabels || [],
+            listsScores: desempenhoJson.listsScores || [],
+            combinedLabels: desempenhoJson.combinedLabels || [],
+            combinedScores: desempenhoJson.combinedScores || [],
+            history: desempenhoJson.history || [],
           }
         }));
-        
+
       } catch (error) {
         console.error('Erro ao buscar dados de desempenho:', error);
         setDataByCourse(prevData => ({
@@ -174,7 +126,7 @@ export default function DesempenhoPage() {
   console.log('Active Data:', active);
   console.log('History:', active.history);
 
-    // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
+  // Dados para a nota geral (Podem ser implementados pesos para as listas/provas no futuro)
   const combinedLabels = active.combinedLabels;
   const combinedScores = active.combinedScores;
   // Dados para os gráficos
@@ -186,12 +138,12 @@ export default function DesempenhoPage() {
   const average = combinedScores.length > 0 ? combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length : 0;
   const best = combinedScores.length > 0 ? Math.max(...combinedScores) : 0;
   const latest = combinedScores.length > 0 ? combinedScores[combinedScores.length - 1] : 0;
-  
+
   // Função para teste com dados simulados (DEMO)
   const handleTestWithDemoData = () => {
     setDemoMode(true);
     setLoadingAnalysis(true);
-    
+
     setTimeout(() => {
       const demoAnalysis = `## Visão Geral
 
@@ -216,22 +168,22 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
 2. **Exercícios Progressivos**: Criar listas de exercícios com dificuldade gradual, começando com problemas básicos e avançando para aplicações complexas, permitindo que os alunos desenvolvam confiança.
 
 3. **Monitoria Direcionada**: Estabelecer grupos de estudo com monitores para atendimento personalizado aos alunos com maior dificuldade, focando em técnicas de resolução de problemas.`;
-      
+
       setAiAnalysis(demoAnalysis);
       setLoadingAnalysis(false);
     }, 2000); // Simula delay da API
   };
-  
+
   // Função para gerar análise de IA
   const handleGenerateAnalysis = async () => {
     if (selectedCourse === 'nenhum') {
       alert('Selecione um curso para gerar a análise.');
       return;
     }
-    
+
     setLoadingAnalysis(true);
     setAiAnalysis(''); // Limpar análise anterior
-    
+
     try {
       // Preparar dados para a IA
       const dadosTurma = {
@@ -252,22 +204,22 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
         })),
         historico: active.history,
       };
-      
+
       const contexto = `Análise de desempenho do curso "${courses.find(c => c.id === selectedCourse)?.name}".
       Total de ${active.history.length} avaliações realizadas.`;
-      
+
       const response = await fetch('/api/desempenho/avaliacaoIA', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dadosTurma, contexto }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erro ao gerar análise');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.analysis) {
         setAiAnalysis(data.analysis);
       } else {
@@ -344,7 +296,7 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
             content={aiAnalysis}
             loading={loadingAnalysis}
             onRefresh={demoMode ? handleTestWithDemoData : handleGenerateAnalysis}
-            emptyMessage={selectedCourse === 'nenhum' 
+            emptyMessage={selectedCourse === 'nenhum'
               ? 'Selecione um curso e clique em "Gerar Análise" para obter insights da IA.'
               : 'Clique em "Gerar Análise" para obter insights da IA sobre o desempenho da turma.'}
             action={
@@ -403,8 +355,8 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
                         <TableCell>{item.type}</TableCell>
                         <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Chip 
-                            label={`${item.score} / ${item.maxScore}`} 
+                          <Chip
+                            label={`${item.score} / ${item.maxScore}`}
                             color={item.score >= (item.maxScore * 0.6) ? "success" : "error"}
                             size="small"
                             variant="outlined"
@@ -416,22 +368,22 @@ A turma apresenta um desempenho **médio de 76.5 pontos**, com um desvio padrão
                         </TableCell>
                         <TableCell align="right">
                           {item.type === 'Prova' && (
-                            <Button 
+                            <Button
                               component={Link}
-                              href={`/cursos/${selectedCourse}/provas/${item.id}`}
-                              variant="contained" 
-                              size="small" 
+                              href={`/cursos/${selectedCourse}`}
+                              variant="contained"
+                              size="small"
                               startIcon={<Visibility />}
                             >
                               Ver Prova
                             </Button>
                           )}
                           {item.type === 'Lista' && (
-                            <Button 
+                            <Button
                               component={Link}
-                              href={`/cursos/${selectedCourse}/listas/${item.id}/visualizar`}
-                              variant="contained" 
-                              size="small" 
+                              href={`/cursos/${selectedCourse}`}
+                              variant="contained"
+                              size="small"
                               startIcon={<Visibility />}
                             >
                               Ver Lista
