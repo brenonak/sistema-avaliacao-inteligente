@@ -35,68 +35,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 
-// Dados mockados do aluno
-const mockAluno = {
-  id: '2',
-  nome: 'Bruno Santos',
-  email: 'bruno.santos@email.com',
-  status: 'pendente',
-};
 
-// Dados mockados da prova com questões
-const mockProva = {
-  id: '1',
-  titulo: 'Prova de Cálculo I',
-  disciplina: 'Cálculo I',
-  professor: 'Prof. João Silva',
-  data: '2025-12-10',
-  questoes: [
-    {
-      id: 'q1',
-      tipo: 'alternativa',
-      enunciado: 'Qual é a derivada de f(x) = x² + 3x - 5?',
-      pontuacao: 2,
-      alternativas: [
-        { letra: 'A', texto: 'f\'(x) = 2x + 3' },
-        { letra: 'B', texto: 'f\'(x) = x + 3' },
-        { letra: 'C', texto: 'f\'(x) = 2x - 5' },
-        { letra: 'D', texto: 'f\'(x) = x² + 3' },
-      ],
-      respostaCorreta: 'A',
-    },
-    {
-      id: 'q2',
-      tipo: 'dissertativa',
-      enunciado: 'Calcule a integral indefinida de f(x) = 3x² + 2x e explique cada passo do processo.',
-      pontuacao: 3,
-    },
-    {
-      id: 'q3',
-      tipo: 'numerica',
-      enunciado: 'Qual é o valor de lim(x→2) (x² - 4)/(x - 2)?',
-      pontuacao: 2,
-      respostaCorreta: 4,
-    },
-    {
-      id: 'q4',
-      tipo: 'afirmacoes',
-      enunciado: 'Analise as afirmações sobre derivadas e marque V ou F:',
-      pontuacao: 2,
-      afirmacoes: [
-        { texto: 'A derivada de uma constante é zero.', correta: true },
-        { texto: 'A derivada de e^x é e^x.', correta: true },
-        { texto: 'A derivada de ln(x) é x.', correta: false },
-        { texto: 'A regra do produto afirma que (fg)\' = f\'g\'.', correta: false },
-      ],
-    },
-    {
-      id: 'q5',
-      tipo: 'dissertativa',
-      enunciado: 'Demonstre o Teorema Fundamental do Cálculo e dê um exemplo de aplicação.',
-      pontuacao: 3,
-    },
-  ],
-};
 
 export default function CorrecaoAlunoPage() {
   const params = useParams();
@@ -105,49 +44,61 @@ export default function CorrecaoAlunoPage() {
   const alunoId = params?.alunoId;
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [prova, setProva] = useState(null);
   const [aluno, setAluno] = useState(null);
-  const [respostas, setRespostas] = useState({});
-  const [notas, setNotas] = useState({});
+  const [questoes, setQuestoes] = useState([]);
+  const [notaTotal, setNotaTotal] = useState(0);
   const [comentarios, setComentarios] = useState({});
+  const [notas, setNotas] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    // Simula carregamento de dados
-    const timer = setTimeout(() => {
-      setProva(mockProva);
-      setAluno(mockAluno);
-      
-      // Inicializa as respostas e notas vazias
-      const initialRespostas = {};
-      const initialNotas = {};
-      const initialComentarios = {};
-      mockProva.questoes.forEach((q) => {
-        initialRespostas[q.id] = q.tipo === 'afirmacoes' ? [] : '';
-        initialNotas[q.id] = '';
-        initialComentarios[q.id] = '';
-      });
-      setRespostas(initialRespostas);
-      setNotas(initialNotas);
-      setComentarios(initialComentarios);
-      
-      setLoading(false);
-    }, 500);
+    if (!provaId || !alunoId) return;
 
-    return () => clearTimeout(timer);
+    const fetchSubmissao = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/provas/${provaId}/submissoes/${alunoId}`);
+        if (!response.ok) {
+          throw new Error('Erro ao carregar submissão');
+        }
+
+        const data = await response.json();
+        setAluno(data.aluno);
+        setProva(data.prova);
+        setQuestoes(data.questoes);
+        setNotaTotal(data.submissao.notaTotal);
+
+        // Inicializar comentários e notas com valores existentes
+        const initialComentarios = {};
+        const initialNotas = {};
+        data.questoes.forEach((q) => {
+          initialComentarios[q.id] = q.feedback || '';
+          initialNotas[q.id] = q.pontuacaoObtida?.toString() || '';
+        });
+        setComentarios(initialComentarios);
+        setNotas(initialNotas);
+      } catch (err) {
+        console.error('Erro:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmissao();
   }, [provaId, alunoId]);
 
   const handleRespostaChange = (questaoId, value) => {
-    setRespostas((prev) => ({ ...prev, [questaoId]: value }));
+    // Não é mais necessário atualizar respostas, já que vem do servidor
   };
 
   const handleAfirmacaoChange = (questaoId, index, value) => {
-    setRespostas((prev) => {
-      const currentArray = [...(prev[questaoId] || [])];
-      currentArray[index] = value === 'true';
-      return { ...prev, [questaoId]: currentArray };
-    });
+    // Resposta já está preenchida, apenas visualização
   };
 
   const handleNotaChange = (questaoId, value, maxPontuacao) => {
@@ -155,6 +106,14 @@ export default function CorrecaoAlunoPage() {
     if (nota > maxPontuacao) nota = maxPontuacao;
     if (nota < 0) nota = 0;
     setNotas((prev) => ({ ...prev, [questaoId]: nota.toString() }));
+
+    // Recalcular nota total
+    const notasAtualizadas = { ...notas, [questaoId]: nota };
+    const total = Object.values(notasAtualizadas).reduce(
+      (acc, n) => acc + (parseFloat(n) || 0),
+      0
+    );
+    setNotaTotal(total);
   };
 
   const handleComentarioChange = (questaoId, value) => {
@@ -166,23 +125,48 @@ export default function CorrecaoAlunoPage() {
   };
 
   const calcularPontuacaoMaxima = () => {
-    return prova?.questoes.reduce((acc, q) => acc + q.pontuacao, 0) || 0;
+    return questoes.reduce((acc, q) => acc + (q.pontuacao || 0), 0);
   };
 
   const handleSave = async () => {
     setSaving(true);
-    
-    // Simula salvamento
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    setSaving(false);
-    setShowSuccess(true);
+
+    try {
+      // Preparar atualizações
+      const atualizacoes = questoes.map((questao) => ({
+        questaoId: questao.id,
+        pontuacaoObtida: parseFloat(notas[questao.id]) || 0,
+        feedback: comentarios[questao.id] || null,
+      }));
+
+      const response = await fetch(
+        `/api/provas/${provaId}/submissoes/${alunoId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ atualizacoes }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar correção');
+      }
+
+      setSaving(false);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error('Erro:', err);
+      alert('Erro ao salvar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+      setSaving(false);
+    }
   };
 
   const handleSaveAndNext = async () => {
     await handleSave();
-    // Aqui navegaria para o próximo aluno
-    router.push(`/provas/${provaId}/submissoes`);
+    // Voltar para lista após salvar
+    setTimeout(() => {
+      router.push(`/provas/${provaId}/submissoes`);
+    }, 1500);
   };
 
   if (loading) {
@@ -196,6 +180,31 @@ export default function CorrecaoAlunoPage() {
         }}
       >
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
+        <Typography color="error" variant="h6">
+          Erro: {error}
+        </Typography>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => window.location.reload()}
+        >
+          Tentar Novamente
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!aluno || !prova || questoes.length === 0) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
+        <Typography>Dados não encontrados</Typography>
       </Box>
     );
   }
@@ -242,7 +251,7 @@ export default function CorrecaoAlunoPage() {
                 Nota Total
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="primary.main">
-                {calcularNotaTotal().toFixed(1)} / {calcularPontuacaoMaxima()}
+                {notaTotal.toFixed(1)} / {calcularPontuacaoMaxima()}
               </Typography>
             </Box>
           </Stack>
@@ -250,11 +259,11 @@ export default function CorrecaoAlunoPage() {
       </Card>
 
       <Alert severity="info" sx={{ mb: 4 }}>
-        Preencha as respostas do aluno conforme a prova em papel e atribua a nota para cada questão.
+        Visualize as respostas do aluno e atribua feedback e nota para cada questão.
       </Alert>
 
       {/* Questões */}
-      {prova?.questoes.map((questao, idx) => (
+      {questoes.map((questao, idx) => (
         <Paper key={questao.id} sx={{ mb: 3, p: 3 }} elevation={2}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -286,91 +295,120 @@ export default function CorrecaoAlunoPage() {
               <FormLabel component="legend" sx={{ mb: 1 }}>
                 Resposta marcada pelo aluno:
               </FormLabel>
-              <RadioGroup
-                value={respostas[questao.id] || ''}
-                onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
-              >
+              <RadioGroup value={questao.respostaAluno || ''}>
                 {questao.alternativas.map((alt) => (
                   <FormControlLabel
                     key={alt.letra}
                     value={alt.letra}
-                    control={<Radio />}
+                    control={<Radio disabled />}
                     label={`${alt.letra}) ${alt.texto}`}
                     sx={{
                       mb: 1,
                       p: 1,
                       borderRadius: 1,
-                      bgcolor: respostas[questao.id] === alt.letra ? 'action.selected' : 'transparent',
+                      bgcolor: questao.respostaAluno === alt.letra ? 'action.selected' : 'transparent',
                     }}
                   />
                 ))}
               </RadioGroup>
+              {questao.isCorrect && (
+                <Typography variant="caption" color="success.main" sx={{ mt: 1 }}>
+                  ✓ Resposta correta
+                </Typography>
+              )}
+              {!questao.isCorrect && questao.respostaAluno && (
+                <Typography variant="caption" color="error.main" sx={{ mt: 1 }}>
+                  ✗ Resposta incorreta
+                </Typography>
+              )}
             </FormControl>
           )}
 
           {/* Dissertativa */}
           {questao.tipo === 'dissertativa' && (
             <TextField
-              label="Resposta do aluno (transcrição)"
+              label="Resposta do aluno"
               multiline
               minRows={4}
               fullWidth
-              value={respostas[questao.id] || ''}
-              onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
-              placeholder="Digite aqui a resposta do aluno conforme a prova em papel..."
-              sx={{ mb: 2 }}
+              value={questao.respostaAluno || 'Sem resposta'}
+              InputProps={{ readOnly: true }}
+              sx={{ mb: 2, bgcolor: 'action.hover' }}
             />
           )}
 
           {/* Numérica */}
           {questao.tipo === 'numerica' && (
-            <TextField
-              label="Resposta numérica do aluno"
-              type="number"
-              fullWidth
-              value={respostas[questao.id] || ''}
-              onChange={(e) => handleRespostaChange(questao.id, e.target.value)}
-              sx={{ mb: 2 }}
-            />
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                label="Resposta numérica do aluno"
+                fullWidth
+                value={questao.respostaAluno !== null && questao.respostaAluno !== undefined ? questao.respostaAluno : 'Sem resposta'}
+                InputProps={{ readOnly: true }}
+                sx={{ bgcolor: 'action.hover' }}
+              />
+              {questao.isCorrect && (
+                <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
+                  ✓ Resposta correta
+                </Typography>
+              )}
+              {!questao.isCorrect && questao.respostaAluno !== null && (
+                <Typography variant="caption" color="error.main" sx={{ mt: 1, display: 'block' }}>
+                  ✗ Resposta incorreta
+                </Typography>
+              )}
+            </Box>
           )}
 
           {/* Afirmações V/F */}
           {questao.tipo === 'afirmacoes' && (
             <Box>
               <Typography variant="subtitle2" gutterBottom color="text.secondary">
-                Marque V ou F conforme resposta do aluno:
+                Respostas marcadas pelo aluno:
               </Typography>
-              {questao.afirmacoes.map((afirmacao, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    mb: 2,
-                    p: 2,
-                    bgcolor: 'action.hover',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-                    {afirmacao.texto}
-                  </Typography>
-                  <RadioGroup
-                    row
-                    value={respostas[questao.id]?.[i]?.toString() || ''}
-                    onChange={(e) => handleAfirmacaoChange(questao.id, i, e.target.value)}
+              {questao.afirmacoes.map((afirmacao, i) => {
+                const respostaAluno = Array.isArray(questao.respostaAluno) ? questao.respostaAluno[i] : null;
+                const isCorrect = respostaAluno === afirmacao.correta;
+                return (
+                  <Box
+                    key={i}
+                    sx={{
+                      mb: 2,
+                      p: 2,
+                      bgcolor: 'action.hover',
+                      borderRadius: 2,
+                      borderLeft: isCorrect ? '3px solid' : 'none',
+                      borderColor: isCorrect ? 'success.main' : 'transparent',
+                    }}
                   >
-                    <FormControlLabel
-                      value="true"
-                      control={<Radio size="small" />}
-                      label="Verdadeiro"
-                    />
-                    <FormControlLabel
-                      value="false"
-                      control={<Radio size="small" />}
-                      label="Falso"
-                    />
-                  </RadioGroup>
-                </Box>
-              ))}
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                      {afirmacao.texto}
+                    </Typography>
+                    <RadioGroup row value={respostaAluno?.toString() || ''}>
+                      <FormControlLabel
+                        value="true"
+                        control={<Radio size="small" disabled />}
+                        label="Verdadeiro"
+                      />
+                      <FormControlLabel
+                        value="false"
+                        control={<Radio size="small" disabled />}
+                        label="Falso"
+                      />
+                    </RadioGroup>
+                    {isCorrect && (
+                      <Typography variant="caption" color="success.main">
+                        ✓ Correto
+                      </Typography>
+                    )}
+                    {!isCorrect && respostaAluno !== null && (
+                      <Typography variant="caption" color="error.main">
+                        ✗ Incorreto
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              })}
             </Box>
           )}
 
@@ -400,7 +438,7 @@ export default function CorrecaoAlunoPage() {
                   focused
                 />
               </Grid>
-              
+
               {/* Campo de Comentário/Feedback */}
               <Grid item xs={12}>
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'flex-start', gap: 1 }}>

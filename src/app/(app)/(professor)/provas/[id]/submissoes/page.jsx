@@ -36,28 +36,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 
-// Dados mockados de alunos para demonstração
-const mockAlunos = [
-  { id: '1', nome: 'Ana Silva', email: 'ana.silva@email.com', status: 'corrigido', nota: 8.5 },
-  { id: '2', nome: 'Bruno Santos', email: 'bruno.santos@email.com', status: 'pendente', nota: null },
-  { id: '3', nome: 'Carla Oliveira', email: 'carla.oliveira@email.com', status: 'corrigido', nota: 9.0 },
-  { id: '4', nome: 'Daniel Costa', email: 'daniel.costa@email.com', status: 'pendente', nota: null },
-  { id: '5', nome: 'Elena Ferreira', email: 'elena.ferreira@email.com', status: 'corrigido', nota: 7.5 },
-  { id: '6', nome: 'Felipe Rodrigues', email: 'felipe.rodrigues@email.com', status: 'pendente', nota: null },
-  { id: '7', nome: 'Gabriela Lima', email: 'gabriela.lima@email.com', status: 'corrigido', nota: 10.0 },
-  { id: '8', nome: 'Henrique Almeida', email: 'henrique.almeida@email.com', status: 'pendente', nota: null },
-];
 
-// Dados mockados da prova
-const mockProva = {
-  id: '1',
-  titulo: 'Prova de Cálculo I',
-  disciplina: 'Cálculo I',
-  professor: 'Prof. João Silva',
-  data: '2025-12-10',
-  totalQuestoes: 5,
-  valorTotal: 10,
-};
 
 export default function SubmissoesProvaPage() {
   const params = useParams();
@@ -65,19 +44,38 @@ export default function SubmissoesProvaPage() {
   const provaId = params?.id;
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [prova, setProva] = useState(null);
   const [alunos, setAlunos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [estatisticas, setEstatisticas] = useState({});
 
   useEffect(() => {
-    // Simula carregamento de dados
-    const timer = setTimeout(() => {
-      setProva(mockProva);
-      setAlunos(mockAlunos);
-      setLoading(false);
-    }, 500);
+    if (!provaId) return;
 
-    return () => clearTimeout(timer);
+    const fetchSubmissoes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/provas/${provaId}/submissoes`);
+        if (!response.ok) {
+          throw new Error('Erro ao carregar submissões');
+        }
+
+        const data = await response.json();
+        setProva(data.prova);
+        setAlunos(data.submissoes);
+        setEstatisticas(data.estatisticas);
+      } catch (err) {
+        console.error('Erro:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubmissoes();
   }, [provaId]);
 
   // Filtra alunos pela busca
@@ -88,12 +86,10 @@ export default function SubmissoesProvaPage() {
   );
 
   // Estatísticas
-  const totalAlunos = alunos.length;
-  const corrigidos = alunos.filter((a) => a.status === 'corrigido').length;
-  const pendentes = alunos.filter((a) => a.status === 'pendente').length;
-  const mediaNotas = alunos
-    .filter((a) => a.nota !== null)
-    .reduce((acc, a, _, arr) => acc + a.nota / arr.length, 0);
+  const totalAlunos = estatisticas.totalAlunos || 0;
+  const corrigidos = estatisticas.corrigidos || 0;
+  const pendentes = estatisticas.pendentes || 0;
+  const mediaNotas = estatisticas.mediaNotas || 0;
 
   if (loading) {
     return (
@@ -106,6 +102,31 @@ export default function SubmissoesProvaPage() {
         }}
       >
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+        <Typography color="error" variant="h6">
+          Erro: {error}
+        </Typography>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => window.location.reload()}
+        >
+          Tentar Novamente
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!prova) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+        <Typography>Prova não encontrada</Typography>
       </Box>
     );
   }
@@ -307,7 +328,7 @@ export default function SubmissoesProvaPage() {
                     >
                       <Button
                         component={Link}
-                        href={`/provas/${provaId}/submissoes/${aluno.id}`}
+                        href={`/correcao`}
                         variant={aluno.status === 'pendente' ? 'contained' : 'outlined'}
                         size="small"
                         startIcon={<Edit />}
