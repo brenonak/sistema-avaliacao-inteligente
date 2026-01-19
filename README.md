@@ -24,7 +24,7 @@ A plataforma utiliza **Inteligência Artificial (LLMs)** para auxiliar na criaç
 
 ## Documentação do Projeto
 
-O projeto seguiu a metodologia Ágil (Scrum) ao longo do semestre. Detalhes sobre todo o projeto e suas funcionalidade detalhadas podem ser consultados na apresentação oficial:
+O projeto seguiu a metodologia Ágil (Scrum) ao longo do semestre. Detalhes sobre todo o projeto e suas funcionalidades detalhadas podem ser consultados na apresentação oficial:
 
 📄 **[Ver Apresentação Completa do Projeto (PDF)](./docs/Engenharia%20de%20Software%20Equipe%20Golf.pdf)**
 
